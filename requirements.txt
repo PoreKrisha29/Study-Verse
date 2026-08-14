@@ -1,0 +1,19 @@
+﻿Flask==3.0.0             # Core Web Framework
+Flask-SQLAlchemy==3.1.1  # Database ORM
+Flask-Login==0.6.3       # User Session Management
+Flask-SocketIO==5.5.1    # Real-Time WebSocket Communication
+Werkzeug==3.0.1          # WSGI Utility Library
+requests==2.31.0         # HTTP Client (Fallback to REST API for Gemini if SDK missing)
+google-generativeai==0.3.2 # Official Google AI SDK (Preferred for Stability/Features)
+PyPDF2==3.0.1            # PDF Parsing (Syllabus uploads)
+# openai==1.3.7          # (Removed: Unused in current version)
+python-dotenv==1.0.0     # Environment Variable Loader
+authlib==1.3.0           # OAuth Client (Google Sign-In)
+pytz==2024.1             # Timezone Handling
+psycopg2-binary==2.9.11  # PostgreSQL Database Driver
+gunicorn==21.2.0         # Production WSGI Server
+eventlet>=0.35.2         # Async Networking Library (Required for Socket.IO)
+python-socketio==5.12.0  # Core Socket.IO implementation
+dnspython==2.4.2         # DNS Toolkit (Used by some database connectors)
+simple-websocket==1.0.0  # WebSocket Protocol Implementation
+whitenoise==6.6.0        # Static File Server for Production

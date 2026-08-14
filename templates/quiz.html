@@ -1,0 +1,397 @@
+{% extends "layout.html" %}
+
+{% block title %}AI Weakness Quiz - StudyVerse{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <h1 class="page-title">Knowledge Check</h1>
+    <p style="color: var(--text-secondary);">Target your weak spots and level up your proficiency.</p>
+</div>
+
+<div class="card" id="quiz-start-card"
+    style="text-align: center; padding: 40px; border: 1px solid var(--border); box-shadow: 0 10px 30px rgba(0,0,0,0.3);">
+    <div
+        style="width: 80px; height: 80px; background: rgba(59, 130, 246, 0.1); border-radius: 50%; display: flex; align-items: center; justify-content: center; margin: 0 auto 24px;">
+        <i class="fa-solid fa-brain" style="font-size: 2.5rem; color: #3b82f6;"></i>
+    </div>
+    <h2 style="margin-bottom: 16px; font-family: var(--font-heading);">Customize Your Challenge</h2>
+    <p style="color: var(--text-secondary); max-width: 500px; margin: 0 auto 32px; line-height: 1.6;">
+        Configure your AI quiz to target your needs.
+    </p>
+
+    <!-- Quiz Settings Form -->
+    <div style="max-width: 400px; margin: 0 auto 32px; text-align: left; display: grid; gap: 16px;">
+
+        <!-- Question Count -->
+        <div>
+            <label style="display: block; color: var(--text-secondary); margin-bottom: 8px; font-size: 0.9rem;">Number
+                of Questions</label>
+            <div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px;">
+                <button class="btn-select selected" onclick="selectOption(this, 'q-count', 5)">5</button>
+                <button class="btn-select" onclick="selectOption(this, 'q-count', 10)">10</button>
+                <button class="btn-select" onclick="selectOption(this, 'q-count', 15)">15</button>
+                <button class="btn-select" onclick="selectOption(this, 'q-count', 20)">20</button>
+            </div>
+        </div>
+
+        <!-- Difficulty -->
+        <div>
+            <label
+                style="display: block; color: var(--text-secondary); margin-bottom: 8px; font-size: 0.9rem;">Difficulty</label>
+            <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px;">
+                <button class="btn-select" onclick="selectOption(this, 'difficulty', 'easy')">Easy</button>
+                <button class="btn-select selected" onclick="selectOption(this, 'difficulty', 'medium')">Medium</button>
+                <button class="btn-select" onclick="selectOption(this, 'difficulty', 'hard')">Hard</button>
+            </div>
+        </div>
+
+    </div>
+
+    <div style="display: flex; justify-content: center;">
+        <button id="start-quiz-btn" class="btn-primary"
+            style="padding: 12px 32px; font-size: 1.1rem; width: 100%; max-width: 300px;">
+            <i class="fa-solid fa-wand-magic-sparkles"></i> Start Quiz
+        </button>
+    </div>
+    <div id="loading-spinner" style="display: none; margin-top: 20px; color: var(--accent-blue);">
+        <i class="fa-solid fa-circle-notch fa-spin fa-2x"></i>
+        <p style="margin-top: 10px;">Constructing your challenge...</p>
+    </div>
+</div>
+
+<style>
+    .btn-select {
+        background: var(--bg-hover);
+        border: 1px solid var(--border);
+        color: var(--text-primary);
+        padding: 8px;
+        border-radius: 8px;
+        cursor: pointer;
+        transition: all 0.2s;
+        font-weight: 500;
+    }
+
+    .btn-select:hover {
+        background: var(--bg-card);
+        /* Slightly different on hover */
+        border-color: var(--text-secondary);
+    }
+
+    .btn-select.selected {
+        background: #3b82f6 !important;
+        /* Force Blue */
+        color: white !important;
+        border-color: #3b82f6 !important;
+        box-shadow: 0 0 10px rgba(59, 130, 246, 0.4);
+    }
+</style>
+
+<div id="quiz-container" style="display: none; max-width: 700px; margin: 0 auto;">
+    <!-- Progress Bar -->
+    <div style="margin-bottom: 16px;">
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;">
+            <span style="font-size:0.8rem;color:var(--text-secondary);font-weight:600;">Question <span id="q-progress-num">1</span> of <span id="q-progress-total">5</span></span>
+            <span id="q-progress-pct" style="font-size:0.8rem;color:var(--accent-green);font-weight:700;">20%</span>
+        </div>
+        <div style="height:6px;background:rgba(255,255,255,0.07);border-radius:10px;overflow:hidden;">
+            <div id="quiz-progress-bar" style="height:100%;background:linear-gradient(90deg,#3b82f6,#7c3aed);border-radius:10px;width:20%;transition:width 0.4s cubic-bezier(0.34,1.56,0.64,1);"></div>
+        </div>
+    </div>
+
+    <!-- Question Card -->
+    <div class="card" style="border-top: 4px solid var(--accent-blue);">
+        <div
+            style="display: flex; justify-content: space-between; margin-bottom: 24px; color: var(--text-secondary); font-size: 0.9rem;">
+            <span id="question-topic-badge"
+                style="background: rgba(255,255,255,0.05); padding: 4px 12px; border-radius: 20px;">Topic</span>
+            <span>Question <span id="current-q-num">1</span> / <span id="total-q-num">5</span></span>
+        </div>
+
+        <h3 id="question-text" style="font-size: 1.3rem; margin-bottom: 32px; line-height: 1.4;">
+            Question goes here?
+        </h3>
+
+        <div id="options-container" style="display: flex; flex-direction: column; gap: 12px;">
+            <!-- Options injected via JS -->
+        </div>
+
+        <div id="feedback-area" style="margin-top: 24px; padding: 16px; border-radius: 8px; display: none;"></div>
+
+        <div style="margin-top: 32px; display: flex; justify-content: flex-end;">
+            <button id="next-question-btn" class="btn-primary" style="display: none;">Next Question <i
+                    class="fa-solid fa-arrow-right"></i></button>
+        </div>
+    </div>
+</div>
+
+<div id="quiz-results" style="display: none; text-align: center; max-width: 600px; margin: 0 auto;">
+    <div class="card" style="position:relative;overflow:hidden;">
+        <!-- Score Ring -->
+        <div style="position:relative;display:inline-block;margin-bottom:16px;">
+            <svg width="120" height="120" viewBox="0 0 120 120" style="transform:rotate(-90deg);">
+                <circle cx="60" cy="60" r="52" fill="none" stroke="rgba(255,255,255,0.06)" stroke-width="10"/>
+                <circle id="score-ring" cx="60" cy="60" r="52" fill="none" stroke="#3b82f6" stroke-width="10"
+                    stroke-dasharray="326.7" stroke-dashoffset="326.7"
+                    stroke-linecap="round" style="transition:stroke-dashoffset 1.2s cubic-bezier(0.34,1.0,0.64,1);"/>
+            </svg>
+            <div style="position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;">
+                <div style="font-size:1.8rem;font-weight:800;color:white;" id="result-score">0%</div>
+            </div>
+        </div>
+
+        <h2 id="result-title" style="font-family:var(--font-heading);margin-bottom:6px;">Quiz Complete!</h2>
+        <p id="result-subtitle" style="color:var(--text-secondary);margin-bottom:24px;font-size:0.95rem;">Great job! Your proficiency has been updated.</p>
+
+        <!-- Stats Grid -->
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:24px;">
+            <div style="background:rgba(251,191,36,0.08);border:1px solid rgba(251,191,36,0.2);padding:16px;border-radius:12px;position:relative;overflow:hidden;">
+                <div style="font-size:0.85rem;color:var(--text-secondary);margin-bottom:4px;">XP Earned</div>
+                <div style="font-size:1.6rem;font-weight:800;color:#fbbf24;" id="xp-earned-display">+0 XP</div>
+                <div id="xp-pop" style="position:absolute;top:8px;right:10px;font-size:1.5rem;opacity:0;transform:translateY(0);transition:all 0.6s;">&#x2B50;</div>
+            </div>
+            <div style="background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.08);padding:16px;border-radius:12px;">
+                <div style="font-size:0.85rem;color:var(--text-secondary);margin-bottom:4px;">Correct Answers</div>
+                <div style="font-size:1.6rem;font-weight:800;color:white;" id="correct-count-display">0/0</div>
+            </div>
+        </div>
+
+        <!-- Per-Topic Breakdown -->
+        <div id="topic-breakdown" style="text-align:left;margin-bottom:24px;display:none;">
+            <div style="font-size:0.85rem;font-weight:700;color:var(--text-secondary);text-transform:uppercase;letter-spacing:0.5px;margin-bottom:12px;">Topic Breakdown</div>
+            <div id="topic-breakdown-list" style="display:flex;flex-direction:column;gap:8px;"></div>
+        </div>
+
+        <div style="display:flex;gap:12px;justify-content:center;">
+            <button onclick="location.reload()" class="btn-secondary">Take Another Quiz</button>
+            <a href="/dashboard" class="btn-primary" style="margin-left:0;">Back to Dashboard</a>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    let currentQuestions = [];
+    let currentIndex = 0;
+    let score = 0;
+    let userAnswers = [];
+
+    let selectedExample = {
+        count: 5,
+        difficulty: 'medium',
+        syllabus_id: null
+    };
+
+    // Check URL params for syllabus context
+    const urlParams = new URLSearchParams(window.location.search);
+    const sourceSyllabusId = urlParams.get('source_id') || urlParams.get('syllabus_id');
+    if (sourceSyllabusId) {
+        selectedExample.syllabus_id = parseInt(sourceSyllabusId);
+        console.log("Quiz Context Set: Syllabus ID", sourceSyllabusId);
+        // Optional: Update UI to show we are practicing a specific course?
+        // document.querySelector('h2').innerText += " (Specific Course)";
+    }
+
+    function selectOption(btn, type, value) {
+        // Update UI
+        const parent = btn.parentElement;
+        Array.from(parent.children).forEach(c => c.classList.remove('selected'));
+        btn.classList.add('selected');
+
+        // Update State
+        if (type === 'q-count') selectedExample.count = value;
+        if (type === 'difficulty') selectedExample.difficulty = value;
+    }
+
+    const startBtn = document.getElementById('start-quiz-btn');
+    const loading = document.getElementById('loading-spinner');
+    const startCard = document.getElementById('quiz-start-card');
+    const quizContainer = document.getElementById('quiz-container');
+    const questionText = document.getElementById('question-text');
+    const optionsContainer = document.getElementById('options-container');
+    const nextBtn = document.getElementById('next-question-btn');
+    const topicBadge = document.getElementById('question-topic-badge');
+    const feedbackArea = document.getElementById('feedback-area');
+    const resultsContainer = document.getElementById('quiz-results');
+
+    startBtn.addEventListener('click', async () => {
+        startBtn.style.display = 'none';
+        loading.style.display = 'block';
+
+        try {
+            const res = await fetch('/api/quiz/generate', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    num_questions: selectedExample.count,
+                    difficulty: selectedExample.difficulty,
+                    syllabus_id: selectedExample.syllabus_id
+                })
+            });
+            const data = await res.json();
+
+            if (data.status === 'error') {
+                alert(data.message);
+                location.reload();
+                return;
+            }
+
+            currentQuestions = data.questions;
+            startCard.style.display     = 'none';
+            loading.style.display       = 'none';
+            quizContainer.style.display = 'block';
+            document.getElementById('total-q-num').innerText = currentQuestions.length;
+            const totEl = document.getElementById('q-progress-total');
+            if (totEl) totEl.textContent = currentQuestions.length;
+            loadQuestion(0);
+
+        } catch (e) {
+            alert("Failed to generate quiz. Please try again.");
+            location.reload();
+        }
+    });
+
+    function loadQuestion(index) {
+        currentIndex = index;
+        const q = currentQuestions[index];
+
+        document.getElementById('current-q-num').innerText = index + 1;
+        questionText.innerText = q.question;
+        topicBadge.innerText = q.topic || 'General';
+
+        optionsContainer.innerHTML = '';
+        feedbackArea.style.display = 'none';
+        nextBtn.style.display      = 'none';
+
+        // Update progress bar
+        (function updatePB() {
+            const pct   = Math.round(((index + 1) / currentQuestions.length) * 100);
+            const bar   = document.getElementById('quiz-progress-bar');
+            const pctEl = document.getElementById('q-progress-pct');
+            const numEl = document.getElementById('q-progress-num');
+            if (bar)   bar.style.width   = pct + '%';
+            if (pctEl) pctEl.textContent = pct + '%';
+            if (numEl) numEl.textContent = index + 1;
+        })();
+
+        q.options.forEach((opt, i) => {
+            const btn = document.createElement('div');
+            btn.className = 'quiz-option';
+            btn.style.cssText = `
+                padding: 16px; 
+                background: rgba(255,255,255,0.05); 
+                border: 1px solid var(--border); 
+                border-radius: 8px; 
+                cursor: pointer; 
+                transition: all 0.2s;
+            `;
+            btn.innerHTML = `<span style="font-weight:600; margin-right:8px; opacity:0.5;">${String.fromCharCode(65 + i)}.</span> ${opt}`;
+
+            btn.addEventListener('click', () => handleAnswer(i, btn));
+            optionsContainer.appendChild(btn);
+        });
+    }
+
+    function handleAnswer(selectedIndex, btnElement) {
+        // Prevent multiple clicks
+        if (nextBtn.style.display === 'inline-flex' || nextBtn.style.display === 'block') return;
+
+        const q = currentQuestions[currentIndex];
+        const isCorrect = selectedIndex === q.correct_index;
+
+        // Highlight logic
+        const allOptions = optionsContainer.children;
+        Array.from(allOptions)[q.correct_index].style.background = 'rgba(74, 222, 128, 0.2)';
+        Array.from(allOptions)[q.correct_index].style.borderColor = 'var(--accent-green)';
+
+        if (!isCorrect) {
+            btnElement.style.background = 'rgba(239, 68, 68, 0.2)';
+            btnElement.style.borderColor = 'var(--destructive)';
+        } else {
+            score++;
+            // Confetti for correct answer? Maybe too much.
+        }
+
+        userAnswers.push({
+            topic: q.topic,
+            correct: isCorrect
+        });
+
+        // Show feedback (optional)
+        // Show Next Button
+        nextBtn.style.display = 'inline-flex';
+    }
+
+    nextBtn.addEventListener('click', () => {
+        if (currentIndex < currentQuestions.length - 1) {
+            loadQuestion(currentIndex + 1);
+        } else {
+            finishQuiz();
+        }
+    });
+
+    async function finishQuiz() {
+        quizContainer.style.display = 'none';
+        loading.style.display       = 'block';
+        startCard.style.display     = 'none';
+        try {
+            const res  = await fetch('/api/quiz/submit', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ answers: userAnswers, total: currentQuestions.length })
+            });
+            const data = await res.json();
+            loading.style.display          = 'none';
+            resultsContainer.style.display = 'block';
+            const percent = Math.round((data.score / currentQuestions.length) * 100);
+
+            // Animate score ring
+            document.getElementById('result-score').innerText = percent + '%';
+            const ring      = document.getElementById('score-ring');
+            const ringColor = percent >= 80 ? '#4ade80' : percent >= 50 ? '#fbbf24' : '#ef4444';
+            if (ring) { ring.style.stroke = ringColor; setTimeout(() => { ring.style.strokeDashoffset = 326.7 - (326.7 * percent / 100); }, 100); }
+
+            // Score-based title
+            const titleEl    = document.getElementById('result-title');
+            const subtitleEl = document.getElementById('result-subtitle');
+            if (percent >= 80)      { if(titleEl) titleEl.textContent = '🎉 Excellent Work!';   if(subtitleEl) subtitleEl.textContent = 'Outstanding! Your proficiency has leveled up.'; }
+            else if (percent >= 50) { if(titleEl) titleEl.textContent = '👍 Good Effort!';      if(subtitleEl) subtitleEl.textContent = 'Solid performance. Review weak topics below.'; }
+            else                    { if(titleEl) titleEl.textContent = '💪 Keep Practicing!';  if(subtitleEl) subtitleEl.textContent = "Don't give up — every attempt makes you stronger."; }
+
+            // XP + star pop
+            document.getElementById('xp-earned-display').innerText     = '+' + data.xp_earned + ' XP';
+            document.getElementById('correct-count-display').innerText = data.score + '/' + currentQuestions.length;
+            const xpPop = document.getElementById('xp-pop');
+            if (xpPop) { setTimeout(() => { xpPop.style.opacity='1'; xpPop.style.transform='translateY(-12px)'; setTimeout(() => { xpPop.style.opacity='0'; xpPop.style.transform='translateY(0)'; }, 1200); }, 600); }
+
+            // Per-topic breakdown
+            const topicMap = {};
+            userAnswers.forEach(a => { if (!topicMap[a.topic]) topicMap[a.topic]={correct:0,total:0}; topicMap[a.topic].total++; if(a.correct) topicMap[a.topic].correct++; });
+            const topics = Object.keys(topicMap);
+            if (topics.length > 1) {
+                const breakdownEl = document.getElementById('topic-breakdown');
+                const listEl      = document.getElementById('topic-breakdown-list');
+                if (breakdownEl) breakdownEl.style.display = 'block';
+                if (listEl) listEl.innerHTML = topics.map(t => {
+                    const {correct,total} = topicMap[t];
+                    const pct = Math.round((correct/total)*100);
+                    const clr = pct>=80?'#4ade80':pct>=50?'#fbbf24':'#ef4444';
+                    return `<div style="display:flex;align-items:center;gap:10px;padding:10px 14px;background:rgba(255,255,255,0.03);border-radius:10px;border:1px solid rgba(255,255,255,0.06);">
+                        <div style="flex:1;font-size:0.85rem;color:var(--text-primary);font-weight:500;">${t}</div>
+                        <div style="font-size:0.8rem;color:var(--text-secondary);">${correct}/${total}</div>
+                        <div style="width:60px;height:6px;background:rgba(255,255,255,0.07);border-radius:6px;overflow:hidden;"><div style="height:100%;width:${pct}%;background:${clr};border-radius:6px;transition:width 0.8s ease;"></div></div>
+                        <div style="font-size:0.8rem;font-weight:700;color:${clr};min-width:32px;text-align:right;">${pct}%</div></div>`;
+                }).join('');
+            }
+
+            if (percent >= 80) window.triggerConfetti();
+        } catch (e) { alert('Error submitting results.'); location.reload(); }
+    }
+</script>
+<style>
+    .quiz-option:hover {
+        background: rgba(255, 255, 255, 0.1) !important;
+        transform: translateX(4px);
+    }
+</style>
+{% endblock %}

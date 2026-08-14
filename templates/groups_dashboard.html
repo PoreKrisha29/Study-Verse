@@ -1,0 +1,543 @@
+{% extends "layout.html" %}
+
+{% block title %}Study Groups - StudyVerse{% endblock %}
+
+{% block content %}
+<header class="friends-header">
+    <div class="friends-header-info">
+        <h1 class="page-title-friends">Study Groups</h1>
+        <p class="friends-subtitle">Collaborate with your study squad in real-time &mdash; up to {{ group_limit }}
+            groups.</p>
+    </div>
+    <div class="friends-actions">
+        <div class="mode-switcher-friends">
+            <a href="/friends" class="mode-btn-friends">Friends</a>
+            <a href="/group" class="mode-btn-friends active">Groups</a>
+        </div>
+    </div>
+</header>
+
+{% with messages = get_flashed_messages(with_categories=true) %}
+{% if messages %}
+{% for cat, msg in messages %}
+<div class="flash-msg flash-{{ cat }}" style="margin-bottom:16px;padding:12px 18px;border-radius:10px;font-weight:600;
+        background:{% if cat=='success' %}rgba(74,222,128,0.12){% else %}rgba(239,68,68,0.12){% endif %};
+        color:{% if cat=='success' %}#4ade80{% else %}#f87171{% endif %};
+        border:1px solid {% if cat=='success' %}rgba(74,222,128,0.25){% else %}rgba(239,68,68,0.25){% endif %};">
+    <i class="fa-solid {% if cat=='success' %}fa-circle-check{% else %}fa-circle-exclamation{% endif %}"></i>
+    {{ msg }}
+</div>
+{% endfor %}
+{% endif %}
+{% endwith %}
+
+<div class="groups-dashboard-layout">
+
+    <!-- LEFT: Group Cards -->
+    <div class="groups-list-panel">
+
+        {% if group_cards %}
+        <div class="groups-grid">
+            {% for card in group_cards %}
+            <a href="{{ url_for('group_room', group_id=card.group.id) }}" class="group-card-link">
+                <div class="group-card">
+                    <!-- Emoji Avatar -->
+                    <div class="group-card-avatar">
+                        {{ card.group.avatar_emoji or '📚' }}
+                        {% if card.online_count > 0 %}
+                        <span class="online-dot" title="{{ card.online_count }} online"></span>
+                        {% endif %}
+                    </div>
+
+                    <!-- Info -->
+                    <div class="group-card-body">
+                        <div class="group-card-top">
+                            <span class="group-card-name">{{ card.group.name }}</span>
+                            {% if card.is_admin %}
+                            <span class="badge-admin" title="You are the admin">
+                                <i class="fa-solid fa-crown"></i>
+                            </span>
+                            {% endif %}
+                            {% if card.unread > 0 %}
+                            <span class="badge-unread">{{ card.unread }}</span>
+                            {% endif %}
+                        </div>
+                        {% if card.group.description %}
+                        <div class="group-card-desc">{{ card.group.description }}</div>
+                        {% endif %}
+                        <div class="group-card-meta">
+                            <span><i class="fa-solid fa-users"></i> {{ card.member_count }} member{{ 's' if
+                                card.member_count != 1 else '' }}</span>
+                            <span
+                                style="color:{% if card.online_count > 0 %}#4ade80{% else %}var(--text-secondary){% endif %};">
+                                <i class="fa-solid fa-circle" style="font-size:7px;vertical-align:middle;"></i>
+                                {{ card.online_count }} online
+                            </span>
+                        </div>
+                    </div>
+
+                    <i class="fa-solid fa-chevron-right group-card-arrow"></i>
+                </div>
+            </a>
+            {% endfor %}
+        </div>
+        {% else %}
+        <!-- Empty State -->
+        <div class="groups-empty-state">
+            <div class="empty-icon">👥</div>
+            <h2>No groups yet</h2>
+            <p>Create your first study group or join one with an invite code.</p>
+        </div>
+        {% endif %}
+
+        <!-- Capacity Bar -->
+        <div class="capacity-bar-wrap">
+            <div class="capacity-bar-label">
+                <span>Group Slots</span>
+                <span>{{ group_cards|length }} / {{ group_limit }}</span>
+            </div>
+            <div class="capacity-bar-track">
+                <div class="capacity-bar-fill" style="width: {{ (group_cards|length / group_limit * 100)|int }}%;">
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- RIGHT: Create / Join Panel -->
+    <div class="groups-action-panel">
+
+        <!-- CREATE GROUP -->
+        <div class="card action-card">
+            <div class="action-card-header">
+                <div class="action-card-icon" style="background: rgba(99,102,241,0.15); color:#818cf8;">
+                    <i class="fa-solid fa-plus"></i>
+                </div>
+                <div>
+                    <div class="action-card-title">Create a Group</div>
+                    <div class="action-card-sub">You'll become the admin</div>
+                </div>
+            </div>
+            {% if can_create %}
+            <form method="POST" action="{{ url_for('group_create') }}" class="action-form">
+                <input class="input-field" type="text" name="name" placeholder="Group name (e.g. Physics Crew)" required
+                    maxlength="50">
+                <input class="input-field" type="text" name="description" placeholder="Short description (optional)"
+                    maxlength="100">
+                <button class="btn btn-primary btn-full" type="submit">
+                    <i class="fa-solid fa-rocket"></i> Create Group
+                </button>
+            </form>
+            {% else %}
+            <div class="limit-reached-msg">
+                <i class="fa-solid fa-lock"></i>
+                You've reached the {{ group_limit }}-group limit. Leave a group to create a new one.
+            </div>
+            {% endif %}
+        </div>
+
+        <!-- JOIN GROUP -->
+        <div class="card action-card">
+            <div class="action-card-header">
+                <div class="action-card-icon" style="background: rgba(14,165,233,0.15); color:#38bdf8;">
+                    <i class="fa-solid fa-link"></i>
+                </div>
+                <div>
+                    <div class="action-card-title">Join a Group</div>
+                    <div class="action-card-sub">Enter an invite code</div>
+                </div>
+            </div>
+            {% if group_cards|length < group_limit %} <form method="POST" action="{{ url_for('group_join') }}"
+                class="action-form">
+                <div class="code-input-wrap">
+                    <input class="input-field code-field" type="text" name="invite_code" placeholder="ABC123" required
+                        maxlength="10"
+                        style="text-transform:uppercase;letter-spacing:3px;font-weight:700;font-size:1.1rem;text-align:center;">
+                </div>
+                <button class="btn btn-secondary btn-full" type="submit">
+                    <i class="fa-solid fa-arrow-right-to-bracket"></i> Join Group
+                </button>
+                </form>
+                {% else %}
+                <div class="limit-reached-msg">
+                    <i class="fa-solid fa-lock"></i>
+                    You're in {{ group_limit }} groups already. Leave one to join another.
+                </div>
+                {% endif %}
+        </div>
+
+        <!-- Tips Card -->
+        <div class="card tips-card">
+            <div style="font-weight:700;color:#fff;margin-bottom:12px;display:flex;align-items:center;gap:8px;">
+                <i class="fa-solid fa-lightbulb" style="color:#fbbf24;"></i> Tips
+            </div>
+            <ul class="tips-list">
+                <li><i class="fa-solid fa-check-circle"></i> Group admins can kick members, rename and delete groups.
+                </li>
+                <li><i class="fa-solid fa-check-circle"></i> Share your invite code for others to join instantly.</li>
+                <li><i class="fa-solid fa-check-circle"></i> You can be in up to <strong>{{ group_limit }}
+                        groups</strong> at once.</li>
+            </ul>
+        </div>
+
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    // Highlight nav
+    const navEl = document.querySelector('[data-nav="group"]');
+    if (navEl) navEl.classList.add('active');
+</script>
+
+<style>
+    /* ─── Layout ─────────────────────────────────────── */
+    .groups-dashboard-layout {
+        display: grid;
+        grid-template-columns: 1fr 340px;
+        gap: 28px;
+        align-items: start;
+    }
+
+    /* ─── Group Cards Grid ───────────────────────────── */
+    .groups-grid {
+        display: flex;
+        flex-direction: column;
+        gap: 14px;
+        margin-bottom: 20px;
+    }
+
+    .group-card-link {
+        text-decoration: none;
+        color: inherit;
+        display: block;
+    }
+
+    .group-card {
+        display: flex;
+        align-items: center;
+        gap: 16px;
+        padding: 18px 20px;
+        background: rgba(255, 255, 255, 0.04);
+        border: 1px solid rgba(255, 255, 255, 0.08);
+        border-radius: 16px;
+        cursor: pointer;
+        transition: all 0.2s ease;
+        position: relative;
+        overflow: hidden;
+    }
+
+    .group-card::before {
+        content: '';
+        position: absolute;
+        inset: 0;
+        background: linear-gradient(135deg, rgba(99, 102, 241, 0.06), rgba(14, 165, 233, 0.06));
+        opacity: 0;
+        transition: opacity 0.2s;
+    }
+
+    .group-card:hover {
+        border-color: rgba(99, 102, 241, 0.35);
+        transform: translateY(-2px);
+        box-shadow: 0 8px 24px rgba(0, 0, 0, 0.25);
+    }
+
+    .group-card:hover::before {
+        opacity: 1;
+    }
+
+    /* Avatar */
+    .group-card-avatar {
+        width: 54px;
+        height: 54px;
+        border-radius: 14px;
+        background: linear-gradient(135deg, rgba(99, 102, 241, 0.2), rgba(14, 165, 233, 0.2));
+        display: grid;
+        place-items: center;
+        font-size: 1.8rem;
+        flex-shrink: 0;
+        position: relative;
+        border: 1px solid rgba(255, 255, 255, 0.08);
+    }
+
+    .online-dot {
+        position: absolute;
+        bottom: -2px;
+        right: -2px;
+        width: 12px;
+        height: 12px;
+        background: #22c55e;
+        border-radius: 50%;
+        border: 2px solid var(--bg-primary, #0f0f1a);
+        box-shadow: 0 0 6px #22c55e;
+    }
+
+    /* Body */
+    .group-card-body {
+        flex: 1;
+        min-width: 0;
+    }
+
+    .group-card-top {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        margin-bottom: 4px;
+        flex-wrap: wrap;
+    }
+
+    .group-card-name {
+        font-weight: 700;
+        font-size: 1.05rem;
+        color: #fff;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        max-width: 200px;
+    }
+
+    .badge-admin {
+        color: #fbbf24;
+        font-size: 0.75rem;
+        background: rgba(251, 191, 36, 0.1);
+        border: 1px solid rgba(251, 191, 36, 0.2);
+        border-radius: 6px;
+        padding: 2px 7px;
+    }
+
+    .badge-unread {
+        background: #6366f1;
+        color: white;
+        border-radius: 20px;
+        font-size: 0.72rem;
+        font-weight: 700;
+        padding: 2px 8px;
+        min-width: 22px;
+        text-align: center;
+    }
+
+    .group-card-desc {
+        font-size: 0.82rem;
+        color: var(--text-secondary);
+        margin-bottom: 6px;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+    }
+
+    .group-card-meta {
+        display: flex;
+        gap: 16px;
+        font-size: 0.8rem;
+        color: var(--text-secondary);
+    }
+
+    .group-card-meta span {
+        display: flex;
+        align-items: center;
+        gap: 5px;
+    }
+
+    .group-card-arrow {
+        color: rgba(255, 255, 255, 0.2);
+        font-size: 0.85rem;
+        flex-shrink: 0;
+        transition: transform 0.2s;
+    }
+
+    .group-card:hover .group-card-arrow {
+        color: rgba(255, 255, 255, 0.6);
+        transform: translateX(4px);
+    }
+
+    /* Capacity Bar */
+    .capacity-bar-wrap {
+        background: rgba(255, 255, 255, 0.03);
+        border: 1px solid rgba(255, 255, 255, 0.07);
+        border-radius: 12px;
+        padding: 14px 18px;
+    }
+
+    .capacity-bar-label {
+        display: flex;
+        justify-content: space-between;
+        font-size: 0.82rem;
+        color: var(--text-secondary);
+        margin-bottom: 8px;
+    }
+
+    .capacity-bar-track {
+        height: 6px;
+        background: rgba(255, 255, 255, 0.08);
+        border-radius: 10px;
+        overflow: hidden;
+    }
+
+    .capacity-bar-fill {
+        height: 100%;
+        background: linear-gradient(90deg, #6366f1, #0ea5e9);
+        border-radius: 10px;
+        transition: width 0.5s ease;
+    }
+
+    /* Empty State */
+    .groups-empty-state {
+        text-align: center;
+        padding: 60px 20px;
+        color: var(--text-secondary);
+    }
+
+    .groups-empty-state .empty-icon {
+        font-size: 3.5rem;
+        margin-bottom: 16px;
+    }
+
+    .groups-empty-state h2 {
+        font-size: 1.4rem;
+        margin-bottom: 8px;
+        color: #fff;
+    }
+
+    /* ─── Action Panel ───────────────────────────────── */
+    .groups-action-panel {
+        display: flex;
+        flex-direction: column;
+        gap: 20px;
+        position: sticky;
+        top: 20px;
+    }
+
+    .action-card {
+        padding: 22px;
+    }
+
+    .action-card-header {
+        display: flex;
+        align-items: center;
+        gap: 14px;
+        margin-bottom: 18px;
+    }
+
+    .action-card-icon {
+        width: 40px;
+        height: 40px;
+        border-radius: 10px;
+        display: grid;
+        place-items: center;
+        font-size: 1.1rem;
+        flex-shrink: 0;
+    }
+
+    .action-card-title {
+        font-weight: 700;
+        font-size: 1rem;
+        color: #fff;
+    }
+
+    .action-card-sub {
+        font-size: 0.78rem;
+        color: var(--text-secondary);
+    }
+
+    .action-form {
+        display: flex;
+        flex-direction: column;
+        gap: 12px;
+    }
+
+    .input-field {
+        width: 100%;
+        padding: 11px 14px;
+        background: rgba(255, 255, 255, 0.05);
+        border: 1px solid rgba(255, 255, 255, 0.1);
+        border-radius: 10px;
+        color: white;
+        font-size: 0.9rem;
+        outline: none;
+        transition: border-color 0.2s;
+        box-sizing: border-box;
+    }
+
+    .input-field:focus {
+        border-color: rgba(99, 102, 241, 0.5);
+    }
+
+    .input-field::placeholder {
+        color: rgba(255, 255, 255, 0.3);
+    }
+
+    .code-field {
+        letter-spacing: 3px;
+        font-weight: 700;
+        font-size: 1.1rem;
+        text-align: center;
+    }
+
+    .btn-full {
+        width: 100%;
+        justify-content: center;
+    }
+
+    .limit-reached-msg {
+        display: flex;
+        align-items: flex-start;
+        gap: 8px;
+        font-size: 0.85rem;
+        color: var(--text-secondary);
+        background: rgba(239, 68, 68, 0.06);
+        border: 1px solid rgba(239, 68, 68, 0.15);
+        border-radius: 10px;
+        padding: 12px;
+    }
+
+    /* Tips */
+    .tips-card {
+        padding: 20px;
+        background: rgba(251, 191, 36, 0.04);
+        border-color: rgba(251, 191, 36, 0.12);
+    }
+
+    .tips-list {
+        list-style: none;
+        padding: 0;
+        margin: 0;
+        display: flex;
+        flex-direction: column;
+        gap: 10px;
+    }
+
+    .tips-list li {
+        font-size: 0.84rem;
+        color: var(--text-secondary);
+        display: flex;
+        align-items: flex-start;
+        gap: 8px;
+    }
+
+    .tips-list li i {
+        color: #4ade80;
+        font-size: 0.75rem;
+        margin-top: 3px;
+        flex-shrink: 0;
+    }
+
+    /* ─── Responsive ─────────────────────────────────── */
+    @media (max-width: 1024px) {
+        .groups-dashboard-layout {
+            grid-template-columns: 1fr 280px;
+            gap: 20px;
+        }
+    }
+
+    @media (max-width: 768px) {
+        .groups-dashboard-layout {
+            grid-template-columns: 1fr;
+        }
+
+        .groups-action-panel {
+            position: static;
+            order: -1;
+        }
+    }
+</style>
+{% endblock %}

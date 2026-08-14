@@ -1,0 +1,573 @@
+{% extends "layout.html" %}
+
+{% block title %}Syllabus - StudyVerse{% endblock %}
+
+{% block content %}
+<style>
+    /* ══════════════════════════════════
+       SYLLABUS — MOBILE RESPONSIVE
+       ══════════════════════════════════ */
+
+    /* ── 768px: Tablets & phones ── */
+    @media (max-width: 768px) {
+
+        /* Outer padding reduce */
+        .p-8 {
+            padding: 16px !important;
+        }
+
+        /* Top header row: stack title + upload button vertically */
+        .p-8 > div:first-child {
+            flex-direction: column !important;
+            gap: 12px !important;
+            align-items: stretch !important;
+        }
+
+        /* Upload button full width */
+        #syllabusUploadForm {
+            width: 100%;
+        }
+
+        #uploadPdf {
+            width: 100% !important;
+            justify-content: center;
+        }
+
+        /* Stats row: 2x2 grid on mobile */
+        .stats-row {
+            grid-template-columns: repeat(2, 1fr) !important;
+            gap: 12px !important;
+        }
+
+        /* Course card header — stack on mobile */
+        .card > div:first-child {
+            flex-direction: column;
+            gap: 16px;
+        }
+
+        /* Inner course card title row */
+        .card > div > div:first-child {
+            flex-wrap: wrap;
+            gap: 10px;
+        }
+
+        /* Roadmap node: smaller on mobile */
+        .roadmap-node {
+            width: 40px !important;
+            height: 40px !important;
+            min-width: 40px !important;
+            font-size: 1rem !important;
+        }
+
+        /* Roadmap title row: allow wrap */
+        .roadmap-title {
+            flex-wrap: wrap;
+            gap: 6px;
+        }
+
+        /* Roadmap meta row: stack */
+        .roadmap-meta {
+            flex-wrap: wrap;
+            gap: 8px;
+        }
+
+        /* Subtopic items: full width */
+        .subtopic-item {
+            padding: 8px 10px !important;
+            font-size: 0.85rem !important;
+        }
+
+        /* Page title */
+        .gradient-text {
+            font-size: 22px !important;
+        }
+    }
+
+    /* ── 480px: Small phones ── */
+    @media (max-width: 480px) {
+
+        .p-8 {
+            padding: 12px !important;
+        }
+
+        /* Stats: single column */
+        .stats-row {
+            grid-template-columns: repeat(2, 1fr) !important;
+            gap: 8px !important;
+        }
+
+        .stat-card {
+            padding: 14px !important;
+        }
+
+        .stat-value {
+            font-size: 1.4rem !important;
+        }
+
+        /* Roadmap content padding */
+        .roadmap-content {
+            padding: 12px !important;
+        }
+
+        .roadmap-chapter {
+            gap: 10px !important;
+        }
+
+        /* Previous courses filename truncate more */
+        .prev-course-card span {
+            font-size: 0.85rem;
+        }
+    }
+
+    /* ── 360px: Very small Indian phones (Redmi/Samsung A) ── */
+    @media (max-width: 360px) {
+
+        .p-8 {
+            padding: 10px !important;
+        }
+
+        /* Stats: side by side but tighter */
+        .stats-row {
+            gap: 6px !important;
+        }
+
+        .stat-value {
+            font-size: 1.2rem !important;
+        }
+
+        .stat-label {
+            font-size: 0.65rem !important;
+        }
+
+        .roadmap-node {
+            width: 34px !important;
+            height: 34px !important;
+            min-width: 34px !important;
+        }
+
+        .subtopic-item {
+            font-size: 0.78rem !important;
+        }
+    }
+</style>
+
+<div class="p-8 space-y-8 fade-in">
+    <div style="display: flex; align-items: start; justify-content: space-between;">
+        <div class="space-y-2">
+            <h1 style="font-size: 30px; font-weight: 700;">
+                <span class="gradient-text">Syllabus</span>
+            </h1>
+            <p style="color: var(--text-secondary);">Your course structure and topic proficiency.</p>
+        </div>
+        <div style="display: flex; gap: 12px;">
+            <!-- Flashcards feature disabled -->
+            <!-- Flashcards feature disabled -->
+            <form id="syllabusUploadForm" method="POST" action="{{ url_for('syllabus_upload') }}"
+                enctype="multipart/form-data" style="margin: 0; display:flex; gap:12px; align-items:center;">
+
+                <!-- Optional target date for due-date spreading -->
+                <div style="display:flex;flex-direction:column;gap:2px;">
+                    <label style="font-size:0.65rem;color:var(--text-muted);text-transform:uppercase;font-weight:700;letter-spacing:0.5px;">Target Date</label>
+                    <input type="date" name="target_date" id="targetDateInput"
+                        style="background:rgba(255,255,255,0.04);border:1px solid var(--border);color:var(--text-primary);padding:6px 10px;border-radius:8px;font-size:0.8rem;outline:none;">
+                </div>
+
+                <button class="btn btn-primary" id="uploadPdf" type="button" style="height: 42px;">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+                        <polyline points="17 8 12 3 7 8"></polyline>
+                        <line x1="12" y1="3" x2="12" y2="15"></line>
+                    </svg>
+                    <span>Upload</span>
+                </button>
+                <input type="file" id="pdfInput" name="pdf" accept=".pdf" style="display: none;">
+            </form>
+        </div>
+    </div>
+
+    {% if syllabus_doc %}
+    <p class="text-sm" style="color: white; font-weight: 500;">Uploaded: <span
+            style="color: var(--accent-green); font-weight: 700;">{{ syllabus_doc.filename }}</span>
+    </p>
+    {% endif %}
+
+    <!-- Previous Courses (Tiny View) -->
+    {% if archived_docs %}
+    <div style="margin-bottom: 24px;">
+        <h4
+            style="font-size: 0.8rem; text-transform: uppercase; letter-spacing: 1px; color: var(--text-muted); margin-bottom: 12px; font-weight: 600;">
+            Previous Courses</h4>
+        <div style="display: flex; gap: 12px; flex-wrap: wrap;">
+            {% for arc in archived_docs %}
+            <div
+                style="padding: 10px 14px; background: rgba(255,255,255,0.03); border: 1px solid var(--border); border-radius: 10px; font-size: 0.85rem; color: var(--text-secondary); display: flex; align-items: center; gap: 10px;">
+                <i class="fa-solid fa-clock-rotate-left" style="color: var(--text-muted);"></i>
+                <div style="display: flex; flex-direction: column;">
+                    <span
+                        style="font-weight: 500; color: var(--text-primary); max-width: 200px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">{{
+                        arc.filename }}</span>
+                    <span style="font-size: 0.7rem; opacity: 0.6;">Completed {{ arc.created_at.strftime('%Y-%m-%d')
+                        }}</span>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+    {% endif %}
+
+    <!-- Course Card -->
+    <div class="card" style="border-color: hsla(244, 100%, 73%, 0.2);">
+        <div style="display: flex; align-items: start; justify-content: space-between; margin-bottom: 16px;">
+            <div style="display: flex; align-items: center; gap: 16px;">
+                <div
+                    style="width: 56px; height: 56px; border-radius: 12px; background: linear-gradient(135deg, var(--coral) 0%, var(--purple) 100%); display: flex; align-items: center; justify-content: center;">
+                    <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"></path>
+                        <path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"></path>
+                    </svg>
+                </div>
+                <div>
+                    <h3 style="font-size: 20px; font-weight: 600; color: var(--text-primary);">Your Course</h3>
+                    <p class="text-sm" style="margin-top: 4px; color: var(--text-secondary);">{% if syllabus_doc %}{{
+                        syllabus_doc.filename
+                        }}{% else %}Upload a PDF to generate chapters and topics{% endif %}</p>
+                </div>
+                <div style="display: flex; gap: 8px; align-items: center;">
+                    {% if syllabus_doc %}
+                    <a href="/quiz?syllabus_id={{ syllabus_doc.id }}" class="btn-sm"
+                        style="text-decoration: none; padding: 6px 12px; font-size: 0.8rem; background: rgba(59, 130, 246, 0.1); color: #3b82f6; border: 1px solid rgba(59, 130, 246, 0.2); border-radius: 8px; display: flex; align-items: center; gap: 6px;">
+                        <i class="fa-solid fa-brain"></i> Practice
+                    </a>
+                    {% endif %}
+                    <span class="badge badge-outline"
+                        style="background: hsla(152, 61%, 62%, 0.2); color: var(--mint); border-color: hsla(152, 61%, 62%, 0.3);">
+                        {% if syllabus_doc and syllabus_doc.syllabus_id == None %}Active{% else %}View{% endif %}
+                        <!-- Logic for 'Active' label is tricky here without strict active flag, let's just keep badge generic or remove -->
+                        Course
+                    </span>
+                </div>
+            </div>
+
+            <div class="stats-row" style="margin-top: 24px;">
+                <div class="stat-card">
+                    <div class="stat-icon" style="background: rgba(74, 222, 128, 0.1); color: var(--accent-green);">
+                        <i class="fa-solid fa-book"></i>
+                    </div>
+                    <div class="stat-info">
+                        <div class="stat-value">{{ chapters_count or 0 }}</div>
+                        <div class="stat-label">Chapters</div>
+                    </div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-icon" style="background: rgba(59, 130, 246, 0.1); color: #3b82f6;">
+                        <i class="fa-solid fa-list-check"></i>
+                    </div>
+                    <div class="stat-info">
+                        <div class="stat-value">{{ topics_count or 0 }}</div>
+                        <div class="stat-label">Topics</div>
+                    </div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-icon" style="background: rgba(239, 68, 68, 0.1); color: #ef4444;">
+                        <i class="fa-solid fa-check-double"></i>
+                    </div>
+                    <div class="stat-info">
+                        <div class="stat-value">{{ completed_count or 0 }}</div>
+                        <div class="stat-label">Completed</div>
+                    </div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-icon" style="background: rgba(245, 158, 11, 0.1); color: #f59e0b;">
+                        <i class="fa-solid fa-chart-line"></i>
+                    </div>
+                    <div class="stat-info">
+                        <div class="stat-value">{{ avg_completion or 0 }}%</div>
+                        <div class="stat-label">Avg. Proficiency</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Visual Roadmap -->
+        <div class="roadmap-container">
+            <div class="roadmap-line"></div>
+
+            {% if chapters and chapters|length > 0 %}
+            {% for ch in chapters %}
+            <div class="roadmap-chapter {% if ch.percent == 100 %}completed{% endif %}">
+                <div class="roadmap-node">
+                    {% if ch.percent == 100 %}
+                    <i class="fa-solid fa-check"></i>
+                    {% else %}
+                    <i class="fa-solid fa-book-open"></i>
+                    {% endif %}
+                </div>
+
+                <div class="roadmap-content">
+                    <div class="roadmap-title">
+                        <span>{{ ch.name }}</span>
+                        <span style="color: var(--accent-green);">{{ ch.percent }}%</span>
+                    </div>
+                    <div class="roadmap-meta">
+                        <span><i class="fa-solid fa-list-ul"></i> {{ ch.total }} Topics</span>
+                        <span><i class="fa-solid fa-check-circle"></i> {{ ch.completed }} Completed</span>
+                    </div>
+
+                    <div class="subtopic-list">
+                        {% for t in ch.todos %}
+                        <form method="POST" action="{{ url_for('todos_toggle', todo_id=t.id) }}" style="margin: 0;">
+                            <input type="hidden" name="next" value="{{ url_for('syllabus') }}">
+                            <label class="subtopic-item {% if t.completed %}completed{% endif %}"
+                                onclick="/* this.previousElementSibling.submit() handled by input change */">
+                                <input type="checkbox" {% if t.completed %}checked{% endif %}
+                                    onchange="this.form.submit()">
+                                <span>{{ t.title }}</span>
+                            </label>
+                        </form>
+                        {% endfor %}
+                    </div>
+                </div>
+            </div>
+            {% endfor %}
+
+            <!-- End Node -->
+            <div class="roadmap-chapter">
+                <div class="roadmap-node" style="border-color: #fbbf24; background: rgba(251, 191, 36, 0.1);">
+                    <i class="fa-solid fa-trophy" style="color: #fbbf24;"></i>
+                </div>
+                <div style="padding-left: 1rem; padding-top: 6px; color: var(--text-secondary); font-style: italic;">
+                    Course Completion
+                </div>
+            </div>
+
+            {% else %}
+            <div
+                style="text-align: center; padding: 40px; background: var(--bg-card); border: 1px dashed var(--border); border-radius: var(--radius-lg);">
+                <div style="font-size: 3rem; margin-bottom: 16px;">📄</div>
+                <h3 style="font-size: 1.2rem; margin-bottom: 8px;">Your Learning Roadmap is Empty</h3>
+                <p style="color: var(--text-secondary); margin-bottom: 24px;">Upload your course PDF to automatically
+                    generate a step-by-step learning plan.</p>
+                <button onclick="document.getElementById('uploadPdf').click()" class="btn-primary">
+                    Upload Syllabus PDF
+                </button>
+            </div>
+        </div>
+        {% endif %}
+
+        <!-- Previous Courses (Collapsed) -->
+        {% if archived_docs %}
+        <div style="margin-top: 40px; border-top: 1px solid var(--border); padding-top: 24px;">
+            <details>
+                <summary
+                    style="cursor: pointer; font-size: 0.9rem; font-weight: 600; color: var(--text-muted); list-style: none; display: flex; align-items: center; gap: 8px;">
+                    <i class="fa-solid fa-clock-rotate-left"></i> Previous Courses
+                    <span style="margin-left: auto; font-size: 0.8rem; opacity: 0.7;">{{ archived_docs|length }}
+                        archived</span>
+                </summary>
+
+                <style>
+                    .prev-course-card:hover {
+                        background: rgba(255, 255, 255, 0.08) !important;
+                        border-color: var(--primary) !important;
+                    }
+
+                    .prev-course-card:hover .restore-icon {
+                        opacity: 1 !important;
+                    }
+                </style>
+                <div style="margin-top: 16px; display: flex; flex-direction: column; gap: 8px;">
+                    {% for arc in archived_docs %}
+                    <a href="{{ url_for('syllabus', view_id=arc.id) }}" style="text-decoration: none;">
+                        <button type="button"
+                            style="width: 100%; text-align: left; background: none; border: none; padding: 0; cursor: pointer;">
+                            <div class="prev-course-card"
+                                style="padding: 12px 16px; background: rgba(255,255,255,0.03); border: 1px solid var(--border); border-radius: 12px; display: flex; align-items: center; justify-content: space-between; transition: all 0.2s ease;">
+                                <div style="display: flex; align-items: center; gap: 12px;">
+                                    <i class="fa-solid fa-file-pdf" style="color: var(--text-muted);"></i>
+                                    <div>
+                                        <div style="font-weight: 500; color: var(--text-primary); font-size: 0.95rem;">
+                                            {{
+                                            arc.filename }}</div>
+                                        <div style="font-size: 0.75rem; color: var(--text-secondary);">Uploaded {{
+                                            arc.created_at.strftime('%d %b %Y') }}</div>
+                                    </div>
+                                </div>
+                                <div class="restore-icon"
+                                    style="opacity: 0; transition: opacity 0.2s; color: var(--primary); font-size: 0.9rem; display: flex; align-items: center; gap: 6px;">
+                                    <span style="font-size: 0.75rem; font-weight: 500;">View</span>
+                                    <i class="fa-solid fa-eye"></i>
+                                </div>
+                            </div>
+                        </button>
+                    </a>
+                    {% endfor %}
+                </div>
+            </details>
+        </div>
+        {% endif %}
+
+    </div>
+</div>
+
+<!-- ═══════════════════════════════════════════════════════════
+     PROGRESSIVE UPLOAD OVERLAY
+     ═══════════════════════════════════════════════════════════ -->
+<div id="upload-progress-overlay" style="
+    display: none;
+    position: fixed; inset: 0; z-index: 9999;
+    background: rgba(0,0,0,0.75);
+    backdrop-filter: blur(6px);
+    flex-direction: column;
+    align-items: center;
+    justify-content: flex-start;
+    padding: 40px 20px;
+    overflow-y: auto;
+">
+    <!-- Header card -->
+    <div style="
+        background: var(--bg-card);
+        border: 1px solid rgba(255,255,255,0.1);
+        border-radius: 20px;
+        padding: 28px 32px;
+        width: 100%; max-width: 640px;
+        margin-bottom: 20px;
+        box-shadow: 0 20px 60px rgba(0,0,0,0.5);
+    ">
+        <!-- Title -->
+        <div style="display:flex;align-items:center;gap:14px;margin-bottom:20px;">
+            <div style="width:44px;height:44px;border-radius:12px;background:linear-gradient(135deg,#7c3aed,#0ea5e9);display:flex;align-items:center;justify-content:center;flex-shrink:0;">
+                <i class="fa-solid fa-wand-magic-sparkles" style="color:white;"></i>
+            </div>
+            <div>
+                <div style="font-weight:800;font-size:1.1rem;color:var(--text-primary);">AI Syllabus Analysis</div>
+                <div style="font-size:0.8rem;color:var(--text-secondary);margin-top:2px;">Generating your learning roadmap…</div>
+            </div>
+        </div>
+
+        <!-- Status text -->
+        <div id="upload-status-text" class="upload-status-text processing"
+             style="font-size:0.9rem;margin-bottom:16px;">Initialising…</div>
+
+        <!-- Progress bar -->
+        <div style="height:8px;background:rgba(255,255,255,0.07);border-radius:10px;overflow:hidden;margin-bottom:8px;">
+            <div id="upload-progress-fill" style="
+                height:100%;
+                width:0%;
+                background:linear-gradient(90deg,#7c3aed,#0ea5e9);
+                border-radius:10px;
+                transition:width 0.5s cubic-bezier(0.34,1.56,0.64,1);
+            "></div>
+        </div>
+        <div style="display:flex;justify-content:flex-end;">
+            <span id="upload-progress-pct" style="font-size:0.75rem;color:var(--text-muted);font-weight:700;">0%</span>
+        </div>
+    </div>
+
+    <!-- Streaming chapter cards -->
+    <div id="chapter-stream-list" style="width:100%;max-width:640px;display:flex;flex-direction:column;gap:12px;"></div>
+</div>
+
+<style>
+    /* Status text states */
+    .upload-status-text               { color: var(--text-secondary); transition: color 0.3s; }
+    .upload-status-text.processing    { color: #7c3aed; }
+    .upload-status-text.success       { color: var(--accent-green); font-weight: 700; }
+    .upload-status-text.error         { color: #ef4444; font-weight: 700; }
+
+    /* Chapter card — starts invisible, slides in when .visible added */
+    .stream-chapter-card {
+        background: var(--bg-card);
+        border: 1px solid rgba(255,255,255,0.08);
+        border-left: 3px solid #7c3aed;
+        border-radius: 14px;
+        padding: 16px 20px;
+        opacity: 0;
+        transform: translateY(16px);
+        transition: opacity 0.4s ease, transform 0.4s cubic-bezier(0.34,1.56,0.64,1);
+        box-shadow: 0 4px 20px rgba(0,0,0,0.3);
+    }
+    .stream-chapter-card.visible {
+        opacity: 1;
+        transform: translateY(0);
+    }
+    .stream-chapter-header {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        margin-bottom: 10px;
+    }
+    .stream-chapter-icon  { font-size: 1.1rem; }
+    .stream-chapter-title {
+        flex: 1;
+        font-weight: 700;
+        font-size: 0.95rem;
+        color: var(--text-primary);
+    }
+    .stream-chapter-count {
+        font-size: 0.72rem;
+        background: rgba(124,58,237,0.15);
+        color: #a78bfa;
+        border: 1px solid rgba(124,58,237,0.25);
+        border-radius: 6px;
+        padding: 2px 8px;
+        font-weight: 700;
+    }
+    .stream-subtask-list {
+        list-style: none;
+        margin: 0; padding: 0;
+        display: flex;
+        flex-direction: column;
+        gap: 6px;
+    }
+    .stream-subtask-list li {
+        font-size: 0.82rem;
+        color: var(--text-secondary);
+        padding: 5px 10px;
+        background: rgba(255,255,255,0.03);
+        border-radius: 8px;
+        border: 1px solid rgba(255,255,255,0.05);
+        display: flex;
+        align-items: center;
+        gap: 8px;
+    }
+    .stream-subtask-list li::before {
+        content: '▸';
+        color: #7c3aed;
+        font-size: 0.65rem;
+        flex-shrink: 0;
+    }
+
+    /* Target date input hover */
+    #targetDateInput:focus {
+        border-color: rgba(124,58,237,0.5) !important;
+        box-shadow: 0 0 0 3px rgba(124,58,237,0.1);
+    }
+
+    /* Mobile adjustments for overlay */
+    @media (max-width: 768px) {
+        #upload-progress-overlay { padding: 20px 12px; }
+    }
+</style>
+
+{% endblock %}
+
+{% block scripts %}
+<script src="{{ url_for('static', filename='js/syllabus.js') }}"></script>
+<script>
+    document.querySelector('[data-nav="syllabus"]').classList.add('active');
+    document.querySelectorAll('.chapter-toggle').forEach(btn => {
+        btn.addEventListener('click', () => {
+            const content = btn.nextElementSibling;
+            const icon = btn.querySelector('svg');
+            if (!content) return;
+            if (content.style.display === 'none' || content.style.display === '') {
+                content.style.display = 'block';
+                if (icon) icon.style.transform = 'rotate(180deg)';
+            } else {
+                content.style.display = 'none';
+                if (icon) icon.style.transform = 'rotate(0deg)';
+            }
+        });
+    });
+</script>
+{% endblock %}

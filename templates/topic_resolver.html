@@ -1,0 +1,1258 @@
+{% extends "layout.html" %}
+{% block title %}AI Topic Resolver - StudyVerse{% endblock %}
+
+{% block content %}
+<style>
+    /* ═══════════════════════════════════════════
+     AI TOPIC RESOLVER — PAGE STYLES
+  ═══════════════════════════════════════════ */
+    .resolver-wrapper {
+        padding: 28px 32px;
+        max-width: 1200px;
+        margin: 0 auto;
+        animation: fadeInUp 0.5s ease;
+    }
+
+    @keyframes fadeInUp {
+        from {
+            opacity: 0;
+            transform: translateY(16px);
+        }
+
+        to {
+            opacity: 1;
+            transform: translateY(0);
+        }
+    }
+
+    /* ── Header ── */
+    .resolver-header {
+        margin-bottom: 28px;
+    }
+
+    .resolver-header h1 {
+        font-size: 28px;
+        font-weight: 800;
+        background: linear-gradient(135deg, #a78bfa, #60a5fa, #34d399);
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+        background-clip: text;
+        margin-bottom: 6px;
+    }
+
+    .resolver-header p {
+        color: var(--text-secondary);
+        font-size: 14px;
+    }
+
+    /* ── Search / Input Box ── */
+    .search-box {
+        background: var(--bg-card);
+        border: 1px solid var(--border);
+        border-radius: 18px;
+        padding: 24px 28px;
+        margin-bottom: 28px;
+        transition: border-color 0.3s;
+    }
+
+    .search-box:focus-within {
+        border-color: #a78bfa;
+    }
+
+    .search-label {
+        font-size: 13px;
+        font-weight: 600;
+        color: var(--text-secondary);
+        text-transform: uppercase;
+        letter-spacing: 0.8px;
+        margin-bottom: 12px;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+    }
+
+    .search-label i {
+        color: #a78bfa;
+    }
+
+    .search-row {
+        display: flex;
+        gap: 12px;
+        align-items: flex-end;
+        flex-wrap: wrap;
+    }
+
+    .search-input-wrap {
+        flex: 1;
+        min-width: 240px;
+    }
+
+    .search-input-wrap input {
+        width: 100%;
+        background: var(--bg-main);
+        border: 1px solid var(--border);
+        border-radius: 12px;
+        padding: 14px 18px;
+        color: var(--text-primary);
+        font-size: 15px;
+        outline: none;
+        transition: border-color 0.2s, box-shadow 0.2s;
+    }
+
+    .search-input-wrap input:focus {
+        border-color: #a78bfa;
+        box-shadow: 0 0 0 3px rgba(167, 139, 250, 0.12);
+    }
+
+    .search-input-wrap input::placeholder {
+        color: var(--text-muted);
+    }
+
+    .btn-resolve {
+        background: linear-gradient(135deg, #7c3aed, #4f46e5);
+        color: white;
+        border: none;
+        padding: 14px 28px;
+        border-radius: 12px;
+        font-size: 14px;
+        font-weight: 700;
+        cursor: pointer;
+        white-space: nowrap;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        transition: all 0.2s;
+        box-shadow: 0 4px 16px rgba(124, 58, 237, 0.3);
+    }
+
+    .btn-resolve:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 8px 24px rgba(124, 58, 237, 0.4);
+    }
+
+    .btn-resolve:disabled {
+        opacity: 0.6;
+        cursor: not-allowed;
+        transform: none;
+    }
+
+    /* Weak topic quick picks from syllabus */
+    .quick-topics {
+        margin-top: 14px;
+        display: flex;
+        gap: 8px;
+        flex-wrap: wrap;
+        align-items: center;
+    }
+
+    .quick-topics-label {
+        font-size: 12px;
+        color: var(--text-muted);
+        font-weight: 600;
+    }
+
+    .topic-chip {
+        background: rgba(167, 139, 250, 0.08);
+        border: 1px solid rgba(167, 139, 250, 0.2);
+        color: #a78bfa;
+        border-radius: 20px;
+        padding: 5px 14px;
+        font-size: 12.5px;
+        font-weight: 500;
+        cursor: pointer;
+        transition: all 0.2s;
+    }
+
+    .topic-chip:hover {
+        background: rgba(167, 139, 250, 0.18);
+        border-color: #a78bfa;
+    }
+
+    /* ── Global Loading Overlay (initial spinner before first panel) ── */
+    .loading-state {
+        display: none;
+        text-align: center;
+        padding: 60px 20px;
+    }
+
+    .loading-state.active {
+        display: block;
+    }
+
+    .loading-spinner {
+        width: 52px;
+        height: 52px;
+        border: 3px solid var(--border);
+        border-top-color: #a78bfa;
+        border-radius: 50%;
+        animation: spin 0.8s linear infinite;
+        margin: 0 auto 20px;
+    }
+
+    @keyframes spin {
+        to {
+            transform: rotate(360deg);
+        }
+    }
+
+    .loading-state h3 {
+        color: var(--text-primary);
+        font-size: 16px;
+        font-weight: 700;
+        margin-bottom: 8px;
+    }
+
+    .loading-state p {
+        color: var(--text-muted);
+        font-size: 13.5px;
+    }
+
+    .loading-dots span {
+        display: inline-block;
+        animation: blink 1.4s infinite;
+        color: #a78bfa;
+        font-size: 20px;
+        line-height: 1;
+    }
+
+    .loading-dots span:nth-child(2) {
+        animation-delay: 0.2s;
+    }
+
+    .loading-dots span:nth-child(3) {
+        animation-delay: 0.4s;
+    }
+
+    @keyframes blink {
+        0%, 80%, 100% { opacity: 0; }
+        40% { opacity: 1; }
+    }
+
+    /* ── Per-panel skeleton shimmer ── */
+    .panel-skeleton {
+        display: flex;
+        flex-direction: column;
+        gap: 12px;
+        padding: 4px 0;
+    }
+
+    .skel-line {
+        height: 14px;
+        border-radius: 8px;
+        background: linear-gradient(90deg,
+            rgba(255,255,255,0.04) 25%,
+            rgba(167,139,250,0.10) 50%,
+            rgba(255,255,255,0.04) 75%);
+        background-size: 200% 100%;
+        animation: shimmer 1.4s infinite;
+    }
+
+    .skel-line.short  { width: 55%; }
+    .skel-line.medium { width: 78%; }
+    .skel-line.full   { width: 100%; }
+    .skel-line.tall   { height: 200px; border-radius: 12px; }
+
+    @keyframes shimmer {
+        to { background-position: -200% 0; }
+    }
+
+    /* panel slide-in when content arrives */
+    .panel-reveal {
+        animation: panelReveal 0.4s ease;
+    }
+
+    @keyframes panelReveal {
+        from { opacity: 0; transform: translateY(10px); }
+        to   { opacity: 1; transform: translateY(0); }
+    }
+
+    /* small spinning badge inside panel header while loading */
+    .panel-loading-badge {
+        margin-left: auto;
+        display: flex;
+        align-items: center;
+        gap: 6px;
+        font-size: 11.5px;
+        color: var(--text-muted);
+    }
+
+    .panel-loading-badge .mini-spin {
+        width: 14px;
+        height: 14px;
+        border: 2px solid var(--border);
+        border-top-color: #a78bfa;
+        border-radius: 50%;
+        animation: spin 0.7s linear infinite;
+    }
+
+    /* ── Results Grid ── */
+    .results-area {
+        display: none;
+    }
+
+    .results-area.active {
+        display: block;
+        animation: fadeInUp 0.4s ease;
+    }
+
+    .results-topic-banner {
+        background: linear-gradient(135deg, rgba(124, 58, 237, 0.15), rgba(79, 70, 229, 0.08));
+        border: 1px solid rgba(124, 58, 237, 0.25);
+        border-radius: 14px;
+        padding: 18px 24px;
+        margin-bottom: 24px;
+        display: flex;
+        align-items: center;
+        gap: 16px;
+    }
+
+    .results-topic-banner .topic-icon {
+        width: 48px;
+        height: 48px;
+        border-radius: 12px;
+        background: linear-gradient(135deg, #7c3aed, #4f46e5);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 20px;
+        flex-shrink: 0;
+    }
+
+    .results-topic-banner h2 {
+        font-size: 17px;
+        font-weight: 800;
+        color: var(--text-primary);
+        margin-bottom: 4px;
+    }
+
+    .results-topic-banner p {
+        font-size: 12.5px;
+        color: var(--text-muted);
+        margin: 0;
+    }
+
+    /* ── Three Column Layout ── */
+    .results-grid {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        grid-template-rows: auto auto;
+        gap: 20px;
+    }
+
+    /* AI Explanation (spans full left column) */
+    .panel-explanation {
+        grid-row: 1 / 3;
+    }
+
+    /* Section panels */
+    .result-panel {
+        background: var(--bg-card);
+        border: 1px solid var(--border);
+        border-radius: 16px;
+        overflow: hidden;
+        display: flex;
+        flex-direction: column;
+    }
+
+    .panel-header {
+        padding: 16px 20px;
+        border-bottom: 1px solid var(--border);
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        background: rgba(255, 255, 255, 0.015);
+    }
+
+    .panel-header .panel-icon {
+        width: 34px;
+        height: 34px;
+        border-radius: 10px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 15px;
+    }
+
+    .panel-icon-purple {
+        background: rgba(167, 139, 250, 0.12);
+        color: #a78bfa;
+    }
+
+    .panel-icon-red {
+        background: rgba(239, 68, 68, 0.12);
+        color: #f87171;
+    }
+
+    .panel-icon-teal {
+        background: rgba(52, 211, 153, 0.12);
+        color: #34d399;
+    }
+
+    .panel-title {
+        font-size: 14px;
+        font-weight: 700;
+        color: var(--text-primary);
+    }
+
+    .panel-subtitle {
+        font-size: 11.5px;
+        color: var(--text-muted);
+        margin-left: auto;
+    }
+
+    .panel-body {
+        padding: 20px;
+        flex: 1;
+    }
+
+    /* ── AI Explanation Styles ── */
+    .ai-explanation-text {
+        color: var(--text-secondary);
+        font-size: 14px;
+        line-height: 1.8;
+        white-space: pre-wrap;
+    }
+
+    .ai-explanation-text strong {
+        color: var(--text-primary);
+    }
+
+    /* Key points list */
+    .key-points {
+        margin-top: 16px;
+        display: flex;
+        flex-direction: column;
+        gap: 8px;
+    }
+
+    .key-point {
+        display: flex;
+        gap: 10px;
+        align-items: flex-start;
+        padding: 10px 14px;
+        background: rgba(255, 255, 255, 0.03);
+        border: 1px solid var(--border);
+        border-radius: 10px;
+        font-size: 13.5px;
+        color: var(--text-secondary);
+        line-height: 1.5;
+    }
+
+    .kp-icon {
+        color: #a78bfa;
+        flex-shrink: 0;
+        margin-top: 2px;
+        font-size: 13px;
+    }
+
+    /* Common mistakes */
+    .mistakes-box {
+        margin-top: 14px;
+        padding: 14px 16px;
+        background: rgba(239, 68, 68, 0.05);
+        border: 1px solid rgba(239, 68, 68, 0.15);
+        border-radius: 10px;
+    }
+
+    .mistakes-box h4 {
+        font-size: 12px;
+        text-transform: uppercase;
+        letter-spacing: 0.8px;
+        color: #f87171;
+        font-weight: 700;
+        margin-bottom: 8px;
+        display: flex;
+        align-items: center;
+        gap: 6px;
+    }
+
+    .mistakes-box p {
+        font-size: 13px;
+        color: var(--text-secondary);
+        line-height: 1.6;
+        margin: 0;
+    }
+
+    /* Memory trick */
+    .memory-trick {
+        margin-top: 14px;
+        padding: 14px 16px;
+        background: rgba(52, 211, 153, 0.05);
+        border: 1px solid rgba(52, 211, 153, 0.15);
+        border-radius: 10px;
+    }
+
+    .memory-trick h4 {
+        font-size: 12px;
+        text-transform: uppercase;
+        letter-spacing: 0.8px;
+        color: #34d399;
+        font-weight: 700;
+        margin-bottom: 6px;
+        display: flex;
+        align-items: center;
+        gap: 6px;
+    }
+
+    .memory-trick p {
+        font-size: 13.5px;
+        color: var(--text-secondary);
+        font-style: italic;
+        margin: 0;
+        line-height: 1.6;
+    }
+
+    /* ── VIDEO CARDS ── */
+    .video-card {
+        display: flex;
+        gap: 14px;
+        align-items: flex-start;
+        padding: 12px;
+        border: 1px solid var(--border);
+        border-radius: 12px;
+        background: var(--bg-card-2);
+        text-decoration: none;
+        color: inherit;
+        transition: all 0.2s;
+        margin-bottom: 10px;
+    }
+
+    .video-card:hover {
+        border-color: #f87171;
+        background: rgba(239, 68, 68, 0.04);
+        transform: translateX(3px);
+    }
+
+    .video-card:last-child {
+        margin-bottom: 0;
+    }
+
+    .video-thumb {
+        width: 100px;
+        height: 60px;
+        border-radius: 8px;
+        object-fit: cover;
+        flex-shrink: 0;
+        background: var(--border);
+    }
+
+    .video-info {
+        flex: 1;
+        min-width: 0;
+    }
+
+    .video-title {
+        font-size: 13px;
+        font-weight: 600;
+        color: var(--text-primary);
+        display: -webkit-box;
+        -webkit-line-clamp: 2;
+        line-clamp: 2;
+        -webkit-box-orient: vertical;
+        overflow: hidden;
+        margin-bottom: 4px;
+        line-height: 1.4;
+    }
+
+    .video-meta {
+        display: flex;
+        gap: 12px;
+        align-items: center;
+        font-size: 11.5px;
+        color: var(--text-muted);
+    }
+
+    .video-channel {
+        font-weight: 500;
+        color: #f87171;
+    }
+
+    .video-duration,
+    .video-views {
+        display: flex;
+        align-items: center;
+        gap: 4px;
+    }
+
+    .yt-badge {
+        background: rgba(239, 68, 68, 0.15);
+        color: #f87171;
+        border-radius: 4px;
+        padding: 2px 6px;
+        font-size: 10px;
+        font-weight: 700;
+        display: flex;
+        align-items: center;
+        gap: 4px;
+        flex-shrink: 0;
+    }
+
+    .no-videos-msg {
+        text-align: center;
+        padding: 30px 20px;
+        color: var(--text-muted);
+        font-size: 13px;
+    }
+
+    .no-videos-msg i {
+        font-size: 28px;
+        opacity: 0.3;
+        display: block;
+        margin-bottom: 10px;
+    }
+
+    /* ── AI DIAGRAM / IMAGE ── */
+    .diagram-wrap {
+        text-align: center;
+    }
+
+    .diagram-img {
+        width: 100%;
+        border-radius: 12px;
+        border: 1px solid var(--border);
+        object-fit: cover;
+        max-height: 320px;
+        transition: transform 0.3s;
+        cursor: zoom-in;
+    }
+
+    .diagram-img:hover {
+        transform: scale(1.02);
+    }
+
+    .diagram-placeholder {
+        padding: 40px 20px;
+        color: var(--text-muted);
+        background: rgba(255, 255, 255, 0.02);
+        border: 2px dashed var(--border);
+        border-radius: 12px;
+        font-size: 13px;
+        line-height: 1.8;
+    }
+
+    .diagram-placeholder i {
+        font-size: 32px;
+        opacity: 0.3;
+        display: block;
+        margin-bottom: 12px;
+    }
+
+    .diagram-actions {
+        margin-top: 14px;
+        display: flex;
+        gap: 8px;
+        justify-content: center;
+        flex-wrap: wrap;
+    }
+
+    .btn-diagram {
+        padding: 8px 18px;
+        border-radius: 8px;
+        font-size: 12.5px;
+        font-weight: 600;
+        cursor: pointer;
+        border: none;
+        display: flex;
+        align-items: center;
+        gap: 6px;
+        transition: all 0.2s;
+    }
+
+    .btn-diagram-dl {
+        background: rgba(52, 211, 153, 0.1);
+        color: #34d399;
+        border: 1px solid rgba(52, 211, 153, 0.2);
+    }
+
+    .btn-diagram-dl:hover {
+        background: rgba(52, 211, 153, 0.2);
+    }
+
+    .btn-diagram-re {
+        background: rgba(167, 139, 250, 0.1);
+        color: #a78bfa;
+        border: 1px solid rgba(167, 139, 250, 0.2);
+    }
+
+    .btn-diagram-re:hover {
+        background: rgba(167, 139, 250, 0.2);
+    }
+
+    /* Generating animation */
+    .generating-img {
+        width: 100%;
+        height: 220px;
+        border-radius: 12px;
+        background: linear-gradient(90deg,
+                rgba(255, 255, 255, 0.03) 25%,
+                rgba(167, 139, 250, 0.07) 50%,
+                rgba(255, 255, 255, 0.03) 75%);
+        background-size: 200% 100%;
+        animation: shimmer 1.5s infinite;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        flex-direction: column;
+        gap: 10px;
+        color: var(--text-muted);
+    }
+
+    @keyframes shimmer {
+        to {
+            background-position: -200% 0;
+        }
+    }
+
+    /* ── Empty/Error state ── */
+    .error-state {
+        display: none;
+        text-align: center;
+        padding: 40px;
+        color: var(--text-muted);
+    }
+
+    .error-state.active {
+        display: block;
+    }
+
+    .error-state i {
+        font-size: 32px;
+        color: #f87171;
+        margin-bottom: 12px;
+    }
+
+    /* ── XP Earned Badge ── */
+    .xp-earned-badge {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        background: rgba(74, 222, 128, 0.12);
+        color: #4ade80;
+        border: 1px solid rgba(74, 222, 128, 0.2);
+        padding: 4px 14px;
+        border-radius: 20px;
+        font-size: 12px;
+        font-weight: 700;
+        margin-left: auto;
+    }
+
+    /* Lightbox for diagram zoom */
+    .lightbox {
+        display: none;
+        position: fixed;
+        inset: 0;
+        background: rgba(0, 0, 0, 0.9);
+        z-index: 3000;
+        place-items: center;
+        cursor: zoom-out;
+    }
+
+    .lightbox.open {
+        display: grid;
+        animation: fadeInUp 0.2s ease;
+    }
+
+    .lightbox img {
+        max-width: 90vw;
+        max-height: 90vh;
+        border-radius: 12px;
+    }
+
+    /* Responsive */
+    @media (max-width: 768px) {
+        .results-grid {
+            grid-template-columns: 1fr;
+        }
+
+        .panel-explanation {
+            grid-row: auto;
+        }
+
+        .resolver-wrapper {
+            padding: 16px;
+        }
+    }
+</style>
+
+<div class="resolver-wrapper">
+    <!-- Header -->
+    <div class="resolver-header">
+        <h1><i class="fa-solid fa-wand-magic-sparkles" style="font-size:22px; -webkit-text-fill-color:#a78bfa;"></i> AI
+            Topic Resolver</h1>
+        <p>Enter any weak topic — get an AI explanation, curated YouTube videos, and an AI-generated visual diagram
+            instantly.</p>
+    </div>
+
+    <!-- Search Box -->
+    <div class="search-box">
+        <div class="search-label">
+            <i class="fa-solid fa-magnifying-glass"></i>
+            Enter Your Weak Topic
+        </div>
+        <div class="search-row">
+            <div class="search-input-wrap">
+                <input type="text" id="topicInput"
+                    placeholder="e.g. Integration by Parts, Newton's 3rd Law, Photosynthesis..." autocomplete="off"
+                    onkeydown="if(event.key==='Enter') resolveTopicFull()" />
+            </div>
+            <button class="btn-resolve" id="resolveBtn" onclick="resolveTopicFull()">
+                <i class="fa-solid fa-bolt"></i> Resolve Now
+            </button>
+        </div>
+
+        <!-- Quick picks from syllabus weak topics -->
+        {% if weak_topics %}
+        <div class="quick-topics">
+            <span class="quick-topics-label">Your Weak Topics:</span>
+            {% for t in weak_topics[:6] %}
+            <span class="topic-chip" onclick="quickPick('{{ t.topic_name }}')">
+                {{ t.topic_name[:30] }}{% if t.topic_name|length > 30 %}…{% endif %} <span style="opacity:0.6;">({{
+                    t.proficiency }}%)</span>
+            </span>
+            {% endfor %}
+        </div>
+        {% endif %}
+    </div>
+
+    <!-- Loading State -->
+    <div class="loading-state" id="loadingState">
+        <div class="loading-spinner"></div>
+        <h3>AI is analysing your topic<span class="loading-dots">
+                <span>.</span><span>.</span><span>.</span>
+            </span></h3>
+        <p id="loadingMsg">Generating smart explanation</p>
+    </div>
+
+    <!-- Error State -->
+    <div class="error-state" id="errorState">
+        <i class="fa-solid fa-circle-exclamation"></i>
+        <h3 style="color:var(--text-primary); margin-bottom:8px;">Something went wrong</h3>
+        <p id="errorMsg">Please try again.</p>
+    </div>
+
+    <!-- Results Area -->
+    <div class="results-area" id="resultsArea">
+
+        <!-- Topic Banner -->
+        <div class="results-topic-banner">
+            <div class="topic-icon">🔭</div>
+            <div>
+                <h2 id="result-topic-title">Topic Name</h2>
+                <p id="result-topic-sub">AI-powered deep dive • YouTube curated videos • Visual diagram</p>
+            </div>
+            <div class="xp-earned-badge" id="xpBadge" style="display:none;">
+                <i class="fa-solid fa-star"></i> +15 XP Earned
+            </div>
+        </div>
+
+        <!-- Three-panel Grid -->
+        <div class="results-grid">
+
+            <!-- LEFT: AI Explanation -->
+            <div class="result-panel panel-explanation">
+                <div class="panel-header">
+                    <div class="panel-icon panel-icon-purple"><i class="fa-solid fa-brain"></i></div>
+                    <span class="panel-title">AI Deep Explanation</span>
+                    <span class="panel-subtitle" id="explainTime"></span>
+                    <span class="panel-loading-badge" id="explainLoadingBadge" style="display:none;">
+                        <span class="mini-spin"></span> Generating…
+                    </span>
+                </div>
+                <div class="panel-body" id="explanationContent">
+                    <!-- skeleton shown while loading -->
+                    <div class="panel-skeleton" id="explainSkeleton">
+                        <div class="skel-line full"></div>
+                        <div class="skel-line medium"></div>
+                        <div class="skel-line full"></div>
+                        <div class="skel-line short"></div>
+                        <div class="skel-line full" style="height:60px; margin-top:8px;"></div>
+                        <div class="skel-line full" style="height:60px;"></div>
+                        <div class="skel-line full" style="height:60px;"></div>
+                        <div class="skel-line full" style="height:50px;"></div>
+                    </div>
+                    <!-- real content injected here -->
+                    <div style="display:none;" id="explanationReal">
+                        <div class="ai-explanation-text" id="explanationText"></div>
+                        <div class="key-points" id="keyPoints"></div>
+                        <div class="mistakes-box" id="mistakesBox" style="display:none;">
+                            <h4><i class="fa-solid fa-triangle-exclamation"></i> Common Mistakes</h4>
+                            <p id="mistakesText"></p>
+                        </div>
+                        <div class="memory-trick" id="memoryTrick" style="display:none;">
+                            <h4><i class="fa-solid fa-lightbulb"></i> Memory Trick</h4>
+                            <p id="memoryText"></p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- RIGHT TOP: YouTube Videos -->
+            <div class="result-panel">
+                <div class="panel-header">
+                    <div class="panel-icon panel-icon-red"><i class="fa-brands fa-youtube"></i></div>
+                    <span class="panel-title">Top Learning Videos</span>
+                    <span class="panel-subtitle" id="videoCount"></span>
+                    <span class="panel-loading-badge" id="videoLoadingBadge" style="display:none;">
+                        <span class="mini-spin" style="border-top-color:#f87171;"></span> Finding…
+                    </span>
+                </div>
+                <div class="panel-body" id="videosList">
+                    <!-- skeleton -->
+                    <div class="panel-skeleton" id="videoSkeleton">
+                        <div class="skel-line full" style="height:68px;"></div>
+                        <div class="skel-line full" style="height:68px;"></div>
+                        <div class="skel-line full" style="height:68px;"></div>
+                        <div class="skel-line full" style="height:68px;"></div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- RIGHT BOTTOM: AI Diagram -->
+            <div class="result-panel">
+                <div class="panel-header">
+                    <div class="panel-icon panel-icon-teal"><i class="fa-solid fa-image"></i></div>
+                    <span class="panel-title">AI Visual Diagram</span>
+                    <span class="panel-subtitle" id="diagramStatus">Powered by Gemini</span>
+                    <span class="panel-loading-badge" id="diagramLoadingBadge" style="display:none;">
+                        <span class="mini-spin" style="border-top-color:#34d399;"></span> Generating…
+                    </span>
+                </div>
+                <div class="panel-body">
+                    <div class="diagram-wrap" id="diagramWrap">
+                        <!-- skeleton -->
+                        <div class="panel-skeleton" id="diagramSkeleton">
+                            <div class="skel-line tall"></div>
+                            <div class="skel-line medium"></div>
+                            <div class="skel-line short"></div>
+                        </div>
+                    </div>
+                    <div class="diagram-actions" id="diagramActions" style="display:none;">
+                        <button class="btn-diagram btn-diagram-dl" id="downloadDiagramBtn" onclick="downloadDiagram()">
+                            <i class="fa-solid fa-download"></i> Save Diagram
+                        </button>
+                        <button class="btn-diagram btn-diagram-re" onclick="regenerateDiagram()">
+                            <i class="fa-solid fa-rotate"></i> Regenerate
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+        </div>
+    </div>
+</div>
+
+<!-- Lightbox for diagram zoom -->
+<div class="lightbox" id="lightbox" onclick="this.classList.remove('open')">
+    <img id="lightboxImg" src="" alt="Diagram Zoom">
+</div>
+
+<script>
+    document.querySelector('[data-nav="resolver"]') &&
+        document.querySelector('[data-nav="resolver"]').classList.add('active');
+
+    let currentTopic = '';
+    let currentDiagramUrl = '';
+
+    function quickPick(topic) {
+        document.getElementById('topicInput').value = topic;
+        resolveTopicFull();
+    }
+
+    /* ═══════════════════════════════════════════════════════
+       PROGRESSIVE LOADING — each panel reveals independently
+    ═══════════════════════════════════════════════════════ */
+    async function resolveTopicFull() {
+        const input = document.getElementById('topicInput');
+        const topic = input.value.trim();
+        if (!topic) {
+            input.focus();
+            input.style.borderColor = '#f87171';
+            setTimeout(() => input.style.borderColor = '', 1200);
+            return;
+        }
+        currentTopic = topic;
+        document.getElementById('resolveBtn').disabled = true;
+
+        // Hide old loading overlay, reset panels to skeleton state, show results area
+        showSection('none');         // hide global spinner
+        resetToSkeleton();
+        showSection('results');      // reveal results area immediately with skeletons
+
+        // Set topic banner text right away
+        document.getElementById('result-topic-title').textContent = topic;
+        document.getElementById('result-topic-sub').textContent = 'AI-powered deep dive • YouTube curated videos • Visual diagram';
+        document.getElementById('xpBadge').style.display = 'none';
+
+        // ── Step 1: AI Explanation (blocks steps 2 & 3 because we need youtube_query) ──
+        setBadge('explain', true);
+        let explainData = null;
+        try {
+            const explainResp = await fetch('/api/topic-resolver/explain', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ topic })
+            });
+            explainData = await explainResp.json();
+            if (!explainResp.ok) throw new Error(explainData.error || 'Explanation failed');
+            renderExplanation(explainData, topic); // ← panel 1 appears here ✅
+        } catch (err) {
+            // Show graceful error in panel 1
+            renderExplanationError(topic, err.message);
+        } finally {
+            setBadge('explain', false);
+        }
+
+        // ── Steps 2 & 3: Videos + Diagram fire in parallel immediately after explanation ──
+        const youtubeQuery = (explainData && explainData.youtube_query) ? explainData.youtube_query : topic;
+        const diagramDesc  = (explainData && explainData.summary)       ? explainData.summary       : topic;
+
+        setBadge('video',   true);
+        setBadge('diagram', true);
+
+        // Fire both at the same time, handle each independently
+        const videoPromise = fetch('/api/topic-resolver/videos', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ topic, search_query: youtubeQuery })
+        }).then(r => r.json())
+          .then(d => { renderVideos(d.videos || []); })      // ← panel 2 appears here ✅
+          .catch(()  => { renderVideos([]); })
+          .finally(() => setBadge('video', false));
+
+        const diagramPromise = fetch('/api/topic-resolver/diagram', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ topic, description: diagramDesc })
+        }).then(r => r.json())
+          .then(d => { renderDiagram(d); })                  // ← panel 3 appears here ✅
+          .catch(()  => { renderDiagram({}); })
+          .finally(() => setBadge('diagram', false));
+
+        // Wait for both to finish, then award XP
+        Promise.all([videoPromise, diagramPromise]).then(() => {
+            awardXP();
+            document.getElementById('resolveBtn').disabled = false;
+        });
+    }
+
+    /* reset each panel back to skeleton state before a new search */
+    function resetToSkeleton() {
+        // Explanation panel
+        document.getElementById('explainSkeleton').style.display = '';
+        document.getElementById('explanationReal').style.display = 'none';
+        document.getElementById('explainTime').textContent = '';
+        document.getElementById('mistakesBox').style.display = 'none';
+        document.getElementById('memoryTrick').style.display  = 'none';
+
+        // Videos panel — reset to skeleton rows
+        document.getElementById('videosList').innerHTML = `
+            <div class="panel-skeleton" id="videoSkeleton">
+                <div class="skel-line full" style="height:68px;"></div>
+                <div class="skel-line full" style="height:68px;"></div>
+                <div class="skel-line full" style="height:68px;"></div>
+                <div class="skel-line full" style="height:68px;"></div>
+            </div>`;
+        document.getElementById('videoCount').textContent = '';
+
+        // Diagram panel
+        document.getElementById('diagramWrap').innerHTML = `
+            <div class="panel-skeleton" id="diagramSkeleton">
+                <div class="skel-line tall"></div>
+                <div class="skel-line medium"></div>
+                <div class="skel-line short"></div>
+            </div>`;
+        document.getElementById('diagramStatus').textContent = 'Generating…';
+        document.getElementById('diagramActions').style.display = 'none';
+    }
+
+    /* toggle per-panel loading badge */
+    function setBadge(panel, loading) {
+        const id = { explain: 'explainLoadingBadge', video: 'videoLoadingBadge', diagram: 'diagramLoadingBadge' }[panel];
+        if (id) document.getElementById(id).style.display = loading ? 'flex' : 'none';
+        if (!loading && panel === 'explain') {
+            document.getElementById('explainTime').textContent = 'Generated just now';
+        }
+        if (!loading && panel === 'diagram') {
+            // only update if no error text already set
+        }
+    }
+
+    /* ── UI Sections ── */
+    function showSection(which) {
+        document.getElementById('loadingState').className  = 'loading-state'  + (which === 'loading'  ? ' active' : '');
+        document.getElementById('resultsArea').className   = 'results-area'   + (which === 'results'  ? ' active' : '');
+        document.getElementById('errorState').className    = 'error-state'    + (which === 'error'    ? ' active' : '');
+    }
+
+    /* ── Render Explanation ── */
+    function renderExplanation(data, topic) {
+        // Update banner
+        document.getElementById('result-topic-title').textContent = topic;
+        document.getElementById('result-topic-sub').textContent = data.subtitle || 'AI-powered deep dive • YouTube curated videos • Visual diagram';
+
+        // Main text
+        document.getElementById('explanationText').innerHTML =
+            (data.explanation || '').replace(/\n/g, '<br>');
+
+        // Key points
+        const kpEl = document.getElementById('keyPoints');
+        kpEl.innerHTML = '';
+        if (data.key_points && data.key_points.length) {
+            data.key_points.forEach(pt => {
+                kpEl.innerHTML += `
+          <div class="key-point">
+            <i class="fa-solid fa-circle-check kp-icon"></i>
+            <span>${escHtml(pt)}</span>
+          </div>`;
+            });
+        }
+
+        // Common mistakes
+        if (data.common_mistakes) {
+            document.getElementById('mistakesBox').style.display = '';
+            document.getElementById('mistakesText').textContent = data.common_mistakes;
+        }
+        // Memory trick
+        if (data.memory_trick) {
+            document.getElementById('memoryTrick').style.display = '';
+            document.getElementById('memoryText').textContent = data.memory_trick;
+        }
+
+        // Hide skeleton → reveal real content with animation
+        document.getElementById('explainSkeleton').style.display = 'none';
+        const real = document.getElementById('explanationReal');
+        real.style.display = '';
+        real.classList.add('panel-reveal');
+    }
+
+    function renderExplanationError(topic, errMsg) {
+        document.getElementById('explainSkeleton').style.display = 'none';
+        const real = document.getElementById('explanationReal');
+        real.style.display = '';
+        document.getElementById('explanationText').innerHTML =
+            `<div style="color:var(--text-muted); font-size:13px; line-height:1.7;">
+               <i class="fa-solid fa-triangle-exclamation" style="color:#f87171; margin-right:6px;"></i>
+               Could not generate AI explanation for <strong style="color:var(--text-primary);">${escHtml(topic)}</strong>.
+               ${errMsg ? '<br><span style="opacity:0.6;">' + escHtml(errMsg) + '</span>' : ''}
+             </div>`;
+        real.classList.add('panel-reveal');
+    }
+
+    /* ── Render Videos ── */
+    function renderVideos(videos) {
+        const el = document.getElementById('videosList');
+        document.getElementById('videoCount').textContent = videos.length + (videos.length === 1 ? ' video' : ' videos');
+        if (!videos.length) {
+            el.innerHTML = `<div class="no-videos-msg"><i class="fa-brands fa-youtube"></i> No videos found. Try a different topic.</div>`;
+            return;
+        }
+        el.innerHTML = videos.map(v => `
+      <a class="video-card" href="https://www.youtube.com/watch?v=${escHtml(v.id)}" target="_blank" rel="noopener">
+        <img class="video-thumb" src="${escHtml(v.thumbnail)}" alt="${escHtml(v.title)}" onerror="this.src='https://via.placeholder.com/100x60/1a1a2e/a78bfa?text=?'" loading="lazy">
+        <div class="video-info">
+          <div class="video-title">${escHtml(v.title)}</div>
+          <div class="video-meta">
+            <span class="video-channel">${escHtml(v.channel)}</span>
+            ${v.duration ? `<span class="video-duration"><i class="fa-regular fa-clock"></i> ${escHtml(v.duration)}</span>` : ''}
+            ${v.views ? `<span class="video-views"><i class="fa-solid fa-eye"></i> ${escHtml(v.views)}</span>` : ''}
+          </div>
+        </div>
+        <span class="yt-badge"><i class="fa-brands fa-youtube"></i> Watch</span>
+      </a>
+    `).join('');
+        // slide-in reveal
+        el.classList.add('panel-reveal');
+    }
+
+    /* ── Render Diagram ── */
+    function renderDiagram(data) {
+        const wrap = document.getElementById('diagramWrap');
+        const actions = document.getElementById('diagramActions');
+        const status = document.getElementById('diagramStatus');
+
+        if (data.image_url) {
+            currentDiagramUrl = data.image_url;
+            status.textContent = 'AI Generated • Click to zoom';
+            wrap.innerHTML = `<img class="diagram-img" src="${escHtml(data.image_url)}" alt="AI Diagram" onclick="zoomDiagram(this.src)" onerror="this.parentNode.innerHTML='<div class=\\'diagram-placeholder\\'><i class=\\'fa-solid fa-image\\'></i>Diagram generation is unavailable right now. Try again.</div>'">`;
+            actions.style.display = 'flex';
+        } else if (data.description) {
+            status.textContent = 'Text diagram (image unavailable)';
+            wrap.innerHTML = `
+        <div style="background:rgba(167,139,250,0.06); border:1px solid rgba(167,139,250,0.2); border-radius:12px; padding:16px; text-align:left; color:var(--text-secondary); font-size:13px; line-height:1.8; white-space:pre-wrap;">${escHtml(data.description)}</div>`;
+            actions.style.display = 'none';
+        } else {
+            status.textContent = 'Powered by Gemini';
+            wrap.innerHTML = `<div class="diagram-placeholder"><i class="fa-solid fa-image"></i>Diagram could not be generated for this topic. Try rephrasing.</div>`;
+            actions.style.display = 'none';
+        }
+        // slide-in reveal
+        wrap.classList.add('panel-reveal');
+    }
+
+    function zoomDiagram(src) {
+        document.getElementById('lightboxImg').src = src;
+        document.getElementById('lightbox').classList.add('open');
+    }
+
+    function downloadDiagram() {
+        if (!currentDiagramUrl) return;
+        const a = document.createElement('a');
+        a.href = currentDiagramUrl;
+        a.download = currentTopic.replace(/\s+/g, '_') + '_diagram.jpg';
+        a.target = '_blank';
+        a.click();
+    }
+
+    async function regenerateDiagram() {
+        if (!currentTopic) return;
+        document.getElementById('diagramWrap').innerHTML = `
+      <div class="generating-img">
+        <i class="fa-solid fa-rotate fa-spin" style="font-size:24px; color:#a78bfa;"></i>
+        <span style="font-size:13px;">Regenerating diagram…</span>
+      </div>`;
+        document.getElementById('diagramActions').style.display = 'none';
+        const resp = await fetch('/api/topic-resolver/diagram', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ topic: currentTopic, description: currentTopic })
+        });
+        const data = await resp.json();
+        renderDiagram(data);
+    }
+
+    /* ── XP Award ── */
+    function awardXP() {
+        fetch('/api/topic-resolver/award-xp', { method: 'POST' })
+            .then(r => r.json())
+            .then(d => {
+                if (d.earned > 0) {
+                    const badge = document.getElementById('xpBadge');
+                    badge.textContent = '+' + d.earned + ' XP Earned';
+                    badge.innerHTML = '<i class="fa-solid fa-star"></i> +' + d.earned + ' XP Earned';
+                    badge.style.display = 'inline-flex';
+                }
+            }).catch(() => { });
+    }
+
+    function escHtml(s) {
+        if (!s) return '';
+        const d = document.createElement('div');
+        d.appendChild(document.createTextNode(String(s)));
+        return d.innerHTML;
+    }
+
+    // ── Auto-trigger from ?topic= URL param (e.g. coming from photo-solver) ──
+    window.addEventListener('DOMContentLoaded', () => {
+        const params = new URLSearchParams(window.location.search);
+        const topicParam = params.get('topic');
+        if (topicParam && topicParam.trim()) {
+            const input = document.getElementById('topicInput');
+            if (input) {
+                input.value = topicParam.trim();
+                // Small delay so page renders first
+                setTimeout(() => resolveTopicFull(), 300);
+            }
+        }
+    });
+</script>
+{% endblock %}

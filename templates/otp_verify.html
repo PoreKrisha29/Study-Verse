@@ -1,0 +1,213 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Verify Email - StudyVerse</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+    <link rel="icon" type="image/png" href="{{ url_for('static', filename='img/favicon.png') }}">
+    <style>
+        body {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            min-height: 100vh;
+            background: #111;
+            background-image: url('https://images.unsplash.com/photo-1451187580459-43490279c0fa?q=80&w=2072&auto=format&fit=crop');
+            background-size: cover;
+            background-position: center;
+        }
+
+        .overlay {
+            position: absolute;
+            inset: 0;
+            background: rgba(0, 0, 0, 0.6);
+            backdrop-filter: blur(8px);
+        }
+
+        .login-container {
+            width: 100%;
+            max-width: 420px;
+            padding: 20px;
+            position: relative;
+            z-index: 10;
+        }
+
+        .login-card {
+            background: rgba(255, 255, 255, 0.05);
+            backdrop-filter: blur(16px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 24px;
+            padding: 40px;
+            text-align: center;
+            box-shadow: 0 20px 50px rgba(0, 0, 0, 0.5);
+        }
+
+        .login-logo {
+            font-size: 3rem;
+            color: var(--accent-green);
+            margin-bottom: 16px;
+        }
+
+        .login-title {
+            font-size: 1.8rem;
+            font-weight: 700;
+            margin-bottom: 8px;
+            color: white;
+        }
+
+        .login-subtitle {
+            color: var(--text-secondary);
+            margin-bottom: 32px;
+            font-size: 0.95rem;
+            line-height: 1.5;
+        }
+
+        .otp-input-container {
+            display: flex;
+            justify-content: center;
+            gap: 12px;
+            margin-bottom: 24px;
+        }
+
+        .otp-box {
+            width: 45px;
+            height: 55px;
+            background: rgba(0, 0, 0, 0.3);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            color: white;
+            font-size: 1.5rem;
+            text-align: center;
+            outline: none;
+            transition: all 0.2s;
+            font-weight: 600;
+        }
+
+        .otp-box:focus {
+            border-color: var(--accent-green);
+            box-shadow: 0 0 10px rgba(14, 165, 233, 0.3);
+        }
+
+        .btn-primary {
+            width: 100%;
+            padding: 14px;
+            background: var(--accent-green);
+            color: black;
+            font-weight: 600;
+            border-radius: 12px;
+            font-size: 1rem;
+            border: none;
+            cursor: pointer;
+            transition: transform 0.2s, box-shadow 0.2s;
+        }
+
+        .btn-primary:active {
+            transform: scale(0.98);
+        }
+    </style>
+</head>
+
+<body>
+    <div class="overlay"></div>
+
+    <div class="login-container">
+        <div class="login-card">
+            <div class="login-logo">
+                <i class="fa-solid fa-envelope-circle-check" style="color:#0ea5e9;"></i>
+            </div>
+            <h1 class="login-title">Verify Email</h1>
+            <p class="login-subtitle" style="margin-bottom: 15px;">We sent a 6-digit code to <br><strong
+                    style="color:white;">{{ email }}</strong>
+            </p>
+            <div
+                style="background: rgba(14, 165, 233, 0.1); border: 1px solid rgba(14, 165, 233, 0.2); border-radius: 8px; padding: 10px; margin-bottom: 24px; font-size: 0.85rem; color: #bae6fd;">
+                <i class="fa-solid fa-circle-info" style="margin-right: 5px;"></i> Please check your inbox. If you can't
+                find it, check your <strong>spam folder</strong>.
+            </div>
+
+            {% with messages = get_flashed_messages(with_categories=true) %}
+            {% if messages %}
+            <div style="margin-bottom: 20px; text-align: left;">
+                {% for category, message in messages %}
+                <div
+                    style="padding: 10px; border-radius: 8px; background: rgba(239, 68, 68, 0.2); color: #fca5a5; font-size: 0.9rem; border: 1px solid rgba(239, 68, 68, 0.3);">
+                    {{ message }}
+                </div>
+                {% endfor %}
+            </div>
+            {% endif %}
+            {% endwith %}
+            
+
+            <form method="POST" action="{{ url_for('verify_otp') }}" id="otp-form">
+                <!-- Hidden input that actually stores the full OTP to submit -->
+                <input type="hidden" name="otp" id="full-otp">
+
+                <div class="otp-input-container">
+                    <input type="text" maxlength="1" class="otp-box" autofocus>
+                    <input type="text" maxlength="1" class="otp-box">
+                    <input type="text" maxlength="1" class="otp-box">
+                    <input type="text" maxlength="1" class="otp-box">
+                    <input type="text" maxlength="1" class="otp-box">
+                    <input type="text" maxlength="1" class="otp-box">
+                </div>
+
+                <button type="submit" class="btn-primary" style="background:#0ea5e9; color:white;">Verify
+                    Account</button>
+            </form>
+
+            <div style="margin-top:24px; font-size:0.85rem; color:#64748b;">
+                Didn't receive it? <a href="{{ url_for('auth') }}" style="color:#0ea5e9; text-decoration:none;">Go back
+                    & try again</a>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const inputs = document.querySelectorAll('.otp-box');
+        const hiddenInput = document.getElementById('full-otp');
+        const form = document.getElementById('otp-form');
+
+        inputs.forEach((input, index) => {
+            // Move to next box automatically when typed
+            input.addEventListener('input', (y) => {
+                if (input.value.length === 1 && index < inputs.length - 1) {
+                    inputs[index + 1].focus();
+                }
+            });
+
+            // Handle backspace properly (move to previous box)
+            input.addEventListener('keydown', (e) => {
+                if (e.key === 'Backspace' && input.value === '' && index > 0) {
+                    inputs[index - 1].focus();
+                }
+            });
+
+            // Prevent non-numbers (optional)
+            input.addEventListener('keypress', (e) => {
+                if (!/[0-9]/.test(e.key)) {
+                    e.preventDefault();
+                }
+            });
+        });
+
+        // Combine inputs into hidden field before submit
+        form.addEventListener('submit', (e) => {
+            let code = Array.from(inputs).map(i => i.value).join('');
+            if (code.length !== 6) {
+                e.preventDefault();
+                alert('Please enter all 6 digits.');
+                return;
+            }
+            hiddenInput.value = code;
+        });
+    </script>
+</body>
+
+</html>

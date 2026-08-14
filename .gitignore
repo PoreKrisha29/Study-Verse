@@ -1,0 +1,47 @@
+# Byte-compiled / optimized / DLL files
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Environment variables & secrets
+.env
+.env.*
+.env.local
+.env.development
+.env.production
+scan_secrets.py
+
+# Database dumps, backups & local databases
+backups/
+*.db
+*.sqlite
+*.sqlite3
+*.bak
+*.backup
+*.dump
+instance/
+
+# Uploads and temporary user files
+static/uploads/*
+!static/uploads/.gitkeep
+
+# Virtual Environments
+venv/
+env/
+ENV/
+.venv/
+
+# IDE / Editor folders
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Operating System files
+.DS_Store
+Thumbs.db
+ehthumbs.db
+
+# Logs
+*.log
+

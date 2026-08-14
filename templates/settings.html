@@ -1,0 +1,587 @@
+{% extends "layout.html" %}
+
+{% block title %}Settings - StudyVerse{% endblock %}
+
+{% block content %}
+<!-- Profile Hero -->
+<div class="profile-hero">
+    <div class="profile-cover" style="background-image: linear-gradient(135deg, #1e1e1e, #111827);"></div>
+    <div class="profile-avatar-wrapper">
+        <img id="profile-avatar" src="{{ current_user.get_avatar(200) }}" class="profile-avatar-main"
+            alt="Profile Avatar">
+        <div class="profile-info-brief">
+            <h2 id="profile-name">{{ current_user.first_name }} {{ current_user.last_name }}</h2>
+            <p id="profile-major">{{ current_user.email }}</p>
+        </div>
+        <div class="profile-actions">
+            <button class="btn-primary"
+                onclick="openTab('settings', document.querySelector('[data-tab-btn=\'settings\']'))">
+                <i class="fa-solid fa-pen"></i> Edit Profile
+            </button>
+        </div>
+    </div>
+</div>
+
+<!-- Stats Row -->
+<div class="stats-row">
+    <div class="stat-card">
+        <div class="stat-icon green">
+            <i class="fa-solid fa-bolt"></i>
+        </div>
+        <div class="stat-info">
+            <div class="stat-value" id="stat-level">12</div>
+            <div class="stat-label">Current Level</div>
+        </div>
+    </div>
+    <div class="stat-card">
+        <div class="stat-icon blue">
+            <i class="fa-solid fa-clock"></i>
+        </div>
+        <div class="stat-info">
+            <div class="stat-value" id="stat-hours">342h</div>
+            <div class="stat-label">Focus Time</div>
+        </div>
+    </div>
+    <div class="stat-card">
+        <div class="stat-icon red">
+            <i class="fa-solid fa-fire"></i>
+        </div>
+        <div class="stat-info">
+            <div class="stat-value" id="stat-streak">8</div>
+            <div class="stat-label">Day Streak</div>
+        </div>
+    </div>
+    <div class="stat-card">
+        <div class="stat-icon amber">
+            <i class="fa-solid fa-star"></i>
+        </div>
+        <div class="stat-info">
+            <div class="stat-value" id="stat-xp">2,450</div>
+            <div class="stat-label">Total XP</div>
+        </div>
+    </div>
+</div>
+
+<div class="profile-grid-main">
+    <!-- Left: Content Area -->
+    <div class="card">
+        <div class="tab-nav">
+            <div class="tab-link active" onclick="openTab('overview', this)">Overview</div>
+            <div class="tab-link" onclick="openTab('activity', this)">Recent Activity</div>
+            <div class="tab-link" data-tab-btn="settings" onclick="openTab('settings', this)">Settings</div>
+            <div class="tab-link" onclick="openTab('feedback', this)"><i class="fa-regular fa-comment-dots" style="margin-right:6px;"></i>Feedback</div>
+        </div>
+
+        <div id="tab-content">
+            <!-- Overview Tab -->
+            <div id="overview-tab" class="tab-pane">
+                <div class="settings-form-grid">
+                    <div>
+                        <h3 class="mb-4">Badges & Achievements</h3>
+                        <div style="display: flex; flex-direction: column; gap: 12px;">
+                            <div class="badge-item">
+                                <div class="badge-icon"><i class="fa-solid fa-award"></i></div>
+                                <div>
+                                    <div style="font-weight: 600; font-size: 0.9rem;">Early Bird</div>
+                                    <div style="font-size: 0.75rem; color: var(--text-secondary);">Start 5 focus
+                                        sessions before 8 AM</div>
+                                </div>
+                            </div>
+                            <div class="badge-item">
+                                <div class="badge-icon" style="background: rgba(59, 130, 246, 0.1); color: #3b82f6;"><i
+                                        class="fa-solid fa-brain"></i></div>
+                                <div>
+                                    <div style="font-weight: 600; font-size: 0.9rem;">Deep Thinker</div>
+                                    <div style="font-size: 0.75rem; color: var(--text-secondary);">Complete a 2-hour
+                                        focus session</div>
+                                </div>
+                            </div>
+                            <div class="badge-item">
+                                <div class="badge-icon" style="background: rgba(245, 158, 11, 0.1); color: #f59e0b;"><i
+                                        class="fa-solid fa-shield-halved"></i></div>
+                                <div>
+                                    <div style="font-weight: 600; font-size: 0.9rem;">Focus Warrior</div>
+                                    <div style="font-size: 0.75rem; color: var(--text-secondary);">Maintain a 7-day
+                                        streak</div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div>
+                        <h3 class="mb-4">About Me</h3>
+                        <p
+                            style="color: var(--text-secondary); font-size: 0.95rem; line-height: 1.6; margin-bottom: 20px;">
+                            Computer Science student at University. Passionate about algorithms, UI/UX design, and
+                            productivity hacks. Currently focusing on mastering Python and React.
+                        </p>
+                        <div style="display: flex; gap: 10px; flex-wrap: wrap;">
+                            <span class="badge badge-low">#coding</span>
+                            <span class="badge badge-low">#algorithms</span>
+                            <span class="badge badge-low">#focus</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Activity Tab (Hidden by default) -->
+            <div id="activity-tab" class="tab-pane" style="display: none;">
+                <div class="notification-list">
+                    <div style="padding: 16px 0; border-bottom: 1px solid var(--border); display: flex; gap: 16px;">
+                        <div class="stat-icon green" style="width: 40px; height: 40px; border-radius: 50%;">
+                            <i class="fa-solid fa-trophy"></i>
+                        </div>
+                        <div>
+                            <div style="font-size: 0.95rem;"><strong>You leveled up!</strong> You are now Level 12. Keep
+                                focusing!</div>
+                            <div style="font-size: 0.8rem; color: var(--text-secondary); margin-top: 4px;">2 hours ago
+                            </div>
+                        </div>
+                    </div>
+                    <div style="padding: 16px 0; border-bottom: 1px solid var(--border); display: flex; gap: 16px;">
+                        <div class="stat-icon blue" style="width: 40px; height: 40px; border-radius: 50%;">
+                            <i class="fa-solid fa-clock"></i>
+                        </div>
+                        <div>
+                            <div style="font-size: 0.95rem;">Completed <strong>Python Learning</strong> focus session
+                                (50 mins).</div>
+                            <div style="font-size: 0.8rem; color: var(--text-secondary); margin-top: 4px;">4 hours ago
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Settings Tab (Hidden by default) -->
+            <div id="settings-tab" class="tab-pane" style="display: none;">
+                <div class="settings-group">
+                    <h3 class="mb-4">Profile Information</h3>
+                    <div class="settings-form-grid">
+                        <div class="form-group">
+                            <label class="form-label" for="firstName">First Name</label>
+                            <input class="form-input" type="text" id="firstName"
+                                value="{{ current_user.first_name or '' }}">
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label" for="lastName">Last Name</label>
+                            <input class="form-input" type="text" id="lastName"
+                                value="{{ current_user.last_name or '' }}">
+                        </div>
+                        <div class="form-group" style="grid-column: span 2;">
+                            <label class="form-label" for="email">Email</label>
+                            <input class="form-input" type="email" id="email" value="{{ current_user.email }}" disabled>
+                        </div>
+                    </div>
+
+                    <button class="btn-primary mb-4">Save Changes</button>
+
+                    <div style="border-top: 1px solid var(--border); margin: 32px 0;"></div>
+
+                    <h3 class="mb-4">Account Preferences</h3>
+
+                    <div class="setting-row">
+                        <div class="setting-info">
+                            <h4>Public Profile</h4>
+                            <p>Allow friends to see your focus stats and leaderboard rank.</p>
+                        </div>
+                        <input type="checkbox" id="publicProfileToggle" {% if current_user.is_public_profile %}checked{%
+                            endif %} style="width: 20px; height: 20px; accent-color: var(--accent-green);">
+                    </div>
+                    <div class="setting-row">
+                        <div class="setting-info">
+                            <h4>Theme</h4>
+                            <p>Toggle between light and dark visual themes.</p>
+                        </div>
+                        <!-- Theme Toggle Button -->
+                        <div style="width: 150px;">
+                            <button id="theme-toggle" class="theme-toggle-btn" aria-label="Toggle theme">
+                                <div style="position: relative; width: 20px; height: 20px;">
+                                    <i class="fa-solid fa-sun theme-icon-light"></i>
+                                    <i class="fa-solid fa-moon theme-icon-dark"></i>
+                                </div>
+                                <span class="theme-toggle-text">Theme</span>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="danger-zone">
+                    <h3><i class="fa-solid fa-triangle-exclamation"></i> Danger Zone</h3>
+                    <p style="color: var(--text-secondary); margin-bottom: 20px; font-size: 0.9rem;">
+                        Once you delete your account, there is no going back. Please be certain.
+                    </p>
+                    <a href="{{ url_for('logout') }}" class="btn-danger-outline">
+                        <i class="fa-solid fa-right-from-bracket"></i> Logout
+                    </a>
+                </div>
+            </div>
+
+            <!-- Feedback Tab (Hidden by default) -->
+            <div id="feedback-tab" class="tab-pane" style="display: none;">
+                <div class="settings-group">
+                    <h3 class="mb-4"><i class="fa-regular fa-comment-dots" style="margin-right:8px; color:var(--accent-green);"></i>Share Your Thoughts</h3>
+                    <p style="color: var(--text-secondary); font-size: 0.9rem; margin-bottom: 24px;">
+                        Your feedback helps us make StudyVerse better. We read every single one! ❤️
+                    </p>
+
+                    <!-- Emoji Rating -->
+                    <div id="sv-fbThankyou" style="display:none; text-align:center; padding: 40px 20px;">
+                        <div style="font-size: 3.5rem; margin-bottom: 16px;">🎉</div>
+                        <h4 style="color: var(--accent-green); font-size: 1.3rem; margin-bottom: 8px;">Thanks so much!</h4>
+                        <p style="color: var(--text-secondary); font-size: 0.9rem;">We appreciate your input and will use it to keep improving.</p>
+                    </div>
+
+                    <div id="sv-fbForm">
+                        <p style="font-size:0.85rem; color:var(--text-secondary); margin-bottom:14px; font-weight:600; text-transform:uppercase; letter-spacing:0.5px;">How's your experience?</p>
+                        <div class="sv-fb-emoji-row" id="sv-fbEmojiRow">
+                            <span class="sv-fb-emoji" data-rating="love" title="Love it!">😍<br><span class="sv-emoji-label">Love it</span></span>
+                            <span class="sv-fb-emoji" data-rating="happy" title="Happy">😊<br><span class="sv-emoji-label">Happy</span></span>
+                            <span class="sv-fb-emoji" data-rating="neutral" title="Neutral">😐<br><span class="sv-emoji-label">Neutral</span></span>
+                            <span class="sv-fb-emoji" data-rating="sad" title="Sad">😞<br><span class="sv-emoji-label">Sad</span></span>
+                            <span class="sv-fb-emoji" data-rating="awful" title="Awful">😡<br><span class="sv-emoji-label">Awful</span></span>
+                        </div>
+
+                        <!-- Category -->
+                        <p style="font-size:0.85rem; color:var(--text-secondary); margin-bottom:10px; font-weight:600; text-transform:uppercase; letter-spacing:0.5px;">Category</p>
+                        <div class="sv-fb-categories" id="sv-fbCategories">
+                            <div class="sv-fb-cat-chip selected" data-cat="general">💬 General</div>
+                            <div class="sv-fb-cat-chip" data-cat="bug">🐛 Bug Report</div>
+                            <div class="sv-fb-cat-chip" data-cat="feature">✨ Feature Idea</div>
+                        </div>
+
+                        <!-- Message -->
+                        <p style="font-size:0.85rem; color:var(--text-secondary); margin-bottom:10px; font-weight:600; text-transform:uppercase; letter-spacing:0.5px;">Message <span style="font-weight:400; text-transform:none; letter-spacing:0;">(optional)</span></p>
+                        <textarea class="form-input sv-fb-textarea" id="sv-fbMessage" rows="4" placeholder="Tell us more — we'd love to hear your thoughts..."></textarea>
+
+                        <button class="btn-primary sv-fb-submit" id="sv-fbSubmitBtn" onclick="svSubmitFeedback()" style="width:100%; justify-content:center; margin-top: 8px;">
+                            <i class="fa-solid fa-paper-plane"></i> Send Feedback
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Right: Timeline/Friends -->
+    <div style="display: flex; flex-direction: column; gap: 24px;">
+        <!-- Upcoming Deadlines -->
+        <div class="card">
+            <div class="card-header">
+                <div class="card-title">Upcoming Deadlines</div>
+            </div>
+            <div style="display: flex; flex-direction: column; gap: 16px;">
+                <div style="display: flex; gap: 12px; align-items: start;">
+                    <div
+                        style="background: rgba(239, 68, 68, 0.1); color: #f87171; padding: 8px 12px; border-radius: 8px; text-align: center; min-width: 50px;">
+                        <div style="font-weight: 700;">20</div>
+                        <div style="font-size: 0.7rem;">MAY</div>
+                    </div>
+                    <div>
+                        <div style="font-weight: 600;">Calculus Midterm</div>
+                        <div style="font-size: 0.85rem; color: var(--text-secondary);">Preparation Session</div>
+                    </div>
+                </div>
+
+                <div style="display: flex; gap: 12px; align-items: start;">
+                    <div
+                        style="background: rgba(245, 158, 11, 0.1); color: #fbbf24; padding: 8px 12px; border-radius: 8px; text-align: center; min-width: 50px;">
+                        <div style="font-weight: 700;">25</div>
+                        <div style="font-size: 0.7rem;">MAY</div>
+                    </div>
+                    <div>
+                        <div style="font-weight: 600;">History Essay</div>
+                        <div style="font-size: 0.85rem; color: var(--text-secondary);">Final Submission</div>
+                    </div>
+                </div>
+            </div>
+            <button class="btn-secondary" style="width: 100%; margin-top: 20px;">View Calendar</button>
+        </div>
+
+        <!-- Focus Buddies -->
+        <div class="card">
+            <div class="card-header">
+                <div class="card-title">Focus Buddies</div>
+            </div>
+            <div style="display: flex; flex-direction: column; gap: 12px;">
+                {% if focus_buddies %}
+                {% for buddy in focus_buddies %}
+                <div style="display: flex; align-items: center; gap: 12px;">
+                    <div style="position: relative;">
+                        <img src="{{ buddy.avatar }}"
+                            style="width: 32px; height: 32px; border-radius: 50%; border: 1px solid var(--border);">
+                        {% if buddy.is_online %}
+                        <div
+                            style="position: absolute; bottom: 0; right: 0; width: 8px; height: 8px; background: #22c55e; border-radius: 50%; border: 1px solid var(--bg-card);">
+                        </div>
+                        {% endif %}
+                    </div>
+                    <div style="flex: 1; min-width: 0;">
+                        <div
+                            style="font-size: 0.9rem; font-weight: 500; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">
+                            {{ buddy.name }}
+                        </div>
+                        {% if buddy.is_public and buddy.rank %}
+                        <div style="font-size: 0.75rem; color: var(--text-secondary);">
+                            {{ buddy.rank.name }} • Lvl {{ buddy.stats.level }}
+                        </div>
+                        {% endif %}
+                    </div>
+                </div>
+                {% endfor %}
+                {% else %}
+                <div style="color: var(--text-secondary); font-size: 0.9rem; text-align: center; padding: 20px 0;">
+                    No friends yet.
+                </div>
+                {% endif %}
+            </div>
+            <a href="/friends" class="btn-secondary"
+                style="margin-top: 20px; width: 100%; display: block; text-align: center; text-decoration: none;">Find
+                Friends</a>
+        </div>
+    </div>
+</div>
+{% endblock %}
+{% block scripts %}
+<style>
+    /* ──── Settings Page Feedback Tab ──── */
+    .sv-fb-emoji-row {
+        display: flex;
+        justify-content: space-around;
+        margin-bottom: 24px;
+        gap: 8px;
+    }
+    .sv-fb-emoji {
+        font-size: 2rem;
+        cursor: pointer;
+        padding: 12px 16px;
+        border-radius: 14px;
+        border: 2px solid var(--border);
+        background: var(--bg-hover);
+        transition: all 0.2s;
+        user-select: none;
+        text-align: center;
+        flex: 1;
+        line-height: 1.4;
+    }
+    .sv-fb-emoji:hover {
+        transform: translateY(-3px) scale(1.05);
+        border-color: var(--accent-green);
+        background: rgba(74, 222, 128, 0.08);
+    }
+    .sv-fb-emoji.selected {
+        border-color: var(--accent-green);
+        background: rgba(74, 222, 128, 0.15);
+        transform: translateY(-2px);
+    }
+    .sv-emoji-label {
+        font-size: 0.68rem;
+        color: var(--text-secondary);
+        font-weight: 600;
+    }
+    .sv-fb-categories {
+        display: flex;
+        gap: 10px;
+        margin-bottom: 20px;
+        flex-wrap: wrap;
+    }
+    .sv-fb-cat-chip {
+        padding: 8px 16px;
+        border-radius: 20px;
+        border: 1px solid var(--border);
+        background: var(--bg-hover);
+        color: var(--text-secondary);
+        font-size: 0.82rem;
+        font-weight: 600;
+        cursor: pointer;
+        transition: all 0.2s;
+    }
+    .sv-fb-cat-chip:hover {
+        border-color: var(--accent-green);
+        color: var(--text-primary);
+    }
+    .sv-fb-cat-chip.selected {
+        background: rgba(74, 222, 128, 0.15);
+        border-color: var(--accent-green);
+        color: var(--accent-green);
+    }
+    .sv-fb-textarea {
+        width: 100%;
+        resize: vertical;
+        margin-bottom: 4px;
+        min-height: 110px;
+    }
+    .sv-fb-submit {
+        gap: 8px;
+    }
+</style>
+<script>
+    // Tab Switching Logic
+    function openTab(tabName, btn) {
+        document.querySelectorAll('.tab-pane').forEach(el => {
+            el.style.display = 'none';
+            el.classList.remove('active-tab-animation');
+        });
+        document.querySelectorAll('.tab-link').forEach(el => el.classList.remove('active'));
+        const targetTab = document.getElementById(tabName + '-tab');
+        targetTab.style.display = 'block';
+        targetTab.classList.add('active-tab-animation');
+        btn.classList.add('active');
+    }
+
+    document.addEventListener('DOMContentLoaded', () => {
+        // Stagger stat cards
+        document.querySelectorAll('.stat-card').forEach((card, i) => {
+            card.style.opacity = '0';
+            card.style.animation = `statIn 0.5s cubic-bezier(0.34,1.2,0.64,1) ${i * 0.1}s forwards`;
+        });
+
+        // Public profile toggle
+        const publicProfileToggle = document.getElementById('publicProfileToggle');
+        if (publicProfileToggle) {
+            publicProfileToggle.addEventListener('change', (e) => {
+                fetch('/settings/public-profile', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ is_public: e.target.checked })
+                })
+                .then(res => res.json())
+                .then(data => {
+                    if (data.status !== 'success') {
+                        e.target.checked = !e.target.checked;
+                        alert('Failed to update setting');
+                    }
+                });
+            });
+        }
+
+        // Theme toggle
+        const themeBtn = document.getElementById('theme-toggle');
+        if (themeBtn) {
+            themeBtn.addEventListener('click', () => {
+                themeBtn.classList.add('switching');
+                setTimeout(() => themeBtn.classList.remove('switching'), 500);
+                const currentTheme = document.documentElement.getAttribute('data-theme');
+                const newTheme = currentTheme === 'light' ? 'dark' : 'light';
+                document.documentElement.setAttribute('data-theme', newTheme);
+                localStorage.setItem('theme', newTheme);
+            });
+        }
+    });
+
+    // ═══════ SETTINGS PAGE FEEDBACK TAB ═══════
+    let svSelectedRating = 'neutral';
+    let svSelectedCategory = 'general';
+
+    // Emoji selection
+    document.querySelectorAll('.sv-fb-emoji').forEach(el => {
+        el.addEventListener('click', () => {
+            document.querySelectorAll('.sv-fb-emoji').forEach(e => e.classList.remove('selected'));
+            el.classList.add('selected');
+            svSelectedRating = el.dataset.rating;
+        });
+    });
+
+    // Category selection
+    document.querySelectorAll('.sv-fb-cat-chip').forEach(el => {
+        el.addEventListener('click', () => {
+            document.querySelectorAll('.sv-fb-cat-chip').forEach(e => e.classList.remove('selected'));
+            el.classList.add('selected');
+            svSelectedCategory = el.dataset.cat;
+        });
+    });
+
+    async function svSubmitFeedback() {
+        const btn = document.getElementById('sv-fbSubmitBtn');
+        const message = document.getElementById('sv-fbMessage').value.trim();
+        btn.disabled = true;
+        btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Sending...';
+        try {
+            const res = await fetch('/api/feedback', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    rating: svSelectedRating,
+                    message: message,
+                    category: svSelectedCategory,
+                    page_url: '/settings'
+                })
+            });
+            const data = await res.json();
+            if (data.status === 'success') {
+                document.getElementById('sv-fbForm').style.display = 'none';
+                document.getElementById('sv-fbThankyou').style.display = 'block';
+                setTimeout(() => {
+                    document.getElementById('sv-fbForm').style.display = 'block';
+                    document.getElementById('sv-fbThankyou').style.display = 'none';
+                    document.getElementById('sv-fbMessage').value = '';
+                    document.querySelectorAll('.sv-fb-emoji').forEach(e => e.classList.remove('selected'));
+                    document.querySelectorAll('.sv-fb-cat-chip').forEach(e => e.classList.remove('selected'));
+                    document.querySelector('.sv-fb-cat-chip[data-cat="general"]').classList.add('selected');
+                    svSelectedRating = 'neutral';
+                    svSelectedCategory = 'general';
+                    btn.disabled = false;
+                    btn.innerHTML = '<i class="fa-solid fa-paper-plane"></i> Send Feedback';
+                }, 3000);
+            } else {
+                btn.disabled = false;
+                btn.innerHTML = '<i class="fa-solid fa-paper-plane"></i> Send Feedback';
+                alert('Something went wrong. Please try again.');
+            }
+        } catch (e) {
+            btn.disabled = false;
+            btn.innerHTML = '<i class="fa-solid fa-paper-plane"></i> Send Feedback';
+        }
+    }
+</script>
+
+<style>
+    @keyframes statIn {
+        from { opacity:0; transform: translateY(16px); }
+        to   { opacity:1; transform: translateY(0); }
+    }
+
+    /* Input focus glow */
+    .form-input:focus {
+        border-color: var(--accent-green) !important;
+        box-shadow: 0 0 0 3px rgba(74,222,128,0.18);
+        outline: none;
+    }
+
+    /* Setting row hover */
+    .setting-row {
+        transition: background 0.2s, border-color 0.2s;
+        border-radius: 12px;
+        padding: 16px;
+    }
+    .setting-row:hover {
+        background: rgba(255,255,255,0.03);
+    }
+
+    /* Save button glow */
+    .btn-primary.mb-4 {
+        animation: saveBtnGlow 2.5s ease-in-out infinite;
+    }
+    @keyframes saveBtnGlow {
+        0%,100% { box-shadow: 0 0 0 0 transparent; }
+        50%      { box-shadow: 0 0 14px 3px rgba(74,222,128,0.3); }
+    }
+
+    /* Danger logout hover */
+    .btn-danger-outline {
+        transition: all 0.2s;
+    }
+    .btn-danger-outline:hover {
+        background: rgba(239,68,68,0.18) !important;
+        transform: translateY(-1px);
+        box-shadow: 0 4px 12px rgba(239,68,68,0.2);
+    }
+
+    /* Tab animation */
+    .active-tab-animation {
+        animation: fadeIn 0.35s ease-out;
+    }
+    @keyframes fadeIn {
+        from { opacity:0; transform: translateY(8px); }
+        to   { opacity:1; transform: translateY(0); }
+    }
+</style>
+{% endblock %}

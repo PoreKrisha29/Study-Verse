@@ -1,0 +1,833 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>StudyVerse – Feature Summary</title>
+  <style>
+    /* ── Google Font ── */
+    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap');
+
+    /* ── Reset & Base ── */
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: 'Inter', Arial, sans-serif;
+      background: #fff;
+      color: #111;
+      font-size: 11pt;
+      line-height: 1.6;
+    }
+
+    /* ── Page layout (print-safe) ── */
+    .page {
+      max-width: 800px;
+      margin: 0 auto;
+      padding: 36px 40px;
+    }
+
+    /* ── Cover / Title ── */
+    .cover {
+      text-align: center;
+      padding: 48px 0 36px;
+      border-bottom: 3px solid #4ade80;
+      margin-bottom: 36px;
+    }
+    .cover .logo-text {
+      font-size: 38pt;
+      font-weight: 900;
+      letter-spacing: -1px;
+      color: #0f172a;
+    }
+    .cover .logo-text span { color: #16a34a; }
+    .cover .tagline {
+      font-size: 13pt;
+      color: #475569;
+      margin-top: 6px;
+      font-weight: 400;
+    }
+    .cover .meta {
+      margin-top: 14px;
+      font-size: 9pt;
+      color: #94a3b8;
+      letter-spacing: 0.5px;
+      text-transform: uppercase;
+    }
+    .cover .badges {
+      margin-top: 16px;
+      display: flex;
+      justify-content: center;
+      gap: 10px;
+      flex-wrap: wrap;
+    }
+    .cover .badges span {
+      background: #f0fdf4;
+      border: 1px solid #bbf7d0;
+      color: #15803d;
+      padding: 4px 14px;
+      border-radius: 99px;
+      font-size: 9pt;
+      font-weight: 600;
+    }
+
+    /* ── Section title ── */
+    .section-title {
+      font-size: 15pt;
+      font-weight: 800;
+      color: #0f172a;
+      border-left: 4px solid #4ade80;
+      padding-left: 12px;
+      margin: 32px 0 16px;
+    }
+
+    /* ── Intro paragraph ── */
+    .intro {
+      font-size: 11pt;
+      color: #334155;
+      line-height: 1.75;
+      margin-bottom: 28px;
+      padding: 18px 22px;
+      background: #f8fafc;
+      border-radius: 8px;
+      border: 1px solid #e2e8f0;
+    }
+
+    /* ── Feature Cards Grid ── */
+    .features-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 14px;
+      margin-bottom: 12px;
+    }
+
+    .feature-card {
+      border: 1px solid #e2e8f0;
+      border-radius: 10px;
+      padding: 16px 18px;
+      background: #fff;
+      break-inside: avoid;
+    }
+    .feature-card .f-header {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      margin-bottom: 8px;
+    }
+    .feature-card .f-icon {
+      width: 34px;
+      height: 34px;
+      border-radius: 8px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 16px;
+      flex-shrink: 0;
+    }
+    .feature-card .f-title {
+      font-size: 11pt;
+      font-weight: 700;
+      color: #0f172a;
+    }
+    .feature-card .f-badge {
+      font-size: 7.5pt;
+      font-weight: 700;
+      padding: 2px 7px;
+      border-radius: 4px;
+      margin-left: auto;
+      text-transform: uppercase;
+      letter-spacing: 0.3px;
+      flex-shrink: 0;
+    }
+    .badge-ai    { background: #ede9fe; color: #7c3aed; }
+    .badge-live  { background: #fee2e2; color: #dc2626; }
+    .badge-new   { background: #dcfce7; color: #15803d; }
+    .badge-pwa   { background: #dbeafe; color: #1d4ed8; }
+
+    .feature-card p {
+      font-size: 9.5pt;
+      color: #475569;
+      line-height: 1.6;
+    }
+    .feature-card ul {
+      margin: 6px 0 0 16px;
+      font-size: 9pt;
+      color: #64748b;
+    }
+    .feature-card ul li { margin-bottom: 2px; }
+
+    /* Color themes for icons */
+    .green  { background: #f0fdf4; color: #16a34a; }
+    .blue   { background: #eff6ff; color: #2563eb; }
+    .purple { background: #faf5ff; color: #7c3aed; }
+    .orange { background: #fff7ed; color: #ea580c; }
+    .red    { background: #fef2f2; color: #dc2626; }
+    .cyan   { background: #ecfeff; color: #0891b2; }
+    .pink   { background: #fdf2f8; color: #db2777; }
+    .yellow { background: #fffbeb; color: #d97706; }
+    .slate  { background: #f1f5f9; color: #475569; }
+    .teal   { background: #f0fdfa; color: #0d9488; }
+    .indigo { background: #eef2ff; color: #4338ca; }
+
+    /* ── Voice Assistant Section ── */
+    .verse-block {
+      background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%);
+      border-radius: 12px;
+      padding: 28px 30px;
+      color: #e2e8f0;
+      margin: 28px 0;
+      break-inside: avoid;
+    }
+    .verse-block .verse-title {
+      font-size: 18pt;
+      font-weight: 900;
+      color: #4ade80;
+      margin-bottom: 4px;
+      letter-spacing: -0.5px;
+    }
+    .verse-block .verse-subtitle {
+      font-size: 9.5pt;
+      color: #94a3b8;
+      margin-bottom: 18px;
+    }
+    .verse-block .verse-desc {
+      font-size: 10pt;
+      color: #cbd5e1;
+      line-height: 1.7;
+      margin-bottom: 20px;
+    }
+
+    .verse-caps {
+      display: grid;
+      grid-template-columns: 1fr 1fr 1fr;
+      gap: 12px;
+      margin-bottom: 18px;
+    }
+    .verse-cap {
+      background: rgba(255,255,255,0.06);
+      border: 1px solid rgba(255,255,255,0.08);
+      border-radius: 8px;
+      padding: 12px 14px;
+    }
+    .verse-cap .cap-title {
+      font-size: 8.5pt;
+      font-weight: 700;
+      color: #4ade80;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      margin-bottom: 6px;
+    }
+    .verse-cap ul {
+      list-style: none;
+      padding: 0;
+      margin: 0;
+    }
+    .verse-cap ul li {
+      font-size: 8.5pt;
+      color: #94a3b8;
+      padding: 1px 0;
+    }
+    .verse-cap ul li::before {
+      content: "→ ";
+      color: #4ade80;
+      font-weight: 700;
+    }
+
+    .verse-example-title {
+      font-size: 9pt;
+      font-weight: 700;
+      color: #e2e8f0;
+      text-transform: uppercase;
+      letter-spacing: 0.4px;
+      margin-bottom: 8px;
+    }
+    .verse-examples {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px;
+    }
+    .verse-example {
+      background: rgba(74, 222, 128, 0.12);
+      border: 1px solid rgba(74, 222, 128, 0.2);
+      color: #86efac;
+      padding: 4px 10px;
+      border-radius: 6px;
+      font-size: 8.5pt;
+      font-style: italic;
+    }
+
+    /* ── Uniqueness section ── */
+    .unique-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr 1fr;
+      gap: 12px;
+      margin-top: 14px;
+    }
+    .unique-item {
+      text-align: center;
+      padding: 18px 12px;
+      border: 1px solid #e2e8f0;
+      border-radius: 10px;
+      break-inside: avoid;
+    }
+    .unique-item .u-icon {
+      font-size: 24px;
+      margin-bottom: 8px;
+    }
+    .unique-item .u-title {
+      font-size: 9.5pt;
+      font-weight: 700;
+      color: #0f172a;
+      margin-bottom: 4px;
+    }
+    .unique-item .u-desc {
+      font-size: 8.5pt;
+      color: #64748b;
+      line-height: 1.5;
+    }
+
+    /* ── Tech Stack ── */
+    .tech-table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 9.5pt;
+      margin-top: 14px;
+    }
+    .tech-table th {
+      background: #f1f5f9;
+      color: #374151;
+      font-weight: 700;
+      padding: 9px 14px;
+      text-align: left;
+      border: 1px solid #e2e8f0;
+      font-size: 9pt;
+      text-transform: uppercase;
+      letter-spacing: 0.4px;
+    }
+    .tech-table td {
+      padding: 8px 14px;
+      border: 1px solid #e2e8f0;
+      color: #374151;
+      vertical-align: top;
+    }
+    .tech-table tr:nth-child(even) td { background: #f8fafc; }
+
+    /* ── Gamification table ── */
+    .xp-table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 9.5pt;
+      margin-top: 12px;
+    }
+    .xp-table th {
+      background: #f0fdf4;
+      color: #15803d;
+      font-weight: 700;
+      padding: 8px 12px;
+      border: 1px solid #bbf7d0;
+      text-align: left;
+    }
+    .xp-table td {
+      padding: 7px 12px;
+      border: 1px solid #e2e8f0;
+      color: #374151;
+    }
+    .xp-table tr:nth-child(even) td { background: #f9fafb; }
+
+    /* ── Footer ── */
+    .footer {
+      margin-top: 40px;
+      padding-top: 18px;
+      border-top: 1px solid #e2e8f0;
+      text-align: center;
+      font-size: 9pt;
+      color: #94a3b8;
+    }
+    .footer strong { color: #475569; }
+
+    /* ── Print rules ── */
+    @media print {
+      body { font-size: 10pt; }
+      .page { padding: 20px 24px; }
+      .cover { padding: 24px 0 20px; }
+      .section-title { margin: 22px 0 12px; }
+      .feature-card, .unique-item, .verse-cap { break-inside: avoid; }
+      .verse-block { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+      .cover .badges span, .f-badge { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+      .f-icon { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+      .xp-table th, .tech-table th { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+    }
+  </style>
+</head>
+<body>
+<div class="page">
+
+  <!-- ══════════════════════════════════════════════════
+       COVER
+  ══════════════════════════════════════════════════ -->
+  <div class="cover">
+    <div class="logo-text">Study<span>Verse</span></div>
+    <div class="tagline">Your All-in-One AI-Powered Study Platform</div>
+    <div class="badges">
+      <span>🌐 Web App + PWA</span>
+      <span>🤖 Gemini AI</span>
+      <span>🎙️ Voice Controlled</span>
+      <span>🎮 Gamified</span>
+      <span>🔴 Live Streaming</span>
+    </div>
+    <div class="meta">Feature Summary &nbsp;|&nbsp; Built with Flask · PostgreSQL · Socket.IO · Google AI</div>
+  </div>
+
+  <!-- ══════════════════════════════════════════════════
+       WHAT IS STUDYVERSE
+  ══════════════════════════════════════════════════ -->
+  <div class="intro">
+    <strong>StudyVerse</strong> is a full-stack web application designed to make studying smarter, more social,
+    and actually enjoyable. It combines a Pomodoro focus timer, AI-powered tutoring, competitive quiz battles,
+    real-time group study streams, task management, a habit tracker, and a gamified XP reward system —
+    all controlled by a natural-language voice assistant called <strong>Verse</strong>.
+    Built as a Progressive Web App (PWA), it works offline and can be installed on any device like a native app.
+  </div>
+
+  <!-- ══════════════════════════════════════════════════
+       CORE FEATURES
+  ══════════════════════════════════════════════════ -->
+  <div class="section-title">Core Features</div>
+
+  <div class="features-grid">
+
+    <!-- 1. Dashboard -->
+    <div class="feature-card">
+      <div class="f-header">
+        <div class="f-icon green">🏠</div>
+        <div class="f-title">Dashboard</div>
+      </div>
+      <p>Central hub showing daily XP progress, streak count, pending tasks, upcoming calendar events, habit status, and a real-time online/offline friend indicator. Also displays personalized AI study plan suggestions.</p>
+    </div>
+
+    <!-- 2. Focus Mode (Pomodoro) -->
+    <div class="feature-card">
+      <div class="f-header">
+        <div class="f-icon orange">⏱️</div>
+        <div class="f-title">Focus Mode (Pomodoro)</div>
+      </div>
+      <p>Customizable Pomodoro timer with Focus, Short Break, and Stopwatch modes. Features include:</p>
+      <ul>
+        <li>Custom duration (up to 180 min)</li>
+        <li>Session goals with progress tracking</li>
+        <li>Brain dump notepad during sessions</li>
+        <li>Go-Live button to stream while studying</li>
+        <li>XP awarded per completed focus session</li>
+      </ul>
+    </div>
+
+    <!-- 3. Task Manager -->
+    <div class="feature-card">
+      <div class="f-header">
+        <div class="f-icon blue">✅</div>
+        <div class="f-title">Task Manager</div>
+      </div>
+      <p>Full-featured to-do system with priority levels (High / Medium / Low), due dates, due times, and email reminders. Supports:</p>
+      <ul>
+        <li>Batch task import via AI plan</li>
+        <li>Undo last-deleted task</li>
+        <li>Category tagging</li>
+        <li>XP reward on task completion</li>
+        <li>Automated email notifications when tasks are due</li>
+      </ul>
+    </div>
+
+    <!-- 4. Start Quiz -->
+    <div class="feature-card">
+      <div class="f-header">
+        <div class="f-icon purple">🎯</div>
+        <div class="f-title">Start Quiz</div>
+        <span class="f-badge badge-ai">AI</span>
+      </div>
+      <p>AI-generated multiple-choice quizzes powered by Gemini. Choose question count (5/10/15/20) and difficulty (Easy / Medium / Hard). Questions cover a wide range of study topics. Correct answers earn XP; the voice assistant can start, navigate, and answer quizzes hands-free.</p>
+    </div>
+
+    <!-- 5. Syllabus -->
+    <div class="feature-card">
+      <div class="f-header">
+        <div class="f-icon cyan">📄</div>
+        <div class="f-title">Syllabus Manager</div>
+      </div>
+      <p>Upload PDF syllabi and course documents. The system extracts text content and builds an interactive knowledge graph showing topic proficiency. Users can mark topics as mastered, which updates the visual progress graph. Supports multiple documents per user.</p>
+    </div>
+
+    <!-- 6. Topic Resolver -->
+    <div class="feature-card">
+      <div class="f-header">
+        <div class="f-icon indigo">🧠</div>
+        <div class="f-title">Topic Resolver</div>
+        <span class="f-badge badge-ai">AI</span>
+      </div>
+      <p>Ask any study question and get a full AI-powered explanation with:</p>
+      <ul>
+        <li>Detailed concept breakdown (Gemini)</li>
+        <li>Related YouTube video suggestions</li>
+        <li>Auto-generated concept diagrams / mind maps</li>
+        <li>XP awarded for learning sessions</li>
+      </ul>
+    </div>
+
+    <!-- 7. Photo Solver -->
+    <div class="feature-card">
+      <div class="f-header">
+        <div class="f-icon pink">📷</div>
+        <div class="f-title">Photo Solver</div>
+        <span class="f-badge badge-ai">AI</span>
+      </div>
+      <p>Take a photo of any handwritten problem, printed question, or diagram and get an instant AI solution. After solving, automatically generates a follow-up quiz based on the same topic to reinforce learning. XP awarded on correct answers.</p>
+    </div>
+
+    <!-- 8. Progress Tracker -->
+    <div class="feature-card">
+      <div class="f-header">
+        <div class="f-icon teal">📊</div>
+        <div class="f-title">Progress Tracker</div>
+      </div>
+      <p>Comprehensive analytics dashboard showing:</p>
+      <ul>
+        <li>XP growth chart over time</li>
+        <li>Weekly habit matrix (tick off habits per day)</li>
+        <li>Streak calendar visualization</li>
+        <li>Completed tasks over time</li>
+        <li>Study session hours breakdown</li>
+      </ul>
+    </div>
+
+    <!-- 9. Friends -->
+    <div class="feature-card">
+      <div class="f-header">
+        <div class="f-icon blue">👥</div>
+        <div class="f-title">Friends & Social</div>
+      </div>
+      <p>Full social graph system. Search users by name, send/accept/reject friend requests. View friend profiles with their XP, level, rank, task count, and public bio. Real-time online/offline presence indicator on the dashboard.</p>
+    </div>
+
+    <!-- 10. Live Streams -->
+    <div class="feature-card">
+      <div class="f-header">
+        <div class="f-icon red">🔴</div>
+        <div class="f-title">Live Streams</div>
+        <span class="f-badge badge-live">LIVE</span>
+      </div>
+      <p>Stream your Pomodoro study session live directly from Focus Mode. Other users can watch, see the topic and subject being studied, and view the streamer's live timer. Study history and past streams are archived for replay.</p>
+    </div>
+
+    <!-- 11. Byte Battle -->
+    <div class="feature-card">
+      <div class="f-header">
+        <div class="f-icon orange">⚔️</div>
+        <div class="f-title">Byte Battle</div>
+      </div>
+      <p>Real-time 1v1 or group competitive quiz battle using Socket.IO WebSockets. Create or join a room with a code, answer AI-generated questions in real time, vote on answers, and win XP based on performance. Built on Socket.IO for instant synchronization between players.</p>
+    </div>
+
+    <!-- 12. AI Coach (Chat) -->
+    <div class="feature-card">
+      <div class="f-header">
+        <div class="f-icon purple">🤖</div>
+        <div class="f-title">AI Coach</div>
+        <span class="f-badge badge-ai">AI</span>
+      </div>
+      <p>Persistent Gemini AI chat tutor that remembers the conversation context within a session. Ask study questions, request explanations, get motivation, or discuss any academic topic. Message history is saved per user.</p>
+    </div>
+
+    <!-- 13. Item Shop -->
+    <div class="feature-card">
+      <div class="f-header">
+        <div class="f-icon yellow">🛒</div>
+        <div class="f-title">Item Shop</div>
+      </div>
+      <p>Spend earned XP on cosmetic upgrades:</p>
+      <ul>
+        <li><strong>Themes:</strong> Neon City, Sakura, Cyberpunk, Synthwave, Aurora</li>
+        <li><strong>Avatar Frames:</strong> Golden, Diamond, Fire, Ice, Glitch</li>
+        <li>Equipped items apply instantly across the entire app UI</li>
+        <li>Purchase history tracked per user</li>
+      </ul>
+    </div>
+
+    <!-- 14. Leaderboard -->
+    <div class="feature-card">
+      <div class="f-header">
+        <div class="f-icon yellow">🏆</div>
+        <div class="f-title">Leaderboard</div>
+      </div>
+      <p>Global XP-based leaderboard ranking all users by level and total XP. Shows user avatar, rank badge, streak, and level. Your own rank is highlighted. Verse can speak your rank and the top 5 players aloud on voice command.</p>
+    </div>
+
+    <!-- 15. Support Center -->
+    <div class="feature-card">
+      <div class="f-header">
+        <div class="f-icon slate">🎫</div>
+        <div class="f-title">Support Center</div>
+      </div>
+      <p>Full ticket-based support system. Users create tickets with categories (General / Bug / Inappropriate / Help), and the admin responds directly via the admin panel. Unread message badges and real-time status tracking (Open → In Progress → Closed).</p>
+    </div>
+
+    <!-- 16. Group Chat -->
+    <div class="feature-card">
+      <div class="f-header">
+        <div class="f-icon teal">💬</div>
+        <div class="f-title">Group Chat (Study Guilds)</div>
+      </div>
+      <p>Create or join study groups via invite code. Features admin controls (kick, rename, delete group, regenerate invite code), message pinning for announcements, file/image sharing, and a shared whiteboard canvas for collaborative diagrams.</p>
+    </div>
+
+    <!-- 17. Zen Mode -->
+    <div class="feature-card">
+      <div class="f-header">
+        <div class="f-icon slate">🧘</div>
+        <div class="f-title">Zen Mode</div>
+      </div>
+      <p>Distraction-free full-screen focus interface. Hides all navigation and UI elements so users can concentrate purely on their work. Toggled instantly via the sidebar or by voice command ("Zen mode").</p>
+    </div>
+
+    <!-- 18. Invite & Earn -->
+    <div class="feature-card">
+      <div class="f-header">
+        <div class="f-icon green">🎁</div>
+        <div class="f-title">Invite & Earn</div>
+      </div>
+      <p>Unique referral system — each user gets a personal invite link. When someone joins using that link, both users receive a bonus XP reward. Dashboard shows referral count and total XP earned through referrals.</p>
+    </div>
+
+    <!-- 19. Calendar -->
+    <div class="feature-card">
+      <div class="f-header">
+        <div class="f-icon blue">📅</div>
+        <div class="f-title">Calendar & Events</div>
+      </div>
+      <p>Personal event calendar with due-date warnings. Create events with dates and times. The system checks for upcoming deadlines and surfaces warning banners. Dashboard shows upcoming event count and Verse can report events on voice command.</p>
+    </div>
+
+    <!-- 20. PWA -->
+    <div class="feature-card">
+      <div class="f-header">
+        <div class="f-icon indigo">📱</div>
+        <div class="f-title">Progressive Web App</div>
+        <span class="f-badge badge-pwa">PWA</span>
+      </div>
+      <p>Fully installable as a native app on Android and iOS — no app store needed. Service Worker caches assets for offline use. Auto-install prompt appears for new users. Works seamlessly on desktop and mobile with responsive layouts.</p>
+    </div>
+
+  </div>
+
+  <!-- ══════════════════════════════════════════════════
+       VERSE VOICE ASSISTANT
+  ══════════════════════════════════════════════════ -->
+  <div class="verse-block">
+    <div class="verse-title">🎙️ Verse — AI Voice Assistant</div>
+    <div class="verse-subtitle">Natural Language Full-UI Control Engine · Powered by Google Gemini</div>
+
+    <div class="verse-desc">
+      Verse is StudyVerse's built-in voice assistant that goes far beyond simple navigation.
+      It understands natural, casual speech and can <strong style="color:#86efac;">control every UI element</strong>
+      in the app — clicking buttons, typing text, selecting options, and even drawing on the whiteboard —
+      all via voice. It reads live user data (XP, streak, tasks, friends, leaderboard rank) and
+      speaks responses aloud using the browser's Text-to-Speech engine. Backed by Gemini AI,
+      it understands slang, context, and intent — not just rigid commands.
+    </div>
+
+    <div class="verse-caps">
+      <div class="verse-cap">
+        <div class="cap-title">Navigation</div>
+        <ul>
+          <li>Go to any page</li>
+          <li>Open user profiles</li>
+          <li>Navigate to groups</li>
+          <li>Open support tickets</li>
+          <li>Jump to live streams</li>
+        </ul>
+      </div>
+      <div class="verse-cap">
+        <div class="cap-title">Live Actions</div>
+        <ul>
+          <li>Add tasks to DB</li>
+          <li>Start / pause timer</li>
+          <li>Start/join battles</li>
+          <li>Launch quizzes</li>
+          <li>Send friend requests</li>
+          <li>Buy / equip shop items</li>
+        </ul>
+      </div>
+      <div class="verse-cap">
+        <div class="cap-title">Smart Queries</div>
+        <ul>
+          <li>Read my XP / streak</li>
+          <li>Who's #1 on leaderboard</li>
+          <li>List pending tasks</li>
+          <li>Who are my friends</li>
+          <li>What's my rank</li>
+          <li>My overall stats</li>
+        </ul>
+      </div>
+      <div class="verse-cap">
+        <div class="cap-title">DOM Control</div>
+        <ul>
+          <li>Click / type / select</li>
+          <li>Answer quiz options A/B/C/D</li>
+          <li>Send chat messages</li>
+          <li>Toggle dark/light theme</li>
+          <li>Toggle Zen Mode</li>
+          <li>Mark habits done</li>
+        </ul>
+      </div>
+      <div class="verse-cap">
+        <div class="cap-title">Whiteboard</div>
+        <ul>
+          <li>Draw shapes by voice</li>
+          <li>Tree, circle, house, star</li>
+          <li>Arrow, heart, smiley</li>
+          <li>Custom colors</li>
+          <li>Works inside group</li>
+        </ul>
+      </div>
+      <div class="verse-cap">
+        <div class="cap-title">Habits & Progress</div>
+        <ul>
+          <li>Mark habits for today</li>
+          <li>Mark habits for any day</li>
+          <li>Add new habits</li>
+          <li>Multiple habits at once</li>
+          <li>e.g. "I did reading & coding"</li>
+        </ul>
+      </div>
+    </div>
+
+    <div class="verse-example-title">Example Commands Verse Understands</div>
+    <div class="verse-examples">
+      <span class="verse-example">"bro start the thing"</span>
+      <span class="verse-example">"let's do some questions"</span>
+      <span class="verse-example">"who's at the top?"</span>
+      <span class="verse-example">"put on neon city"</span>
+      <span class="verse-example">"check how I'm doing"</span>
+      <span class="verse-example">"add study math with high priority"</span>
+      <span class="verse-example">"draw a red heart"</span>
+      <span class="verse-example">"I did reading and coding today"</span>
+      <span class="verse-example">"send request to Krisha"</span>
+      <span class="verse-example">"go live"</span>
+      <span class="verse-example">"10 questions hard quiz"</span>
+      <span class="verse-example">"answer B"</span>
+      <span class="verse-example">"take off the frame"</span>
+      <span class="verse-example">"say hi in StudySquad chat"</span>
+    </div>
+  </div>
+
+  <!-- ══════════════════════════════════════════════════
+       GAMIFICATION
+  ══════════════════════════════════════════════════ -->
+  <div class="section-title">Gamification System</div>
+
+  <table class="xp-table">
+    <thead>
+      <tr>
+        <th>Activity</th>
+        <th>How It Works</th>
+        <th>Reward</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr><td>✅ Complete Task</td><td>Mark a to-do as done</td><td>XP based on priority</td></tr>
+      <tr><td>⏱️ Focus Session</td><td>Complete a Pomodoro timer session</td><td>XP per minute focused</td></tr>
+      <tr><td>🎯 Quiz</td><td>Correct answers in solo quiz</td><td>XP per correct answer</td></tr>
+      <tr><td>⚔️ Byte Battle</td><td>Win or participate in live quiz battle</td><td>XP based on score</td></tr>
+      <tr><td>🧠 Topic Resolver</td><td>Learn a new topic using AI</td><td>XP per session</td></tr>
+      <tr><td>📷 Photo Solver</td><td>Solve a problem from a photo</td><td>XP per solution</td></tr>
+      <tr><td>🎁 Referral</td><td>Invite a friend who signs up</td><td>Bonus XP for both</td></tr>
+      <tr><td>📈 Leveling Up</td><td>Reach XP thresholds to level up</td><td>New rank + title</td></tr>
+      <tr><td>🛒 Item Shop</td><td>Spend XP on themes and avatar frames</td><td>Visual customization</td></tr>
+    </tbody>
+  </table>
+
+  <!-- ══════════════════════════════════════════════════
+       WHAT MAKES IT UNIQUE
+  ══════════════════════════════════════════════════ -->
+  <div class="section-title">What Makes StudyVerse Unique</div>
+
+  <div class="unique-grid">
+    <div class="unique-item">
+      <div class="u-icon">🎙️</div>
+      <div class="u-title">Full Voice UI Control</div>
+      <div class="u-desc">Verse can click buttons, type text, navigate pages, and answer quizzes — entirely by voice. No other study app does this at DOM level.</div>
+    </div>
+    <div class="unique-item">
+      <div class="u-icon">⚔️</div>
+      <div class="u-title">Real-Time Battles</div>
+      <div class="u-desc">Live WebSocket-powered quiz battles with voting, timers, and instant XP. Study competition gamified like a multiplayer game.</div>
+    </div>
+    <div class="unique-item">
+      <div class="u-icon">🔴</div>
+      <div class="u-title">Study Live Streaming</div>
+      <div class="u-desc">Stream your focus session live with one click. Viewers see your topic, subject, and live timer. Accountability through community.</div>
+    </div>
+    <div class="unique-item">
+      <div class="u-icon">📷</div>
+      <div class="u-title">Photo → Quiz Pipeline</div>
+      <div class="u-desc">Snap a photo of any problem. AI solves it, then auto-generates quiz questions on the same topic to reinforce memory.</div>
+    </div>
+    <div class="unique-item">
+      <div class="u-icon">🎨</div>
+      <div class="u-title">XP-Powered Cosmetics</div>
+      <div class="u-desc">Earn XP from studying, spend it on app themes and avatar frames. Studying literally changes how your app looks.</div>
+    </div>
+    <div class="unique-item">
+      <div class="u-icon">🤖</div>
+      <div class="u-title">Everything AI-Connected</div>
+      <div class="u-desc">Quiz generation, photo solving, topic explanations, diagrams, study plans, and the voice assistant — all powered by Gemini AI throughout the platform.</div>
+    </div>
+    <div class="unique-item">
+      <div class="u-icon">🌐</div>
+      <div class="u-title">Installable PWA</div>
+      <div class="u-desc">Works offline, installs like a native app on any device — no app store required. Full mobile-responsive design.</div>
+    </div>
+    <div class="unique-item">
+      <div class="u-icon">🖼️</div>
+      <div class="u-title">Collaborative Whiteboard</div>
+      <div class="u-desc">Shared canvas inside group chats. Draw diagrams manually or say "draw a tree" and Verse draws it automatically using AI.</div>
+    </div>
+    <div class="unique-item">
+      <div class="u-icon">🔥</div>
+      <div class="u-title">Streak + Habit System</div>
+      <div class="u-desc">Daily streak tracking with a 7-day habit matrix. Voice-controlled habit logging. Calendar + task reminders keep users on track.</div>
+    </div>
+  </div>
+
+  <!-- ══════════════════════════════════════════════════
+       TECH STACK
+  ══════════════════════════════════════════════════ -->
+  <div class="section-title">Technology Stack</div>
+
+  <table class="tech-table">
+    <thead>
+      <tr><th>Layer</th><th>Technology</th><th>Purpose</th></tr>
+    </thead>
+    <tbody>
+      <tr><td>Backend</td><td>Python / Flask</td><td>Web server, REST API, session management</td></tr>
+      <tr><td>Real-Time</td><td>Flask-SocketIO</td><td>Live battles, group chat, streaming presence</td></tr>
+      <tr><td>Database</td><td>PostgreSQL on Neon</td><td>All user data, XP history, messages, tickets</td></tr>
+      <tr><td>ORM</td><td>SQLAlchemy</td><td>Database models and query abstraction</td></tr>
+      <tr><td>AI Engine</td><td>Google Gemini API</td><td>Quiz gen, topic explainer, photo solver, voice assistant</td></tr>
+      <tr><td>Auth</td><td>Flask-Login + Google OAuth</td><td>Email/password signup with OTP + Google Sign-In</td></tr>
+      <tr><td>Frontend</td><td>HTML / JS / Vanilla CSS</td><td>Responsive UI, dark/light theme, animations</td></tr>
+      <tr><td>Voice</td><td>Web Speech API (browser)</td><td>Microphone input + Text-to-Speech output</td></tr>
+      <tr><td>PWA</td><td>Service Worker + Manifest</td><td>Offline support, installability</td></tr>
+      <tr><td>Email</td><td>Flask-Mail / SMTP</td><td>OTP verification, task reminders, notifications</td></tr>
+      <tr><td>Deployment</td><td>Render.com + Neon DB</td><td>Cloud hosting with auto-deploy from GitHub</td></tr>
+    </tbody>
+  </table>
+
+  <!-- ══════════════════════════════════════════════════
+       FOOTER
+  ══════════════════════════════════════════════════ -->
+  <div class="footer">
+    <strong>StudyVerse</strong> &nbsp;·&nbsp; Built with Flask, Google Gemini AI, PostgreSQL &amp; Socket.IO
+    &nbsp;·&nbsp; Deployed on Render.com &nbsp;·&nbsp; <strong>studyverse-final.onrender.com</strong>
+  </div>
+
+</div>
+</body>
+</html>

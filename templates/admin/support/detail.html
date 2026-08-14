@@ -1,0 +1,207 @@
+{% extends "admin/base.html" %}
+
+{% block title %}Ticket #{{ ticket.id }} - Admin Panel{% endblock %}
+
+{% block content %}
+<div class="admin-header" style="justify-content: space-between;">
+    <div style="display: flex; align-items: center; gap: 16px;">
+        <a href="{{ url_for('admin_support') }}" class="btn btn-secondary"
+            style="background: rgba(255,255,255,0.1); width: 32px; height: 32px; display: flex; align-items: center; justify-content: center; padding: 0;"><i
+                class="fa-solid fa-arrow-left"></i></a>
+        <div>
+            <h1 style="font-size: 1.5rem; margin-bottom: 4px;">{{ ticket.subject }}</h1>
+            <div style="color: var(--text-secondary); font-size: 0.9rem;">Ticket #{{ ticket.id }}</div>
+        </div>
+    </div>
+
+    <div style="display: flex; gap: 12px; align-items: center;">
+        <span class="status-badge status-{{ ticket.status }}">{{ ticket.status|replace('_', ' ') }}</span>
+
+        {% if ticket.status != 'closed' %}
+        <form action="{{ url_for('admin_support_close', ticket_id=ticket.id) }}" method="POST"
+            onsubmit="return confirm('Are you sure you want to close this ticket?');" style="margin: 0;">
+            <button type="submit" class="btn btn-danger"
+                style="background: #ef4444; border: none; padding: 8px 16px; border-radius: 6px; color: white; cursor: pointer; display: flex; align-items: center; gap: 8px;">
+                <i class="fa-solid fa-check"></i> Close Ticket
+            </button>
+        </form>
+        {% endif %}
+    </div>
+</div>
+
+<div class="admin-content" style="display: grid; grid-template-columns: 2fr 1fr; gap: 24px; padding: 24px;">
+    <!-- Chat Section -->
+    <div class="card"
+        style="padding: 0; display: flex; flex-direction: column; height: calc(100vh - 180px); overflow: hidden; background: #1a1a1a; border: 1px solid #333;">
+        <div class="chat-messages" id="chat-messages"
+            style="flex: 1; padding: 24px; overflow-y: auto; display: flex; flex-direction: column; gap: 16px;">
+            <div style="text-align: center; margin-bottom: 16px;">
+                <span
+                    style="background: rgba(255,255,255,0.05); padding: 4px 12px; border-radius: 12px; font-size: 0.75rem; color: var(--text-secondary);">Ticket
+                    opened {{ ticket.created_at|ist_time }}</span>
+            </div>
+
+            {% for message in messages %}
+            <div class="message"
+                style="max-width: 85%; align-self: {% if message.is_admin %}flex-end{% else %}flex-start{% endif %}; align-items: {% if message.is_admin %}flex-end{% else %}flex-start{% endif %}; display: flex; flex-direction: column; gap: 4px; animation: fadeIn 0.3s ease;">
+                <div
+                    style="font-size: 0.75rem; opacity: 0.7; margin-bottom: 2px; text-align: {% if message.is_admin %}right{% else %}left{% endif %};">
+                    {% if message.is_admin %}You{% else %}{{ user.first_name }}{% endif %} • {{
+                    message.created_at|ist_time }}
+                </div>
+                <div style="padding: 12px 16px; border-radius: 12px; line-height: 1.5; 
+                     background: {% if message.is_admin %}#4f46e5{% else %}#262626{% endif %}; 
+                     color: white;
+                     border-bottom-{% if message.is_admin %}right{% else %}left{% endif %}-radius: 2px;">
+                    {{ message.message }}
+                </div>
+            </div>
+            {% endfor %}
+
+            {% if ticket.status == 'closed' %}
+            <div
+                style="text-align: center; margin-top: 24px; padding: 16px; background: rgba(255,255,255,0.03); border-radius: 8px;">
+                <div style="color: var(--text-secondary); font-size: 0.9rem;"><i class="fa-solid fa-lock"></i> Ticket
+                    Closed</div>
+            </div>
+            {% endif %}
+        </div>
+
+        {% if ticket.status != 'closed' %}
+        <div class="chat-input" style="padding: 16px; border-top: 1px solid #333; background: #1a1a1a;">
+            <form action="{{ url_for('admin_support_reply', ticket_id=ticket.id) }}" method="POST"
+                style="display: flex; gap: 12px;">
+                <textarea name="message" required class="form-control" rows="1" placeholder="Type a reply..."
+                    oninput="this.style.height = ''; this.style.height = this.scrollHeight + 'px'"
+                    style="flex: 1; padding: 12px; background: #0f0f0f; border: 1px solid #333; border-radius: 8px; color: white; resize: none; min-height: 46px; max-height: 150px;"></textarea>
+                <button type="submit" class="btn btn-primary"
+                    style="height: 46px; border-radius: 8px; padding: 0 24px; background: #4f46e5; border: none; color: white; cursor: pointer; font-weight: 600;">Reply</button>
+            </form>
+        </div>
+        {% endif %}
+    </div>
+
+    <!-- Sidebar Info -->
+    <div style="display: flex; flex-direction: column; gap: 24px;">
+        <!-- User Card -->
+        <div class="card" style="background: #1a1a1a; border: 1px solid #333; padding: 24px; text-align: center;">
+            <img src="{{ user.get_avatar(80) }}"
+                style="width: 80px; height: 80px; border-radius: 50%; margin-bottom: 16px; border: 2px solid #333;">
+            <h3 style="margin: 0; font-size: 1.2rem;">{{ user.first_name }} {{ user.last_name }}</h3>
+            <div style="color: var(--text-secondary); font-size: 0.9rem; margin-top: 4px;">{{ user.email }}</div>
+
+            <div
+                style="margin-top: 24px; display: grid; gap: 12px; text-align: left; font-size: 0.9rem; border-top: 1px solid #333; padding-top: 16px;">
+                <div style="display: flex; justify-content: space-between;">
+                    <span style="color: var(--text-secondary);">User ID</span>
+                    <span style="font-family: monospace;">{{ user.id }}</span>
+                </div>
+                <div style="display: flex; justify-content: space-between;">
+                    <span style="color: var(--text-secondary);">Level</span>
+                    <span style="color: #fbbf24; font-weight: 600;">{{ user.level }}</span>
+                </div>
+                <div style="display: flex; justify-content: space-between;">
+                    <span style="color: var(--text-secondary);">Joined</span>
+                    <span>{{ user.created_at.strftime('%b %d, %Y') }}</span>
+                </div>
+            </div>
+
+            <a href="{{ url_for('admin_user_detail', user_id=user.id) }}" class="btn btn-secondary"
+                style="width: 100%; margin-top: 20px; padding: 10px; border-radius: 8px; text-decoration: none; display: block; background: rgba(255,255,255,0.05); color: white; text-align: center;">View
+                Full Profile</a>
+        </div>
+
+        <!-- Ticket Info -->
+        <div class="card" style="background: #1a1a1a; border: 1px solid #333; padding: 24px;">
+            <h3
+                style="margin: 0 0 16px 0; font-size: 1rem; color: var(--text-secondary); text-transform: uppercase; letter-spacing: 1px;">
+                Ticket Details</h3>
+
+            <div style="display: grid; gap: 16px; font-size: 0.95rem;">
+                <div>
+                    <div style="color: var(--text-secondary); font-size: 0.8rem; margin-bottom: 4px;">Priority</div>
+                    <span
+                        style="padding: 4px 10px; border-radius: 4px; font-size: 0.8rem; font-weight: 600; text-transform: uppercase; background: {% if ticket.priority == 'urgent' %}rgba(239, 68, 68, 0.2){% elif ticket.priority == 'high' %}rgba(245, 158, 11, 0.2){% else %}rgba(255,255,255,0.1){% endif %}; color: {% if ticket.priority == 'urgent' %}#ef4444{% elif ticket.priority == 'high' %}#f59e0b{% else %}var(--text-secondary){% endif %};">
+                        {{ ticket.priority }}
+                    </span>
+                </div>
+                <div>
+                    <div style="color: var(--text-secondary); font-size: 0.8rem; margin-bottom: 4px;">Category</div>
+                    <span style="text-transform: capitalize;">{{ ticket.category }}</span>
+                </div>
+                <div>
+                    <div style="color: var(--text-secondary); font-size: 0.8rem; margin-bottom: 4px;">Created</div>
+                    <span>{{ ticket.created_at|ist_time }}</span>
+                </div>
+                {% if ticket.status == 'closed' %}
+                <div>
+                    <div style="color: var(--text-secondary); font-size: 0.8rem; margin-bottom: 4px;">Closed</div>
+                    <span>{{ ticket.updated_at|ist_time }}</span>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+    .status-badge {
+        padding: 6px 14px;
+        border-radius: 20px;
+        font-size: 0.8rem;
+        font-weight: 600;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+    }
+
+    .status-open {
+        background: rgba(16, 185, 129, 0.2);
+        color: #10b981;
+        border: 1px solid rgba(16, 185, 129, 0.3);
+    }
+
+    .status-in_progress {
+        background: rgba(99, 102, 241, 0.2);
+        color: #6366f1;
+        border: 1px solid rgba(99, 102, 241, 0.3);
+    }
+
+    .status-closed {
+        background: rgba(255, 255, 255, 0.1);
+        color: #a0a0a0;
+        border: 1px solid rgba(255, 255, 255, 0.2);
+    }
+
+    @keyframes fadeIn {
+        from {
+            opacity: 0;
+            transform: translateY(10px);
+        }
+
+        to {
+            opacity: 1;
+            transform: translateY(0);
+        }
+    }
+
+    /* Scrollbar */
+    .chat-messages::-webkit-scrollbar {
+        width: 6px;
+    }
+
+    .chat-messages::-webkit-scrollbar-track {
+        background: transparent;
+    }
+
+    .chat-messages::-webkit-scrollbar-thumb {
+        background: rgba(255, 255, 255, 0.1);
+        border-radius: 3px;
+    }
+</style>
+
+<script>
+    // Scroll to bottom
+    const chatContainer = document.getElementById('chat-messages');
+    chatContainer.scrollTop = chatContainer.scrollHeight;
+</script>
+{% endblock %}

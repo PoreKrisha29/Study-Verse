@@ -1,0 +1,539 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Community Guidelines - StudyVerse</title>
+    <meta name="description" content="StudyVerse Community Guidelines — Learn what behaviour is expected and how to keep our study community safe and respectful.">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="icon" type="image/png" href="{{ url_for('static', filename='img/favicon.png') }}">
+    <style>
+        *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+        body {
+            font-family: 'Outfit', sans-serif;
+            background: #0a0a0f;
+            color: #e2e8f0;
+            min-height: 100vh;
+            line-height: 1.7;
+        }
+
+        /* ── Top nav bar ── */
+        .topbar {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 16px 40px;
+            border-bottom: 1px solid rgba(255,255,255,0.07);
+            background: rgba(10,10,15,0.9);
+            backdrop-filter: blur(10px);
+            position: sticky;
+            top: 0;
+            z-index: 100;
+        }
+        .logo {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            text-decoration: none;
+            color: #4ade80;
+            font-size: 1.25rem;
+            font-weight: 700;
+        }
+        .topbar-links {
+            display: flex;
+            gap: 20px;
+            align-items: center;
+        }
+        .topbar-links a {
+            color: #94a3b8;
+            text-decoration: none;
+            font-size: 0.9rem;
+            transition: color 0.2s;
+        }
+        .topbar-links a:hover { color: #4ade80; }
+        .btn-back {
+            background: rgba(74,222,128,0.1);
+            border: 1px solid rgba(74,222,128,0.25);
+            color: #4ade80;
+            padding: 8px 18px;
+            border-radius: 10px;
+            font-size: 0.88rem;
+            font-weight: 600;
+            text-decoration: none;
+            transition: all 0.2s;
+        }
+        .btn-back:hover { background: rgba(74,222,128,0.2); }
+
+        /* ── Hero ── */
+        .hero {
+            text-align: center;
+            padding: 72px 24px 48px;
+            background: radial-gradient(ellipse 80% 50% at 50% 0%, rgba(74,222,128,0.08) 0%, transparent 70%);
+            border-bottom: 1px solid rgba(255,255,255,0.06);
+        }
+        .hero-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 7px;
+            background: rgba(74,222,128,0.1);
+            border: 1px solid rgba(74,222,128,0.25);
+            color: #4ade80;
+            border-radius: 20px;
+            padding: 5px 14px;
+            font-size: 0.8rem;
+            font-weight: 700;
+            letter-spacing: 0.5px;
+            text-transform: uppercase;
+            margin-bottom: 20px;
+        }
+        .hero h1 {
+            font-size: clamp(2rem, 5vw, 3rem);
+            font-weight: 800;
+            color: white;
+            letter-spacing: -1px;
+            margin-bottom: 16px;
+        }
+        .hero p {
+            color: #94a3b8;
+            font-size: 1.05rem;
+            max-width: 560px;
+            margin: 0 auto;
+        }
+        .last-updated {
+            margin-top: 16px;
+            font-size: 0.8rem;
+            color: #475569;
+        }
+
+        /* ── Content ── */
+        .content {
+            max-width: 820px;
+            margin: 0 auto;
+            padding: 56px 24px 80px;
+        }
+
+        /* ── Summary Cards ── */
+        .summary-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 14px;
+            margin-bottom: 56px;
+        }
+        .summary-card {
+            background: rgba(255,255,255,0.03);
+            border: 1px solid rgba(255,255,255,0.08);
+            border-radius: 16px;
+            padding: 20px;
+            text-align: center;
+            transition: border-color 0.2s;
+        }
+        .summary-card:hover { border-color: rgba(74,222,128,0.2); }
+        .summary-card .icon {
+            font-size: 1.8rem;
+            margin-bottom: 10px;
+        }
+        .summary-card h4 {
+            font-size: 0.95rem;
+            font-weight: 700;
+            color: white;
+            margin-bottom: 5px;
+        }
+        .summary-card p {
+            font-size: 0.8rem;
+            color: #64748b;
+        }
+
+        /* ── Sections ── */
+        .section {
+            margin-bottom: 44px;
+        }
+        .section-header {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            margin-bottom: 20px;
+            padding-bottom: 12px;
+            border-bottom: 1px solid rgba(255,255,255,0.06);
+        }
+        .section-icon {
+            width: 40px;
+            height: 40px;
+            border-radius: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.1rem;
+            flex-shrink: 0;
+        }
+        .section-icon.green  { background: rgba(74,222,128,0.12); color: #4ade80; }
+        .section-icon.red    { background: rgba(239,68,68,0.12);  color: #f87171; }
+        .section-icon.orange { background: rgba(251,146,60,0.12); color: #fb923c; }
+        .section-icon.blue   { background: rgba(59,130,246,0.12); color: #60a5fa; }
+        .section-icon.purple { background: rgba(139,92,246,0.12); color: #a78bfa; }
+        .section-icon.yellow { background: rgba(234,179,8,0.12);  color: #facc15; }
+
+        .section h2 {
+            font-size: 1.25rem;
+            font-weight: 700;
+            color: white;
+        }
+
+        /* ── Rule list ── */
+        .rule-list {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+        .rule-item {
+            display: flex;
+            align-items: flex-start;
+            gap: 12px;
+            background: rgba(255,255,255,0.025);
+            border: 1px solid rgba(255,255,255,0.06);
+            border-radius: 12px;
+            padding: 14px 16px;
+            transition: border-color 0.2s;
+        }
+        .rule-item:hover { border-color: rgba(255,255,255,0.12); }
+        .rule-dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            flex-shrink: 0;
+            margin-top: 7px;
+        }
+        .rule-dot.green  { background: #4ade80; }
+        .rule-dot.red    { background: #f87171; }
+        .rule-dot.orange { background: #fb923c; }
+        .rule-dot.blue   { background: #60a5fa; }
+        .rule-item p {
+            font-size: 0.92rem;
+            color: #cbd5e1;
+        }
+        .rule-item strong { color: white; }
+
+        /* ── Consequence table ── */
+        .consequence-table {
+            width: 100%;
+            border-collapse: collapse;
+            border-radius: 14px;
+            overflow: hidden;
+            border: 1px solid rgba(255,255,255,0.08);
+        }
+        .consequence-table th {
+            background: rgba(255,255,255,0.04);
+            padding: 12px 18px;
+            text-align: left;
+            font-size: 0.78rem;
+            font-weight: 700;
+            color: #64748b;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+        .consequence-table td {
+            padding: 13px 18px;
+            border-top: 1px solid rgba(255,255,255,0.06);
+            font-size: 0.9rem;
+            color: #cbd5e1;
+        }
+        .badge {
+            display: inline-block;
+            padding: 3px 10px;
+            border-radius: 20px;
+            font-size: 0.75rem;
+            font-weight: 700;
+        }
+        .badge-yellow { background: rgba(234,179,8,0.15);  color: #facc15; }
+        .badge-orange { background: rgba(251,146,60,0.15); color: #fb923c; }
+        .badge-red    { background: rgba(239,68,68,0.15);  color: #f87171; }
+
+        /* ── Alert box ── */
+        .alert-box {
+            display: flex;
+            gap: 14px;
+            align-items: flex-start;
+            background: rgba(239,68,68,0.06);
+            border: 1px solid rgba(239,68,68,0.2);
+            border-radius: 14px;
+            padding: 18px 20px;
+            margin-bottom: 28px;
+        }
+        .alert-box i { color: #f87171; font-size: 1.1rem; margin-top: 2px; flex-shrink: 0; }
+        .alert-box p { font-size: 0.9rem; color: #fca5a5; line-height: 1.6; }
+
+        /* ── Contact CTA ── */
+        .cta {
+            background: linear-gradient(135deg, rgba(74,222,128,0.08), rgba(59,130,246,0.06));
+            border: 1px solid rgba(74,222,128,0.15);
+            border-radius: 20px;
+            padding: 36px;
+            text-align: center;
+            margin-top: 56px;
+        }
+        .cta h3 { font-size: 1.3rem; font-weight: 700; color: white; margin-bottom: 8px; }
+        .cta p  { color: #94a3b8; font-size: 0.95rem; margin-bottom: 24px; }
+        .cta-btns { display: flex; gap: 12px; justify-content: center; flex-wrap: wrap; }
+        .btn-primary {
+            background: #4ade80;
+            color: #000;
+            padding: 11px 24px;
+            border-radius: 10px;
+            text-decoration: none;
+            font-weight: 700;
+            font-size: 0.9rem;
+            transition: all 0.2s;
+        }
+        .btn-primary:hover { background: #22c55e; transform: translateY(-1px); }
+        .btn-secondary {
+            background: rgba(255,255,255,0.06);
+            color: #cbd5e1;
+            border: 1px solid rgba(255,255,255,0.1);
+            padding: 11px 24px;
+            border-radius: 10px;
+            text-decoration: none;
+            font-weight: 600;
+            font-size: 0.9rem;
+            transition: all 0.2s;
+        }
+        .btn-secondary:hover { background: rgba(255,255,255,0.1); }
+
+        /* ── Footer ── */
+        .footer {
+            border-top: 1px solid rgba(255,255,255,0.06);
+            padding: 28px 40px;
+            text-align: center;
+            color: #475569;
+            font-size: 0.82rem;
+        }
+        .footer a { color: #4ade80; text-decoration: none; }
+
+        @media (max-width: 600px) {
+            .topbar { padding: 14px 20px; }
+            .hero { padding: 48px 20px 36px; }
+            .content { padding: 36px 20px 60px; }
+            .cta-btns { flex-direction: column; align-items: center; }
+        }
+    </style>
+</head>
+<body>
+
+    <!-- Top Bar -->
+    <nav class="topbar">
+        <a href="/" class="logo">
+            <i class="fa-solid fa-graduation-cap"></i> StudyVerse
+        </a>
+        <div class="topbar-links">
+            <a href="/auth">Sign In</a>
+            <a href="/support" class="btn-back"><i class="fa-solid fa-headset" style="margin-right:6px;"></i>Support</a>
+        </div>
+    </nav>
+
+    <!-- Hero -->
+    <div class="hero">
+        <div class="hero-badge"><i class="fa-solid fa-shield-halved"></i> Community Standards</div>
+        <h1>Community Guidelines</h1>
+        <p>StudyVerse is a safe, respectful study community. These guidelines keep it that way for everyone.</p>
+        <div class="last-updated">Last updated: April 2025 &nbsp;·&nbsp; Applies to all users</div>
+    </div>
+
+    <!-- Content -->
+    <div class="content">
+
+        <!-- Quick Summary -->
+        <div class="summary-grid">
+            <div class="summary-card">
+                <div class="icon">✅</div>
+                <h4>Be Respectful</h4>
+                <p>Treat every member the way you want to be treated.</p>
+            </div>
+            <div class="summary-card">
+                <div class="icon">🔤</div>
+                <h4>Real Names Only</h4>
+                <p>No profanity, slang, or impersonation in usernames.</p>
+            </div>
+            <div class="summary-card">
+                <div class="icon">🤝</div>
+                <h4>Help Each Other</h4>
+                <p>Share knowledge. Uplift your study community.</p>
+            </div>
+            <div class="summary-card">
+                <div class="icon">🚫</div>
+                <h4>Zero Harassment</h4>
+                <p>Bullying, hate speech, and spam are not tolerated.</p>
+            </div>
+        </div>
+
+        <!-- Section 1: Username Rules -->
+        <div class="section">
+            <div class="section-header">
+                <div class="section-icon orange"><i class="fa-solid fa-at"></i></div>
+                <h2>1. Username & Display Name Rules</h2>
+            </div>
+            <div class="rule-list">
+                <div class="rule-item">
+                    <div class="rule-dot red"></div>
+                    <p><strong>No profanity or offensive language.</strong> Usernames containing slurs, swear words, or inappropriate terms will be blocked automatically and may result in a ban.</p>
+                </div>
+                <div class="rule-item">
+                    <div class="rule-dot red"></div>
+                    <p><strong>No impersonation.</strong> Do not use names like "Admin", "StudyVerse", "Official", "Moderator" or imitate any other user or public figure.</p>
+                </div>
+                <div class="rule-item">
+                    <div class="rule-dot orange"></div>
+                    <p><strong>Use a real or meaningful name.</strong> Gibberish, symbol-only, or number-only names are discouraged.</p>
+                </div>
+                <div class="rule-item">
+                    <div class="rule-dot green"></div>
+                    <p><strong>Names must be 2–50 characters</strong> and contain only letters, spaces, hyphens, or apostrophes.</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Section 2: Behaviour -->
+        <div class="section">
+            <div class="section-header">
+                <div class="section-icon green"><i class="fa-solid fa-handshake"></i></div>
+                <h2>2. Respectful Behaviour</h2>
+            </div>
+            <div class="rule-list">
+                <div class="rule-item">
+                    <div class="rule-dot red"></div>
+                    <p><strong>No harassment or bullying.</strong> Any form of targeted harassment, threats, or personal attacks toward any member is strictly forbidden.</p>
+                </div>
+                <div class="rule-item">
+                    <div class="rule-dot red"></div>
+                    <p><strong>No hate speech.</strong> Content that discriminates based on race, religion, gender, sexuality, nationality, or disability is not allowed.</p>
+                </div>
+                <div class="rule-item">
+                    <div class="rule-dot orange"></div>
+                    <p><strong>No spam.</strong> Avoid sending repeated, irrelevant, or promotional messages in group chats or support tickets.</p>
+                </div>
+                <div class="rule-item">
+                    <div class="rule-dot green"></div>
+                    <p><strong>Constructive discussions only.</strong> Debate ideas, not people. Disagreements should be handled respectfully.</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Section 3: Content Rules -->
+        <div class="section">
+            <div class="section-header">
+                <div class="section-icon blue"><i class="fa-solid fa-file-lines"></i></div>
+                <h2>3. Content Standards</h2>
+            </div>
+            <div class="rule-list">
+                <div class="rule-item">
+                    <div class="rule-dot red"></div>
+                    <p><strong>No adult or explicit content.</strong> StudyVerse is an educational platform. Sharing NSFW images, videos, or text is grounds for immediate ban.</p>
+                </div>
+                <div class="rule-item">
+                    <div class="rule-dot red"></div>
+                    <p><strong>No sharing personal information of others.</strong> Do not share phone numbers, addresses, or any private data of other users without consent.</p>
+                </div>
+                <div class="rule-item">
+                    <div class="rule-dot orange"></div>
+                    <p><strong>Academic integrity.</strong> Using AI or sharing answers in a deceptive manner that violates your institution's academic honesty policy is your personal responsibility.</p>
+                </div>
+                <div class="rule-item">
+                    <div class="rule-dot green"></div>
+                    <p><strong>Share useful study content.</strong> Notes, PDFs, and resources uploaded to groups should be relevant and educational.</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Section 4: Group Chat Rules -->
+        <div class="section">
+            <div class="section-header">
+                <div class="section-icon purple"><i class="fa-solid fa-users"></i></div>
+                <h2>4. Group Chat Rules</h2>
+            </div>
+            <div class="rule-list">
+                <div class="rule-item">
+                    <div class="rule-dot orange"></div>
+                    <p><strong>Group names must be appropriate.</strong> Group names follow the same profanity rules as usernames. Inappropriate group names will be removed.</p>
+                </div>
+                <div class="rule-item">
+                    <div class="rule-dot green"></div>
+                    <p><strong>Group admins are responsible</strong> for maintaining a respectful environment within their group. Misuse of admin powers will result in removal.</p>
+                </div>
+                <div class="rule-item">
+                    <div class="rule-dot orange"></div>
+                    <p><strong>Do not share invite codes publicly</strong> on external platforms to flood groups with unwanted members.</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Section 5: Consequences -->
+        <div class="section">
+            <div class="section-header">
+                <div class="section-icon red"><i class="fa-solid fa-gavel"></i></div>
+                <h2>5. Consequences of Violations</h2>
+            </div>
+            <div class="alert-box">
+                <i class="fa-solid fa-triangle-exclamation"></i>
+                <p>Violations are reviewed by StudyVerse admins. We reserve the right to take action at any severity level depending on the nature of the violation.</p>
+            </div>
+            <table class="consequence-table">
+                <thead>
+                    <tr>
+                        <th>Violation Level</th>
+                        <th>Examples</th>
+                        <th>Action</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td><span class="badge badge-yellow">Minor</span></td>
+                        <td>Slightly inappropriate username, spam messages</td>
+                        <td>Warning notification sent</td>
+                    </tr>
+                    <tr>
+                        <td><span class="badge badge-orange">Moderate</span></td>
+                        <td>Repeated violations, mild harassment, profanity in chats</td>
+                        <td>Final warning + content removal</td>
+                    </tr>
+                    <tr>
+                        <td><span class="badge badge-red">Severe</span></td>
+                        <td>Hate speech, explicit content, severe harassment</td>
+                        <td>Immediate account ban</td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+
+        <!-- Section 6: Appeals -->
+        <div class="section">
+            <div class="section-header">
+                <div class="section-icon yellow"><i class="fa-solid fa-scale-balanced"></i></div>
+                <h2>6. Ban Appeals</h2>
+            </div>
+            <div class="rule-list">
+                <div class="rule-item">
+                    <div class="rule-dot green"></div>
+                    <p>If you believe your account was banned unfairly, you can <strong>submit an appeal</strong> from the login page. Click <em>"Account banned? Submit an appeal"</em>.</p>
+                </div>
+                <div class="rule-item">
+                    <div class="rule-dot orange"></div>
+                    <p><strong>Appeals are reviewed within 48–72 hours.</strong> Provide a clear, honest explanation. False or abusive appeals may result in a permanent ban.</p>
+                </div>
+                <div class="rule-item">
+                    <div class="rule-dot orange"></div>
+                    <p><strong>Only one open appeal is allowed at a time.</strong> Submitting multiple appeals for the same ban will not speed up the review process.</p>
+                </div>
+            </div>
+        </div>
+
+
+
+    </div>
+
+    <!-- Footer -->
+    <div class="footer">
+        © 2025 StudyVerse · <a href="/guidelines">Community Guidelines</a> · <a href="/support">Support</a>
+    </div>
+
+</body>
+</html>

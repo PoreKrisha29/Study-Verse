@@ -1,0 +1,368 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>StudyVerse Session Call</title>
+    
+    <!-- Preconnect for performance -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    
+    <!-- Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    
+    <style>
+        :root {
+            --bg-dark: #07080e;
+            --primary: #6366f1;
+            --primary-hover: #4f46e5;
+            --accent: #a78bfa;
+            --glass: rgba(15, 17, 28, 0.7);
+            --glass-border: rgba(99, 102, 241, 0.15);
+            --text: #f3f4f6;
+            --text-secondary: #9ca3af;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Inter', sans-serif;
+            background: radial-gradient(circle at top right, rgba(99, 102, 241, 0.15), transparent),
+                        radial-gradient(circle at bottom left, rgba(167, 139, 250, 0.1), transparent),
+                        var(--bg-dark);
+            color: var(--text);
+            height: 100vh;
+            width: 100vw;
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+        }
+
+        /* Ambient background glow */
+        .ambient-glow {
+            position: absolute;
+            inset: 0;
+            background: radial-gradient(800px circle at 50% 200px, rgba(99, 102, 241, 0.08), transparent);
+            pointer-events: none;
+            z-index: 0;
+        }
+
+        /* Top Bar */
+        .call-header {
+            position: relative;
+            z-index: 10;
+            height: 70px;
+            padding: 0 24px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            background: rgba(7, 8, 14, 0.6);
+            backdrop-filter: blur(12px);
+            border-bottom: 1px solid var(--glass-border);
+            box-shadow: 0 4px 30px rgba(0, 0, 0, 0.2);
+        }
+
+        .logo-section {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .logo-icon {
+            font-size: 1.5rem;
+            background: linear-gradient(135deg, var(--primary), var(--accent));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            filter: drop-shadow(0 2px 8px rgba(99, 102, 241, 0.4));
+        }
+
+        .logo-text {
+            font-weight: 700;
+            font-size: 1.15rem;
+            letter-spacing: 0.5px;
+            background: linear-gradient(to right, #ffffff, #d1d5db);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        .session-info {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            background: rgba(99, 102, 241, 0.1);
+            border: 1px solid rgba(99, 102, 241, 0.2);
+            padding: 6px 14px;
+            border-radius: 20px;
+            font-size: 0.85rem;
+            font-weight: 500;
+            color: var(--accent);
+            animation: pulseGlow 2s infinite ease-in-out;
+        }
+
+        @keyframes pulseGlow {
+            0%, 100% { box-shadow: 0 0 5px rgba(99, 102, 241, 0.1); border-color: rgba(99, 102, 241, 0.2); }
+            50% { box-shadow: 0 0 15px rgba(99, 102, 241, 0.3); border-color: rgba(99, 102, 241, 0.4); }
+        }
+
+        .exit-btn {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            background: linear-gradient(135deg, #ef4444, #dc2626);
+            color: white;
+            border: none;
+            padding: 10px 18px;
+            border-radius: 10px;
+            font-weight: 600;
+            font-size: 0.88rem;
+            cursor: pointer;
+            transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+            box-shadow: 0 4px 15px rgba(239, 68, 68, 0.3);
+        }
+
+        .exit-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(239, 68, 68, 0.4);
+            filter: brightness(1.1);
+        }
+
+        .exit-btn:active {
+            transform: translateY(0);
+        }
+
+        /* Main Call Container */
+        .call-container-wrapper {
+            flex: 1;
+            position: relative;
+            z-index: 5;
+            padding: 16px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .call-card {
+            width: 100%;
+            height: 100%;
+            background: var(--glass);
+            border: 1px solid var(--glass-border);
+            border-radius: 20px;
+            overflow: hidden;
+            box-shadow: 0 20px 50px rgba(0, 0, 0, 0.5);
+            backdrop-filter: blur(8px);
+            display: flex;
+            position: relative;
+        }
+
+        /* Loading Area */
+        .loading-screen {
+            position: absolute;
+            inset: 0;
+            background: #090a10;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            gap: 20px;
+            z-index: 100;
+            transition: opacity 0.5s ease;
+        }
+
+        .loading-spinner {
+            position: relative;
+            width: 60px;
+            height: 60px;
+        }
+
+        .loading-spinner::before,
+        .loading-spinner::after {
+            content: '';
+            position: absolute;
+            inset: 0;
+            border-radius: 50%;
+            border: 3px solid transparent;
+        }
+
+        .loading-spinner::before {
+            border-top-color: var(--primary);
+            animation: spin 1s infinite linear;
+        }
+
+        .loading-spinner::after {
+            border-bottom-color: var(--accent);
+            animation: spin 1.5s infinite linear reverse;
+        }
+
+        @keyframes spin {
+            100% { transform: rotate(360deg); }
+        }
+
+        .loading-text {
+            font-size: 0.95rem;
+            color: var(--text-secondary);
+            font-weight: 500;
+            letter-spacing: 0.5px;
+            animation: pulseText 1.5s infinite ease-in-out;
+        }
+
+        @keyframes pulseText {
+            0%, 100% { opacity: 0.6; }
+            50% { opacity: 1; }
+        }
+
+        #sv-jitsi-container {
+            width: 100%;
+            height: 100%;
+            border: none;
+            background: #0b0c16;
+        }
+    </style>
+</head>
+<body>
+    <div class="ambient-glow"></div>
+
+    <header class="call-header">
+        <div class="logo-section">
+            <i class="fa-solid fa-graduation-cap logo-icon"></i>
+            <span class="logo-text">StudyVerse</span>
+        </div>
+        <div class="session-info">
+            <i class="fa-solid fa-circle-nodes"></i>
+            <span>Encrypted Room Session</span>
+        </div>
+        <button class="exit-btn" id="exit-call-btn">
+            <i class="fa-solid fa-phone-slash"></i>
+            <span>End & Return</span>
+        </button>
+    </header>
+
+    <main class="call-container-wrapper">
+        <div class="call-card">
+            <!-- Loading overlay -->
+            <div class="loading-screen" id="loading-overlay">
+                <div class="loading-spinner"></div>
+                <div class="loading-text">Initializing Secure Room Connection...</div>
+                <div style="font-size: 0.82rem; color: var(--text-secondary); opacity: 0.8; margin-top: -8px; font-weight: 500; letter-spacing: 0.3px;">
+                    Please allow camera and microphone access if prompted
+                </div>
+            </div>
+
+            <!-- Jitsi Target Container -->
+            <div id="sv-jitsi-container"></div>
+        </div>
+    </main>
+
+    <!-- Jitsi External API -->
+    <script src="https://meet.jit.si/external_api.js"></script>
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            const roomName = "{{ room }}";
+            const displayName = "{{ current_user.first_name }} {{ current_user.last_name }}";
+            const loadingOverlay = document.getElementById('loading-overlay');
+            const exitBtn = document.getElementById('exit-call-btn');
+
+            if (!roomName) {
+                window.location.href = '/friends';
+                return;
+            }
+
+            // Function to handle clean exit
+            function exitCall() {
+                if (window.jitsiApi) {
+                    try {
+                        window.jitsiApi.dispose();
+                    } catch (e) {
+                        console.error("Jitsi dispose error:", e);
+                    }
+                }
+                window.location.href = '/friends';
+            }
+
+            exitBtn.addEventListener('click', exitCall);
+
+            if (typeof JitsiMeetExternalAPI === 'undefined') {
+                loadingOverlay.innerHTML = `
+                    <div style="color: #ef4444; font-size: 2rem; margin-bottom: 10px;">
+                        <i class="fa-solid fa-circle-exclamation"></i>
+                    </div>
+                    <div style="font-weight: 600; color: #fff; margin-bottom: 8px;">Failed to load Jitsi Library</div>
+                    <div style="color: var(--text-secondary); font-size: 0.88rem; margin-bottom: 20px;">
+                        Please check your network connection and try again.
+                    </div>
+                    <button onclick="window.location.href='/friends'" style="
+                        background: var(--primary); color: white; border: none; padding: 10px 20px;
+                        border-radius: 8px; font-weight: 600; cursor: pointer;
+                    ">Return to Friends</button>
+                `;
+                return;
+            }
+
+            // Options configuration for maximum aesthetics and seamless integration
+            const domain = 'meet.jit.si';
+            const options = {
+                roomName: roomName,
+                width: '100%',
+                height: '100%',
+                parentNode: document.getElementById('sv-jitsi-container'),
+                userInfo: {
+                    displayName: displayName || 'StudyVerse Student'
+                },
+                configOverwrite: {
+                    startWithAudioMuted: false,
+                    startWithVideoMuted: false,
+                    enableWelcomePage: false,
+                    disableDeepLinking: true,
+                    enableClosePage: false
+                },
+                interfaceConfigOverwrite: {
+                    TOOLBAR_BUTTONS: [
+                        'microphone', 'camera', 'closedcaptions', 'desktop', 'fullscreen',
+                        'fodeviceselection', 'hangup', 'profile', 'chat', 'settings', 
+                        'raisehand', 'videoquality', 'filmstrip', 'tileview', 
+                        'videobackgroundblur'
+                    ],
+                    SHOW_JITSI_WATERMARK: false,
+                    SHOW_WATERMARK_FOR_GUESTS: false,
+                    SHOW_BRAND_WATERMARK: false,
+                    DEFAULT_BACKGROUND: '#07080e',
+                }
+            };
+
+            // Initialize Jitsi Meet IFrame
+            const api = new JitsiMeetExternalAPI(domain, options);
+            window.jitsiApi = api;
+
+            // Safety timeout: fade out loading overlay after 4 seconds anyway
+            // so the user is never stuck and can see permission prompts or Jitsi warnings.
+            const safetyTimeout = setTimeout(() => {
+                fadeOverlay();
+            }, 4000);
+
+            function fadeOverlay() {
+                if (loadingOverlay.style.display !== 'none') {
+                    loadingOverlay.style.opacity = '0';
+                    setTimeout(() => {
+                        loadingOverlay.style.display = 'none';
+                    }, 500);
+                    clearTimeout(safetyTimeout);
+                }
+            }
+
+            // When call is fully ready, hide loading overlay
+            api.addEventListener('videoConferenceJoined', () => {
+                fadeOverlay();
+            });
+
+            // Handle meeting termination events cleanly
+            api.addEventListener('readyToClose', exitCall);
+            api.addEventListener('videoConferenceLeft', exitCall);
+        });
+    </script>
+</body>
+</html>

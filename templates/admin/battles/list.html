@@ -1,0 +1,326 @@
+{% extends "admin/base.html" %}
+{% block title %}Study Sessions{% endblock %}
+{% block page_title %}Study Sessions{% endblock %}
+
+{% block content %}
+<style>
+    .battle-stats {
+        display: grid;
+        grid-template-columns: repeat(3, 1fr);
+        gap: 16px;
+        margin-bottom: 28px;
+    }
+
+    .bstat {
+        background: var(--bg-card);
+        border: 1px solid var(--border);
+        border-radius: var(--radius-lg);
+        padding: 22px;
+        position: relative;
+        overflow: hidden;
+        transition: var(--transition);
+    }
+
+    .bstat:hover {
+        transform: translateY(-2px);
+        box-shadow: var(--shadow-md);
+    }
+
+    .bstat::after {
+        content: '';
+        position: absolute;
+        top: 0;
+        right: 0;
+        width: 80px;
+        height: 80px;
+        border-radius: 50%;
+        transform: translate(30px, -30px);
+        opacity: 0.06;
+    }
+
+    .bstat-icon {
+        width: 44px;
+        height: 44px;
+        border-radius: 12px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        margin-bottom: 14px;
+        font-size: 18px;
+    }
+
+    .bstat-val {
+        font-size: 30px;
+        font-weight: 800;
+        color: var(--text-primary);
+        letter-spacing: -1px;
+        line-height: 1;
+        margin-bottom: 5px;
+    }
+
+    .bstat-label {
+        font-size: 12px;
+        color: var(--text-muted);
+        font-weight: 600;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+    }
+
+    .bsc-blue .bstat-icon {
+        background: rgba(59, 130, 246, 0.1);
+        color: #3b82f6;
+    }
+
+    .bsc-blue::after {
+        background: #3b82f6;
+    }
+
+    .bsc-blue:hover {
+        border-color: rgba(59, 130, 246, 0.3);
+    }
+
+    .bsc-green .bstat-icon {
+        background: rgba(74, 222, 128, 0.1);
+        color: #4ade80;
+    }
+
+    .bsc-green::after {
+        background: #4ade80;
+    }
+
+    .bsc-green:hover {
+        border-color: rgba(74, 222, 128, 0.3);
+    }
+
+    .bsc-orange .bstat-icon {
+        background: rgba(245, 158, 11, 0.1);
+        color: #f59e0b;
+    }
+
+    .bsc-orange::after {
+        background: #f59e0b;
+    }
+
+    .bsc-orange:hover {
+        border-color: rgba(245, 158, 11, 0.3);
+    }
+
+    .section-card {
+        background: var(--bg-card);
+        border: 1px solid var(--border);
+        border-radius: var(--radius-lg);
+        overflow: hidden;
+        margin-bottom: 22px;
+    }
+
+    .section-head {
+        padding: 17px 22px;
+        border-bottom: 1px solid var(--border);
+        font-size: 15px;
+        font-weight: 700;
+        color: var(--text-primary);
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        background: rgba(255, 255, 255, 0.015);
+    }
+
+    .section-head i {
+        color: var(--accent);
+        font-size: 14px;
+    }
+
+    .studier-row {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding: 14px 22px;
+        border-bottom: 1px solid var(--border);
+        transition: var(--transition);
+    }
+
+    .studier-row:last-child {
+        border-bottom: none;
+    }
+
+    .studier-row:hover {
+        background: rgba(74, 222, 128, 0.025);
+    }
+
+    .sr-left {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+    }
+
+    .sr-avatar {
+        width: 38px;
+        height: 38px;
+        border-radius: 50%;
+        object-fit: cover;
+        border: 2px solid var(--border);
+    }
+
+    .sr-name {
+        font-size: 14px;
+        font-weight: 600;
+        color: var(--text-primary);
+        margin-bottom: 2px;
+    }
+
+    .sr-sub {
+        font-size: 12px;
+        color: var(--text-muted);
+    }
+
+    .session-pill {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        padding: 13px 22px;
+        border-bottom: 1px solid var(--border);
+        transition: var(--transition);
+    }
+
+    .session-pill:last-child {
+        border-bottom: none;
+    }
+
+    .session-pill:hover {
+        background: rgba(74, 222, 128, 0.025);
+    }
+
+    .mode-chip {
+        padding: 4px 12px;
+        border-radius: 20px;
+        font-size: 12px;
+        font-weight: 700;
+        flex-shrink: 0;
+    }
+
+    .mode-focus {
+        background: rgba(74, 222, 128, 0.1);
+        color: #4ade80;
+        border: 1px solid rgba(74, 222, 128, 0.2);
+    }
+
+    .mode-break {
+        background: rgba(245, 158, 11, 0.1);
+        color: #f59e0b;
+        border: 1px solid rgba(245, 158, 11, 0.2);
+    }
+
+    .session-meta {
+        font-size: 13px;
+        color: var(--text-secondary);
+        flex: 1;
+    }
+
+    .session-meta strong {
+        color: var(--text-primary);
+        font-weight: 600;
+    }
+
+    .session-time {
+        font-size: 12px;
+        color: var(--text-muted);
+        flex-shrink: 0;
+    }
+
+    .pagination {
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        gap: 8px;
+        margin-top: 24px;
+    }
+
+    .page-info {
+        font-size: 13px;
+        color: var(--text-muted);
+        padding: 0 14px;
+        font-weight: 500;
+    }
+</style>
+
+<!-- Stats row -->
+<div class="battle-stats">
+    <div class="bstat bsc-blue">
+        <div class="bstat-icon"><i class="fa-solid fa-clock"></i></div>
+        <div class="bstat-val">{{ stats.total_sessions }}</div>
+        <div class="bstat-label">Total Sessions</div>
+    </div>
+    <div class="bstat bsc-green">
+        <div class="bstat-icon"><i class="fa-solid fa-brain"></i></div>
+        <div class="bstat-val">{{ stats.total_focus_hours }}</div>
+        <div class="bstat-label">Focus Hours</div>
+    </div>
+    <div class="bstat bsc-orange">
+        <div class="bstat-icon"><i class="fa-solid fa-mug-hot"></i></div>
+        <div class="bstat-val">{{ stats.total_break_hours }}</div>
+        <div class="bstat-label">Break Hours</div>
+    </div>
+</div>
+
+<!-- Top Studiers + Sessions side-by-side -->
+<div style="display: grid; grid-template-columns: 1fr 1.4fr; gap: 22px; margin-bottom: 22px;">
+
+    <div class="section-card">
+        <div class="section-head"><i class="fa-solid fa-fire-flame-curved"></i> Top Studiers</div>
+        <div>
+            {% for user, total_time in stats.top_studiers %}
+            <div class="studier-row">
+                <div class="sr-left">
+                    <img src="{{ user.get_avatar(40) }}" class="sr-avatar" alt="{{ user.first_name }}">
+                    <div>
+                        <div class="sr-name">{{ user.first_name }} {{ user.last_name }}</div>
+                        <div class="sr-sub">Level {{ user.level }}</div>
+                    </div>
+                </div>
+                <span class="badge badge-green">{{ (total_time / 60)|round(1) }}h</span>
+            </div>
+            {% else %}
+            <div style="text-align:center;padding:40px;color:var(--text-muted);">No data yet</div>
+            {% endfor %}
+        </div>
+    </div>
+
+    <div class="section-card">
+        <div class="section-head"><i class="fa-solid fa-list-ul"></i> Recent Sessions</div>
+        <div>
+            {% for session in sessions.items %}
+            <div class="session-pill">
+                <span class="mode-chip {{ 'mode-focus' if session.mode == 'focus' else 'mode-break' }}">
+                    {{ session.mode|title }}
+                </span>
+                <div class="session-meta">
+                    <strong>User #{{ session.user_id }}</strong> &bull; {{ session.duration }} min
+                </div>
+                <div class="session-time">{{ (session.completed_at | to_ist).strftime('%b %d, %H:%M') }}</div>
+            </div>
+            {% else %}
+            <div style="text-align:center;padding:40px;color:var(--text-muted);">No sessions yet</div>
+            {% endfor %}
+        </div>
+    </div>
+
+</div>
+
+<!-- Pagination -->
+{% if sessions.pages > 1 %}
+<div class="pagination">
+    {% if sessions.has_prev %}
+    <a href="{{ url_for('admin_battles', page=sessions.prev_num) }}" class="admin-btn admin-btn-secondary">
+        <i class="fa-solid fa-chevron-left"></i> Prev
+    </a>
+    {% endif %}
+    <span class="page-info">Page <strong style="color:var(--text-primary);">{{ sessions.page }}</strong> of {{
+        sessions.pages }}</span>
+    {% if sessions.has_next %}
+    <a href="{{ url_for('admin_battles', page=sessions.next_num) }}" class="admin-btn admin-btn-secondary">
+        Next <i class="fa-solid fa-chevron-right"></i>
+    </a>
+    {% endif %}
+</div>
+{% endif %}
+{% endblock %}

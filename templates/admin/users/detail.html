@@ -1,0 +1,674 @@
+{% extends "admin/base.html" %}
+{% block title %}User: {{ user.email }}{% endblock %}
+{% block page_title %}User Details{% endblock %}
+
+{% block content %}
+<style>
+    .detail-grid {
+        display: grid;
+        grid-template-columns: 300px 1fr;
+        gap: 22px;
+        align-items: start;
+    }
+
+    /* Profile card */
+    .profile-card {
+        background: var(--bg-card);
+        border: 1px solid var(--border);
+        border-radius: var(--radius-xl);
+        overflow: hidden;
+    }
+
+    .profile-card-top {
+        padding: 28px 24px;
+        text-align: center;
+        background: linear-gradient(160deg, rgba(74, 222, 128, 0.06) 0%, rgba(59, 130, 246, 0.04) 100%);
+        border-bottom: 1px solid var(--border);
+        position: relative;
+    }
+
+    .profile-card-top::before {
+        content: '';
+        position: absolute;
+        top: -60px;
+        right: -60px;
+        width: 160px;
+        height: 160px;
+        border-radius: 50%;
+        background: radial-gradient(circle, rgba(74, 222, 128, 0.08) 0%, transparent 70%);
+    }
+
+    .profile-avatar {
+        width: 90px;
+        height: 90px;
+        border-radius: 50%;
+        object-fit: cover;
+        border: 3px solid var(--border-glow);
+        box-shadow: 0 0 20px rgba(74, 222, 128, 0.15);
+        margin-bottom: 14px;
+        position: relative;
+        z-index: 1;
+    }
+
+    .profile-name {
+        font-size: 18px;
+        font-weight: 700;
+        color: var(--text-primary);
+        margin-bottom: 3px;
+        letter-spacing: -0.3px;
+    }
+
+    .profile-email {
+        font-size: 12.5px;
+        color: var(--text-muted);
+        margin-bottom: 14px;
+    }
+
+    .profile-badges {
+        display: flex;
+        gap: 8px;
+        justify-content: center;
+        flex-wrap: wrap;
+    }
+
+    .profile-card-info {
+        padding: 16px 20px;
+    }
+
+    .info-row {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: 10px 0;
+        border-bottom: 1px solid var(--border);
+        font-size: 13.5px;
+    }
+
+    .info-row:last-child {
+        border-bottom: none;
+    }
+
+    .info-row .label {
+        color: var(--text-muted);
+        font-weight: 500;
+    }
+
+    .info-row .value {
+        color: var(--text-primary);
+        font-weight: 600;
+    }
+
+    .profile-card-actions {
+        padding: 14px 20px;
+        border-top: 1px solid var(--border);
+        display: flex;
+        flex-direction: column;
+        gap: 8px;
+    }
+
+    /* Right column */
+    .right-col {
+        display: flex;
+        flex-direction: column;
+        gap: 22px;
+    }
+
+    /* Stat cards for user detail */
+    .user-stats-grid {
+        display: grid;
+        grid-template-columns: repeat(3, 1fr);
+        gap: 14px;
+    }
+
+    .ustat {
+        background: var(--bg-card);
+        border: 1px solid var(--border);
+        border-radius: var(--radius-md);
+        padding: 18px;
+        display: flex;
+        align-items: center;
+        gap: 14px;
+        transition: var(--transition);
+    }
+
+    .ustat:hover {
+        border-color: var(--border-glow);
+        transform: translateY(-1px);
+    }
+
+    .ustat-icon {
+        width: 44px;
+        height: 44px;
+        border-radius: 10px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 18px;
+        flex-shrink: 0;
+    }
+
+    .ustat-val {
+        font-size: 24px;
+        font-weight: 800;
+        color: var(--text-primary);
+        letter-spacing: -0.5px;
+        line-height: 1;
+        margin-bottom: 3px;
+    }
+
+    .ustat-label {
+        font-size: 11.5px;
+        color: var(--text-muted);
+        font-weight: 600;
+        text-transform: uppercase;
+        letter-spacing: 0.4px;
+    }
+
+    /* Ban warning box */
+    .ban-alert {
+        background: rgba(239, 68, 68, 0.08);
+        border: 1px solid rgba(239, 68, 68, 0.3);
+        border-radius: var(--radius-md);
+        padding: 14px;
+        margin-bottom: 12px;
+    }
+
+    .ban-alert-title {
+        color: #ef4444;
+        font-weight: 700;
+        font-size: 14px;
+        margin-bottom: 4px;
+    }
+
+    .ban-alert-reason {
+        color: var(--text-secondary);
+        font-size: 13px;
+    }
+
+    .ban-alert-date {
+        font-size: 11.5px;
+        color: var(--text-muted);
+        margin-top: 4px;
+    }
+
+    /* XP Adjustment card */
+    .section-card {
+        background: var(--bg-card);
+        border: 1px solid var(--border);
+        border-radius: var(--radius-lg);
+        overflow: hidden;
+    }
+
+    .section-card-head {
+        padding: 16px 22px;
+        border-bottom: 1px solid var(--border);
+        font-size: 15px;
+        font-weight: 700;
+        color: var(--text-primary);
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        background: rgba(255, 255, 255, 0.015);
+    }
+
+    .section-card-head i {
+        color: var(--accent);
+        font-size: 14px;
+    }
+
+    .section-card-body {
+        padding: 18px 22px;
+    }
+
+    /* XP Activity table */
+    .xp-table {
+        width: 100%;
+        border-collapse: collapse;
+    }
+
+    .xp-table th {
+        padding: 12px 16px;
+        text-align: left;
+        font-size: 11px;
+        font-weight: 700;
+        color: var(--text-muted);
+        text-transform: uppercase;
+        letter-spacing: 0.6px;
+        background: rgba(255, 255, 255, 0.02);
+    }
+
+    .xp-table td {
+        padding: 13px 16px;
+        border-top: 1px solid var(--border);
+        font-size: 13.5px;
+        color: var(--text-secondary);
+        vertical-align: middle;
+    }
+
+    .xp-table tr:hover td {
+        background: var(--bg-hover);
+    }
+
+    /* XP form inline */
+    .xp-form {
+        display: flex;
+        gap: 12px;
+        align-items: flex-end;
+    }
+
+    .form-field {
+        display: flex;
+        flex-direction: column;
+        gap: 6px;
+    }
+
+    .form-label {
+        font-size: 12.5px;
+        font-weight: 600;
+        color: var(--text-muted);
+        text-transform: uppercase;
+        letter-spacing: 0.4px;
+    }
+
+    .form-field input {
+        padding: 10px 14px;
+        background: var(--bg-card-2);
+        border: 1px solid var(--border);
+        border-radius: var(--radius-sm);
+        color: var(--text-primary);
+        font-size: 14px;
+        transition: var(--transition);
+    }
+
+    .form-field input:focus {
+        border-color: var(--border-glow);
+        outline: none;
+        box-shadow: 0 0 0 3px rgba(74, 222, 128, 0.08);
+    }
+
+    /* Modal */
+    .modal-overlay {
+        display: none;
+        position: fixed;
+        inset: 0;
+        background: rgba(0, 0, 0, 0.75);
+        backdrop-filter: blur(4px);
+        z-index: 1000;
+        align-items: center;
+        justify-content: center;
+    }
+
+    .modal-box {
+        background: var(--bg-card);
+        border: 1px solid rgba(239, 68, 68, 0.25);
+        border-radius: var(--radius-xl);
+        padding: 28px;
+        max-width: 480px;
+        width: 90%;
+        box-shadow: 0 20px 60px rgba(0, 0, 0, 0.8), 0 0 30px rgba(239, 68, 68, 0.1);
+        animation: fadeInUp 0.25s ease;
+    }
+
+    @keyframes fadeInUp {
+        from {
+            opacity: 0;
+            transform: translateY(16px);
+        }
+
+        to {
+            opacity: 1;
+            transform: translateY(0);
+        }
+    }
+
+    .modal-box h3 {
+        font-size: 18px;
+        font-weight: 700;
+        color: #ef4444;
+        margin-bottom: 6px;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+    }
+
+    .modal-box p {
+        font-size: 13px;
+        color: var(--text-muted);
+        margin-bottom: 18px;
+        line-height: 1.6;
+    }
+
+    textarea {
+        width: 100%;
+        padding: 12px 14px;
+        background: var(--bg-card-2);
+        border: 1px solid var(--border);
+        border-radius: var(--radius-sm);
+        color: var(--text-primary);
+        font-size: 14px;
+        font-family: inherit;
+        resize: vertical;
+        transition: var(--transition);
+        outline: none;
+    }
+
+    textarea:focus {
+        border-color: rgba(239, 68, 68, 0.4);
+        box-shadow: 0 0 0 3px rgba(239, 68, 68, 0.08);
+    }
+
+    .back-link {
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        color: var(--text-muted);
+        text-decoration: none;
+        font-size: 13px;
+        font-weight: 600;
+        margin-bottom: 22px;
+        transition: var(--transition);
+    }
+
+    .back-link:hover {
+        color: var(--accent);
+        transform: translateX(-2px);
+    }
+</style>
+
+<!-- Back -->
+<a href="{{ url_for('admin_users') }}" class="back-link">
+    <i class="fa-solid fa-arrow-left"></i> Back to Users
+</a>
+
+<div class="detail-grid">
+
+    <!-- ── Left: Profile Card ── -->
+    <div class="profile-card">
+        <div class="profile-card-top">
+            <img src="{{ user.get_avatar(100) }}" class="profile-avatar" alt="{{ user.first_name }}">
+            <div class="profile-name">{{ user.first_name }} {{ user.last_name }}</div>
+            <div class="profile-email">{{ user.email }}</div>
+            <div class="profile-badges">
+                <span class="badge badge-green">Level {{ user.level }}</span>
+                <span class="badge badge-purple"
+                    style="background: rgba(139,92,246,0.1); color:#8b5cf6; border-color: rgba(139,92,246,0.2);">{{
+                    user.rank }}</span>
+                {% if user.is_banned %}
+                <span class="badge badge-red"><i class="fa-solid fa-ban fa-xs"></i> Banned</span>
+                {% else %}
+                <span class="badge badge-white">Active</span>
+                {% endif %}
+            </div>
+        </div>
+
+        <div class="profile-card-info">
+            <div class="info-row">
+                <span class="label"><i class="fa-solid fa-star fa-xs"></i> Total XP</span>
+                <span class="value" style="color: var(--accent);">{{ '{:,}'.format(user.total_xp) }}</span>
+            </div>
+            <div class="info-row">
+                <span class="label"><i class="fa-solid fa-calendar fa-xs"></i> Joined</span>
+                <span class="value">{{ user.created_at.strftime('%b %d, %Y') }}</span>
+            </div>
+            <div class="info-row">
+                <span class="label"><i class="fa-solid fa-crown fa-xs"></i> Rank</span>
+                <span class="value">{{ user.rank }}</span>
+            </div>
+        </div>
+
+        <div class="profile-card-actions">
+            {% if user.is_banned %}
+            <div class="ban-alert">
+                <div class="ban-alert-title">⛔ Account Banned</div>
+                <div class="ban-alert-reason">{{ user.ban_reason }}</div>
+                <div class="ban-alert-date">{{ user.banned_at.strftime('%b %d, %Y') }}</div>
+            </div>
+            <form method="POST" action="{{ url_for('admin_unban_user', user_id=user.id) }}">
+                <button type="submit" class="admin-btn admin-btn-primary" style="width:100%;">
+                    <i class="fa-solid fa-unlock"></i> Unban User
+                </button>
+            </form>
+            {% else %}
+            <button onclick="document.getElementById('banModal').style.display='flex'"
+                class="admin-btn admin-btn-danger" style="width:100%;">
+                <i class="fa-solid fa-ban"></i> Ban User
+            </button>
+            {% endif %}
+
+            <!-- Send Alert -->
+            <button onclick="document.getElementById('alertModal').style.display='flex'" class="admin-btn"
+                style="width:100%;background:rgba(251,146,60,0.12);border:1px solid rgba(251,146,60,0.3);color:#fb923c;">
+                <i class="fa-solid fa-bell"></i> Send Alert / Warning
+            </button>
+
+            <button onclick="document.getElementById('deleteModal').style.display='flex'"
+                class="admin-btn admin-btn-danger"
+                style="width:100%; margin-top: 8px; background: transparent; border: 1px solid rgba(239, 68, 68, 0.3); color: #ef4444;">
+                <i class="fa-solid fa-trash"></i> Delete Account
+            </button>
+        </div>
+    </div>
+
+    <!-- ── Right: Stats & Activity ── -->
+    <div class="right-col">
+
+        <!-- Mini stat cards -->
+        <div class="user-stats-grid">
+            <div class="ustat">
+                <div class="ustat-icon" style="background:rgba(74,222,128,0.1);color:#4ade80;">
+                    <i class="fa-solid fa-star"></i>
+                </div>
+                <div>
+                    <div class="ustat-val">{{ '{:,}'.format(user.total_xp) }}</div>
+                    <div class="ustat-label">Total XP</div>
+                </div>
+            </div>
+            <div class="ustat">
+                <div class="ustat-icon" style="background:rgba(59,130,246,0.1);color:#3b82f6;">
+                    <i class="fa-solid fa-list-check"></i>
+                </div>
+                <div>
+                    <div class="ustat-val">{{ completed_tasks }}/{{ total_tasks }}</div>
+                    <div class="ustat-label">Tasks Done</div>
+                </div>
+            </div>
+            <div class="ustat">
+                <div class="ustat-icon" style="background:rgba(239,68,68,0.1);color:#ef4444;">
+                    <i class="fa-solid fa-file-pdf"></i>
+                </div>
+                <div>
+                    <div class="ustat-val">{{ total_pdfs }}</div>
+                    <div class="ustat-label">PDFs</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- XP Adjustment -->
+        <div class="section-card">
+            <div class="section-card-head">
+                <i class="fa-solid fa-sliders"></i> Adjust XP
+            </div>
+            <div class="section-card-body">
+                <form method="POST" action="{{ url_for('admin_adjust_xp', user_id=user.id) }}" class="xp-form">
+                    <div class="form-field" style="flex: 1;">
+                        <label class="form-label">Amount (+ or −)</label>
+                        <input type="number" name="amount" required placeholder="e.g. +500 or -200">
+                    </div>
+                    <div class="form-field" style="flex: 2;">
+                        <label class="form-label">Reason</label>
+                        <input type="text" name="reason" required placeholder="Reason for adjustment">
+                    </div>
+                    <button type="submit" class="admin-btn admin-btn-primary" style="height:42px; align-self:flex-end;">
+                        <i class="fa-solid fa-check"></i> Apply
+                    </button>
+                </form>
+            </div>
+        </div>
+
+        <!-- Recent XP Activity -->
+        <div class="section-card">
+            <div class="section-card-head">
+                <i class="fa-solid fa-clock-rotate-left"></i> Recent XP Activity
+            </div>
+            <table class="xp-table">
+                <thead>
+                    <tr>
+                        <th>Amount</th>
+                        <th>Source</th>
+                        <th>Time</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for xp in recent_xp %}
+                    <tr>
+                        <td>
+                            <span class="badge {{ 'badge-green' if xp.amount > 0 else 'badge-red' }}">
+                                {{ '+' if xp.amount > 0 else '' }}{{ xp.amount }} XP
+                            </span>
+                        </td>
+                        <td>{{ xp.source.replace('_', ' ').title() }}</td>
+                        <td style="color:var(--text-muted);">{{ (xp.timestamp | to_ist).strftime('%b %d, %I:%M %p') }}
+                        </td>
+                    </tr>
+                    {% else %}
+                    <tr>
+                        <td colspan="3">
+                            <div style="text-align:center; padding:30px 0; color:var(--text-muted);">
+                                <i class="fa-solid fa-clock" style="opacity:.3;"></i> No XP activity yet
+                            </div>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+
+    </div>
+</div>
+
+
+<!-- ── Alert Modal ── -->
+<div id="alertModal" class="modal-overlay" onclick="if(event.target===this)this.style.display='none'">
+    <div class="modal-box"
+        style="border-color:rgba(251,146,60,0.3);box-shadow:0 20px 60px rgba(0,0,0,0.8),0 0 30px rgba(251,146,60,0.08);">
+        <h3 style="color:#fb923c;"><i class="fa-solid fa-bell"></i> Send Alert to {{ user.first_name }}</h3>
+        <p>This message will appear as a support notification in the user's inbox. They will see it when they next log
+            in.</p>
+
+        <!-- Quick presets -->
+        <div style="margin-bottom:14px;">
+            <div
+                style="font-size:11px;font-weight:700;color:var(--text-muted);text-transform:uppercase;letter-spacing:.5px;margin-bottom:8px;">
+                Quick Messages</div>
+            <div style="display:flex;flex-wrap:wrap;gap:6px;">
+                <button type="button" class="preset-btn"
+                    onclick="setPreset('⚠️ Username Warning','Your username contains inappropriate language. Please change it immediately to avoid a permanent ban. Use your real name or a respectful username.')">⚠️
+                    Bad Username</button>
+                <button type="button" class="preset-btn"
+                    onclick="setPreset('🚫 Final Warning','This is your final warning. Continued violation of StudyVerse community guidelines will result in a permanent ban.')">🚫
+                    Final Warning</button>
+                <button type="button" class="preset-btn"
+                    onclick="setPreset('📋 Community Guidelines Reminder','Please review the StudyVerse Community Guidelines: https://studyverse-final.onrender.com/guidelines — Respectful behaviour, appropriate usernames, and no harassment are required from all members.')">📋
+                    Policy Reminder</button>
+                <button type="button" class="preset-btn"
+                    onclick="setPreset('✅ Appeal Approved — Account Reinstated','Your ban appeal has been reviewed and approved. Your account has been reinstated. Please adhere to community guidelines going forward.')">✅
+                    Appeal Approved</button>
+            </div>
+        </div>
+
+        <form method="POST" action="{{ url_for('admin_alert_user', user_id=user.id) }}">
+            <label
+                style="font-size:12px;font-weight:700;color:var(--text-muted);text-transform:uppercase;letter-spacing:.5px;display:block;margin-bottom:6px;">Subject</label>
+            <input type="text" name="subject" id="alertSubject" required placeholder="e.g. ⚠️ Username Warning"
+                style="width:100%;padding:10px 14px;background:var(--bg-card-2);border:1px solid var(--border);border-radius:var(--radius-sm);color:var(--text-primary);font-size:14px;margin-bottom:12px;outline:none;box-sizing:border-box;">
+
+            <label
+                style="font-size:12px;font-weight:700;color:var(--text-muted);text-transform:uppercase;letter-spacing:.5px;display:block;margin-bottom:6px;">Message</label>
+            <textarea name="message" id="alertMessage" required rows="4" placeholder="Write your message to the user…"
+                style="margin-bottom:16px;border-color:rgba(251,146,60,0.25);"></textarea>
+
+            <div style="display:flex; gap:10px;">
+                <button type="button" onclick="document.getElementById('alertModal').style.display='none'"
+                    class="admin-btn admin-btn-ghost" style="flex:1;">Cancel</button>
+                <button type="submit" class="admin-btn"
+                    style="flex:1;background:rgba(251,146,60,0.15);border:1px solid rgba(251,146,60,0.4);color:#fb923c;font-weight:700;">
+                    <i class="fa-solid fa-paper-plane"></i> Send Alert
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<style>
+    .preset-btn {
+        background: var(--bg-card-2);
+        border: 1px solid var(--border);
+        color: var(--text-secondary);
+        border-radius: 8px;
+        padding: 5px 11px;
+        font-size: 12px;
+        font-weight: 600;
+        cursor: pointer;
+        transition: all 0.15s;
+    }
+
+    .preset-btn:hover {
+        border-color: rgba(251, 146, 60, 0.4);
+        color: #fb923c;
+        background: rgba(251, 146, 60, 0.08);
+    }
+</style>
+<script>
+    function setPreset(subject, message) {
+        document.getElementById('alertSubject').value = subject;
+        document.getElementById('alertMessage').value = message;
+    }
+</script>
+
+<!-- ── Ban Modal ── -->
+<div id="banModal" class="modal-overlay" onclick="if(event.target===this)this.style.display='none'">
+    <div class="modal-box">
+        <h3><i class="fa-solid fa-ban"></i> Ban User</h3>
+        <p>This will restrict <strong style="color:var(--text-primary);">{{ user.first_name }} {{ user.last_name
+                }}</strong>
+            from accessing StudyVerse. Please enter a clear reason.</p>
+        <form method="POST" action="{{ url_for('admin_ban_user', user_id=user.id) }}">
+            <label
+                style="font-size:12px;font-weight:700;color:var(--text-muted);text-transform:uppercase;letter-spacing:.5px;display:block;margin-bottom:8px;">
+                Ban Reason
+            </label>
+            <textarea name="reason" required rows="4" placeholder="Enter reason for ban…"
+                style="margin-bottom:16px;"></textarea>
+            <div style="display:flex; gap:10px;">
+                <button type="button" onclick="document.getElementById('banModal').style.display='none'"
+                    class="admin-btn admin-btn-ghost" style="flex:1;">
+                    Cancel
+                </button>
+                <button type="submit" class="admin-btn admin-btn-danger" style="flex:1;">
+                    <i class="fa-solid fa-ban"></i> Confirm Ban
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- ── Delete Modal ── -->
+<div id="deleteModal" class="modal-overlay" onclick="if(event.target===this)this.style.display='none'">
+    <div class="modal-box">
+        <h3><i class="fa-solid fa-trash"></i> Delete User Account</h3>
+        <p>This will <strong>permanently delete</strong> <strong style="color:var(--text-primary);">{{ user.first_name
+                }} {{ user.last_name }}</strong>'s account and all associated data. This action cannot be undone.</p>
+        <form method="POST" action="{{ url_for('admin_delete_user', user_id=user.id) }}">
+            <div style="display:flex; gap:10px; margin-top: 24px;">
+                <button type="button" onclick="document.getElementById('deleteModal').style.display='none'"
+                    class="admin-btn admin-btn-ghost" style="flex:1;">
+                    Cancel
+                </button>
+                <button type="submit" class="admin-btn admin-btn-danger" style="flex:1;">
+                    <i class="fa-solid fa-trash"></i> Confirm Delete
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+{% endblock %}

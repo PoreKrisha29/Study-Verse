@@ -1,0 +1,225 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}Admin Panel{% endblock %} — StudyVerse Admin</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/admin.css') }}">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap"
+        rel="stylesheet">
+    <link rel="icon" type="image/png" href="{{ url_for('static', filename='img/favicon.png') }}">
+</head>
+
+<body>
+    <div class="admin-container">
+
+        <!-- ════════════════════════════════
+             SIDEBAR
+             ════════════════════════════════ -->
+        <aside class="admin-sidebar">
+
+            <!-- Logo -->
+            <div class="admin-logo">
+                <div class="admin-logo-icon">
+                    <i class="fa-solid fa-shield-halved"></i>
+                </div>
+                <div class="admin-logo-text">Study<span>Verse</span></div>
+                <div class="admin-badge-pill">Admin</div>
+            </div>
+
+            <!-- Navigation -->
+            <nav class="admin-nav">
+                <div class="admin-nav-section-label">Overview</div>
+
+                <a href="{{ url_for('admin_dashboard') }}"
+                    class="admin-nav-item {% if request.endpoint == 'admin_dashboard' %}active{% endif %}">
+                    <i class="fa-solid fa-gauge nav-icon"></i>
+                    <span>Dashboard</span>
+                </a>
+
+                <div class="admin-nav-section-label" style="margin-top: 8px;">Management</div>
+
+                <a href="{{ url_for('admin_users') }}"
+                    class="admin-nav-item {% if 'admin_user' in request.endpoint and request.endpoint != 'admin_user_activity' %}active{% endif %}">
+                    <i class="fa-solid fa-users nav-icon"></i>
+                    <span>Users</span>
+                </a>
+
+                <a href="{{ url_for('admin_user_activity') }}"
+                    class="admin-nav-item {% if request.endpoint == 'admin_user_activity' %}active{% endif %}">
+                    <i class="fa-solid fa-bolt nav-icon"></i>
+                    <span>User Activity</span>
+                </a>
+
+                <a href="{{ url_for('admin_gamification') }}"
+                    class="admin-nav-item {% if request.endpoint == 'admin_gamification' %}active{% endif %}">
+                    <i class="fa-solid fa-trophy nav-icon"></i>
+                    <span>Gamification</span>
+                </a>
+
+                <a href="{{ url_for('admin_shop') }}"
+                    class="admin-nav-item {% if request.endpoint == 'admin_shop' %}active{% endif %}">
+                    <i class="fa-solid fa-cart-shopping nav-icon"></i>
+                    <span>Shop</span>
+                </a>
+
+                <a href="{{ url_for('admin_battles') }}"
+                    class="admin-nav-item {% if request.endpoint == 'admin_battles' %}active{% endif %}">
+                    <i class="fa-solid fa-fire-flame-curved"></i>
+                    <span>Study</span>
+                </a>
+
+                <div class="admin-nav-section-label" style="margin-top: 8px;">Operations</div>
+
+                <a href="{{ url_for('admin_support') }}"
+                    class="admin-nav-item {% if 'admin_support' in request.endpoint %}active{% endif %}">
+                    <i class="fa-solid fa-headset nav-icon"></i>
+                    <span>Support</span>
+                    {% if unread_support_count and unread_support_count > 0 %}
+                    <span class="nav-badge">{{ unread_support_count }}</span>
+                    {% endif %}
+                </a>
+
+                <a href="{{ url_for('admin_analytics') }}"
+                    class="admin-nav-item {% if request.endpoint == 'admin_analytics' %}active{% endif %}">
+                    <i class="fa-solid fa-chart-line nav-icon"></i>
+                    <span>Analytics</span>
+                </a>
+
+                <a href="{{ url_for('admin_feedback') }}"
+                    class="admin-nav-item {% if request.endpoint == 'admin_feedback' %}active{% endif %}">
+                    <i class="fa-solid fa-comment-dots nav-icon"></i>
+                    <span>Feedback</span>
+                </a>
+
+                <div class="admin-nav-divider"></div>
+
+            </nav>
+
+            <!-- Back to App -->
+            <div class="admin-nav-back">
+                <a href="{{ url_for('dashboard') }}">
+                    <i class="fa-solid fa-arrow-left-long"></i>
+                    <span>Back to App</span>
+                </a>
+            </div>
+        </aside>
+
+        <!-- ════════════════════════════════
+             MAIN
+             ════════════════════════════════ -->
+        <main class="admin-main">
+
+            <!-- Top Header Bar -->
+            <header class="admin-header">
+                <!-- Hamburger (mobile only) -->
+                <button class="admin-menu-toggle" id="adminMenuToggle" aria-label="Open navigation">
+                    <i class="fa-solid fa-bars"></i>
+                </button>
+
+                <div class="admin-header-left">
+                    <h1>{% block page_title %}Dashboard{% endblock %}</h1>
+                    <p>StudyVerse Control Center · Admin View</p>
+                </div>
+
+                <div class="admin-header-right">
+                    <!-- Live date/time pill -->
+                    <div class="admin-header-stat">
+                        <i class="fa-solid fa-circle" style="color: var(--accent); font-size: 8px;"></i>
+                        <span id="adminLiveClock">Loading…</span>
+                    </div>
+
+                    <!-- User chip -->
+                    <div class="admin-user-chip">
+                        <div class="admin-user-avatar">
+                            {{ current_user.first_name[0] }}{{ current_user.last_name[0] }}
+                        </div>
+                        <span>{{ current_user.first_name }}</span>
+                        <div class="chip-badge">Admin</div>
+                    </div>
+                </div>
+            </header>
+
+            <!-- Flash Messages -->
+            {% with messages = get_flashed_messages(with_categories=true) %}
+            {% if messages %}
+            <div class="flash-messages" id="flashMessages">
+                {% for cat, msg in messages %}
+                <div class="flash-msg flash-{{ 'success' if cat == 'success' else 'error' if cat == 'danger' else cat }}"
+                    id="flash-{{ loop.index }}">
+                    <i
+                        class="fa-solid {{ 'fa-circle-check' if cat == 'success' else 'fa-circle-exclamation' if cat == 'danger' else 'fa-circle-info' }}"></i>
+                    <span>{{ msg }}</span>
+                    <button onclick="this.parentElement.remove()"
+                        style="margin-left:auto; background:none; border:none; cursor:pointer; color:inherit; opacity:0.6; font-size:14px; padding:0 4px;">
+                        <i class="fa-solid fa-xmark"></i>
+                    </button>
+                </div>
+                {% endfor %}
+            </div>
+            {% endif %}
+            {% endwith %}
+
+            <!-- Page Content -->
+            <div class="admin-content">
+                {% block content %}{% endblock %}
+            </div>
+
+        </main>
+    </div>
+
+    <!-- Sidebar overlay backdrop (mobile) -->
+    <div class="admin-sidebar-overlay" id="adminSidebarOverlay"></div>
+
+    <script>
+        // Live clock in header
+        function updateAdminClock() {
+            const now = new Date();
+            const opts = { weekday: 'short', month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' };
+            document.getElementById('adminLiveClock').textContent = now.toLocaleDateString('en-IN', opts);
+        }
+        updateAdminClock();
+        setInterval(updateAdminClock, 30000);
+
+        // Auto-dismiss flash messages after 4s
+        setTimeout(() => {
+            const fm = document.getElementById('flashMessages');
+            if (fm) fm.style.opacity = '0', setTimeout(() => fm && fm.remove(), 400);
+        }, 4000);
+
+        // ── Mobile Sidebar Toggle ──────────────────────────
+        const menuToggle = document.getElementById('adminMenuToggle');
+        const adminSidebar = document.querySelector('.admin-sidebar');
+        const sidebarOverlay = document.getElementById('adminSidebarOverlay');
+
+        function openSidebar() {
+            adminSidebar.classList.add('open');
+            sidebarOverlay.classList.add('active');
+            document.body.style.overflow = 'hidden';
+        }
+
+        function closeSidebar() {
+            adminSidebar.classList.remove('open');
+            sidebarOverlay.classList.remove('active');
+            document.body.style.overflow = '';
+        }
+
+        if (menuToggle) menuToggle.addEventListener('click', openSidebar);
+        if (sidebarOverlay) sidebarOverlay.addEventListener('click', closeSidebar);
+
+        // Close sidebar when a nav link is tapped on mobile
+        document.querySelectorAll('.admin-nav-item').forEach(link => {
+            link.addEventListener('click', () => {
+                if (window.innerWidth <= 768) closeSidebar();
+            });
+        });
+    </script>
+
+    {% block scripts %}{% endblock %}
+</body>
+
+</html>

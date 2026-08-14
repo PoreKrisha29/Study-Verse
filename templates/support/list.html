@@ -1,0 +1,582 @@
+{% extends "layout.html" %}
+
+{% block title %}Support Center - StudyVerse{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <div class="header-content">
+        <h1 class="page-title">Support Center</h1>
+        <p class="text-secondary">Get help, report issues, and chat with admins directly.</p>
+    </div>
+    <button onclick="openNewTicketModal()" class="btn btn-primary new-ticket-btn">
+        <i class="fa-solid fa-plus"></i> New Ticket
+    </button>
+</div>
+
+<!-- Ticket List -->
+<div class="ticket-list-container">
+    {% if tickets %}
+    <div class="ticket-grid">
+        {% for ticket in tickets %}
+        <a href="{{ url_for('support_detail', ticket_id=ticket.id) }}"
+            class="ticket-card {% if ticket.user_unread_count > 0 %}ticket-unread{% else %}ticket-read{% endif %}">
+            <!-- Icon Column -->
+            <div class="ticket-icon-wrapper status-{{ ticket.status }}">
+                {% if ticket.user_unread_count > 0 %}
+                <span class="unread-dot-indicator"></span>
+                {% endif %}
+                {% if ticket.status == 'closed' %}
+                <i class="fa-solid fa-check"></i>
+                {% elif ticket.status == 'in_progress' %}
+                <i class="fa-solid fa-spinner fa-spin-pulse"></i>
+                {% else %}
+                <i class="fa-solid fa-envelope-open"></i>
+                {% endif %}
+            </div>
+
+            <!-- Main Info Column -->
+            <div class="ticket-content">
+                <div class="ticket-header">
+                    <h3
+                        class="ticket-subject {% if ticket.user_unread_count > 0 %}subject-unread{% else %}subject-read{% endif %}">
+                        {{ ticket.subject }}</h3>
+                    {% if ticket.user_unread_count > 0 %}
+                    <span class="unread-badge">{{ ticket.user_unread_count }} NEW</span>
+                    {% endif %}
+                </div>
+                <div class="ticket-meta">
+                    <span class="meta-item"><i class="fa-solid fa-tag"></i> {{ ticket.category|title }}</span>
+                    <span class="meta-item"><i class="fa-regular fa-clock"></i> {{ ticket.updated_at|ist_time }}</span>
+                    {% if ticket.priority == 'urgent' %}
+                    <span class="meta-item priority-urgent">URGENT</span>
+                    {% endif %}
+                </div>
+            </div>
+
+            <!-- Status Column -->
+            <div class="ticket-status-col">
+                <span class="status-badge status-{{ ticket.status }}">
+                    {{ ticket.status|replace('_', ' ') }}
+                </span>
+                <span class="ticket-id">#{{ ticket.id }}</span>
+            </div>
+
+            <div class="ticket-arrow">
+                <i class="fa-solid fa-chevron-right"></i>
+            </div>
+        </a>
+        {% endfor %}
+    </div>
+    {% else %}
+    <div class="empty-state">
+        <div class="empty-icon">🛸</div>
+        <h3>No tickets yet</h3>
+        <p>Have a question or run into an issue? Create your first support ticket and our team will get back to you.</p>
+        <button onclick="openNewTicketModal()" class="btn btn-primary">Open New Ticket</button>
+    </div>
+    {% endif %}
+</div>
+
+<!-- New Ticket Modal -->
+<div id="newTicketModal" class="modal-overlay">
+    <div class="modal-card">
+        <div class="modal-header">
+            <h2>New Support Ticket</h2>
+            <button onclick="closeNewTicketModal()" class="modal-close"><i class="fa-solid fa-xmark"></i></button>
+        </div>
+
+        <form action="{{ url_for('support_create') }}" method="POST">
+            <div class="form-group">
+                <label>Subject</label>
+                <input type="text" name="subject" required class="form-control" placeholder="Brief summary of issue">
+            </div>
+
+            <div class="form-row">
+                <div class="form-group">
+                    <label>Category</label>
+                    <div class="select-wrapper">
+                        <select name="category" class="form-control">
+                            <option value="general">General Inquiry</option>
+                            <option value="bug">Report a Bug</option>
+                            <option value="account">Account Issue</option>
+                            <option value="feedback">Feedback</option>
+                            <option value="other">Other</option>
+                        </select>
+                        <i class="fa-solid fa-chevron-down select-arrow"></i>
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label>Priority</label>
+                    <div class="select-wrapper">
+                        <select name="priority" class="form-control">
+                            <option value="low">Low</option>
+                            <option value="normal" selected>Normal</option>
+                            <option value="high">High</option>
+                            <option value="urgent">Urgent</option>
+                        </select>
+                        <i class="fa-solid fa-chevron-down select-arrow"></i>
+                    </div>
+                </div>
+            </div>
+
+            <div class="form-group">
+                <label>Message</label>
+                <textarea name="message" required rows="5" class="form-control"
+                    placeholder="Describe your issue in detail..."></textarea>
+            </div>
+
+            <button type="submit" class="btn btn-primary submit-btn">Submit Ticket</button>
+        </form>
+    </div>
+</div>
+
+<style>
+    /* Page Header */
+    .page-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 32px;
+    }
+
+    .page-title {
+        font-size: 2rem;
+        font-weight: 700;
+        margin-bottom: 8px;
+        background: linear-gradient(to right, var(--text-primary), var(--text-secondary));
+        -webkit-background-clip: text;
+        background-clip: text;
+        -webkit-text-fill-color: transparent;
+    }
+
+    .new-ticket-btn {
+        background: #4ade80;
+        color: #000;
+        font-weight: 700;
+        border: none;
+        padding: 12px 24px;
+        border-radius: 12px;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        cursor: pointer;
+        transition: transform 0.2s, box-shadow 0.2s;
+        box-shadow: 0 4px 12px rgba(74, 222, 128, 0.2);
+    }
+
+    .new-ticket-btn:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 6px 20px rgba(74, 222, 128, 0.4);
+        background: #22c55e;
+    }
+
+    /* Ticket Grid & Card */
+    .ticket-grid {
+        display: flex;
+        flex-direction: column;
+        gap: 16px;
+    }
+
+    .ticket-card {
+        display: grid;
+        grid-template-columns: auto 1fr auto auto;
+        align-items: center;
+        gap: 20px;
+        background: var(--bg-card);
+        border: 1px solid var(--border);
+        padding: 24px;
+        border-radius: 20px;
+        text-decoration: none;
+        transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+        position: relative;
+        overflow: hidden;
+    }
+
+    .ticket-card:hover {
+        transform: translateY(-2px);
+        border-color: var(--accent-dim);
+        background: linear-gradient(to right, var(--bg-card), rgba(74, 222, 128, 0.05));
+        box-shadow: 0 12px 30px rgba(0, 0, 0, 0.1);
+    }
+
+    /* Icon */
+    .ticket-icon-wrapper {
+        width: 50px;
+        height: 50px;
+        border-radius: 14px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 1.25rem;
+        background: rgba(128, 128, 128, 0.1);
+        border: 1px solid var(--border);
+    }
+
+    .ticket-icon-wrapper.status-open {
+        color: var(--accent);
+        background: rgba(74, 222, 128, 0.1);
+        border-color: rgba(74, 222, 128, 0.2);
+    }
+
+    .ticket-icon-wrapper.status-in_progress {
+        color: #3b82f6;
+        background: rgba(59, 130, 246, 0.1);
+        border-color: rgba(59, 130, 246, 0.2);
+    }
+
+    .ticket-icon-wrapper.status-closed {
+        color: var(--text-muted);
+    }
+
+    /* Content */
+    .ticket-header {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        margin-bottom: 6px;
+    }
+
+    .ticket-subject {
+        font-size: 1.1rem;
+        font-weight: 600;
+        color: var(--text-primary);
+        margin: 0;
+    }
+
+    /* ── Read / Unread visual differentiation ── */
+    .ticket-unread {
+        border-left: 3px solid var(--accent-green, #4ade80);
+        background: linear-gradient(to right, rgba(74, 222, 128, 0.06), var(--bg-card));
+    }
+
+    .ticket-read {
+        border-left: 3px solid transparent;
+        opacity: 0.85;
+    }
+
+    .subject-unread {
+        font-weight: 800 !important;
+        color: var(--text-primary) !important;
+    }
+
+    .subject-read {
+        font-weight: 500 !important;
+        color: var(--text-secondary) !important;
+    }
+
+    /* Pulsing green dot on unread tickets */
+    .unread-dot-indicator {
+        position: absolute;
+        top: -4px;
+        right: -4px;
+        width: 10px;
+        height: 10px;
+        border-radius: 50%;
+        background: #4ade80;
+        border: 2px solid var(--bg-card);
+        animation: pulse 2s infinite;
+    }
+
+    .ticket-icon-wrapper {
+        position: relative;
+    }
+
+    .unread-badge {
+        background: #ef4444;
+        color: white;
+        font-size: 0.7rem;
+        font-weight: 700;
+        padding: 2px 8px;
+        border-radius: 12px;
+        text-transform: uppercase;
+        animation: pulse 2s infinite;
+    }
+
+    .ticket-meta {
+        display: flex;
+        align-items: center;
+        gap: 16px;
+        font-size: 0.85rem;
+        color: var(--text-secondary);
+    }
+
+    .meta-item {
+        display: flex;
+        align-items: center;
+        gap: 6px;
+    }
+
+    .priority-urgent {
+        color: #ef4444;
+        font-weight: 700;
+        letter-spacing: 0.5px;
+    }
+
+    /* Status Column */
+    .ticket-status-col {
+        display: flex;
+        flex-direction: column;
+        align-items: flex-end;
+        gap: 4px;
+        min-width: 120px;
+    }
+
+    .status-badge {
+        font-size: 0.75rem;
+        font-weight: 700;
+        text-transform: uppercase;
+        letter-spacing: 1px;
+        padding: 4px 10px;
+        border-radius: 6px;
+    }
+
+    .status-badge.status-open {
+        color: var(--accent);
+        background: rgba(74, 222, 128, 0.1);
+    }
+
+    .status-badge.status-in_progress {
+        color: #3b82f6;
+        background: rgba(59, 130, 246, 0.1);
+    }
+
+    .status-badge.status-closed {
+        color: var(--text-muted);
+        background: rgba(128, 128, 128, 0.1);
+    }
+
+    .ticket-id {
+        font-family: 'JetBrains Mono', monospace;
+        font-size: 0.75rem;
+        color: var(--text-muted);
+    }
+
+    .ticket-arrow {
+        color: var(--text-muted);
+        font-size: 0.9rem;
+        margin-left: 10px;
+        opacity: 0.5;
+        transition: all 0.2s;
+    }
+
+    .ticket-card:hover .ticket-arrow {
+        opacity: 1;
+        transform: translateX(4px);
+        color: var(--accent);
+    }
+
+    /* Modal Styling */
+    .modal-overlay {
+        display: none;
+        position: fixed;
+        inset: 0;
+        background: rgba(0, 0, 0, 0.85);
+        z-index: 2000;
+        align-items: center;
+        justify-content: center;
+        backdrop-filter: blur(8px);
+    }
+
+    .modal-card {
+        background: var(--bg-card);
+        width: 100%;
+        max-width: 550px;
+        padding: 32px;
+        border-radius: 24px;
+        border: 1px solid var(--border);
+        box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
+        animation: modalSlide 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+    }
+
+    .modal-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 24px;
+    }
+
+    .modal-header h2 {
+        font-size: 1.5rem;
+        font-weight: 700;
+        color: var(--text-primary);
+        margin: 0;
+    }
+
+    .modal-close {
+        background: transparent;
+        border: none;
+        color: var(--text-muted);
+        font-size: 1.5rem;
+        cursor: pointer;
+        transition: color 0.2s;
+    }
+
+    .modal-close:hover {
+        color: var(--text-primary);
+    }
+
+    .form-group {
+        margin-bottom: 20px;
+    }
+
+    .form-row {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 20px;
+    }
+
+    .form-group label {
+        display: block;
+        margin-bottom: 8px;
+        color: var(--text-secondary);
+        font-size: 0.9rem;
+        font-weight: 500;
+    }
+
+    /* Modal Inputs - Fixed for Light/Dark modes */
+    .form-control {
+        width: 100%;
+        padding: 14px 16px;
+        background: var(--bg-primary);
+        /* Uses theme variable */
+        border: 1px solid var(--border);
+        border-radius: 12px;
+        color: var(--text-primary);
+        font-size: 0.95rem;
+        font-family: 'Inter', sans-serif;
+        transition: all 0.2s;
+    }
+
+    .form-control::placeholder {
+        color: var(--text-muted);
+        opacity: 0.8;
+    }
+
+    /* Specific fixes for Dark Mode if variables aren't catching heavily enough */
+    [data-theme="dark"] .form-control {
+        background: #1f2937;
+        /* Lighter than black for visibility */
+        color: #f3f4f6;
+        border-color: #374151;
+    }
+
+    [data-theme="dark"] .form-control::placeholder {
+        color: rgba(255, 255, 255, 0.4);
+    }
+
+    [data-theme="light"] .form-control {
+        background: #ffffff;
+        color: #111827;
+        border-color: #d1d5db;
+    }
+
+    [data-theme="light"] .form-control::placeholder {
+        color: rgba(0, 0, 0, 0.4);
+    }
+
+    .form-control:focus {
+        outline: none;
+        border-color: #4ade80;
+        box-shadow: 0 0 0 3px rgba(74, 222, 128, 0.1);
+    }
+
+    .select-wrapper {
+        position: relative;
+    }
+
+    .select-wrapper select {
+        appearance: none;
+        cursor: pointer;
+    }
+
+    .select-arrow {
+        position: absolute;
+        right: 16px;
+        top: 50%;
+        transform: translateY(-50%);
+        color: var(--text-muted);
+        pointer-events: none;
+        font-size: 0.8rem;
+    }
+
+    .submit-btn {
+        width: 100%;
+        padding: 16px;
+        border-radius: 12px;
+        background: #4ade80;
+        color: #000;
+        font-weight: 700;
+        font-size: 1rem;
+        border: none;
+        cursor: pointer;
+        transition: filter 0.2s;
+    }
+
+    .submit-btn:hover {
+        background: #22c55e;
+    }
+
+    /* Empty State */
+    .empty-state {
+        text-align: center;
+        padding: 80px 20px;
+        background: var(--bg-card);
+        border: 1px dashed var(--border);
+        border-radius: 24px;
+    }
+
+    .empty-icon {
+        font-size: 4rem;
+        opacity: 0.5;
+        margin-bottom: 16px;
+    }
+
+    @keyframes modalSlide {
+        from {
+            opacity: 0;
+            transform: translateY(20px) scale(0.95);
+        }
+
+        to {
+            opacity: 1;
+            transform: translateY(0) scale(1);
+        }
+    }
+
+    @media (max-width: 768px) {
+        .ticket-card {
+            grid-template-columns: auto 1fr;
+            grid-template-rows: auto auto;
+            gap: 12px;
+        }
+
+        .ticket-status-col,
+        .ticket-arrow {
+            grid-column: 2;
+            align-items: flex-start;
+            flex-direction: row;
+        }
+
+        .ticket-arrow {
+            display: none;
+        }
+    }
+</style>
+
+<script>
+    function openNewTicketModal() {
+        document.getElementById('newTicketModal').style.display = 'flex';
+    }
+
+    function closeNewTicketModal() {
+        document.getElementById('newTicketModal').style.display = 'none';
+    }
+
+    // Close on outside click
+    document.getElementById('newTicketModal').addEventListener('click', (e) => {
+        if (e.target === document.getElementById('newTicketModal')) {
+            closeNewTicketModal();
+        }
+    });
+</script>
+{% endblock %}

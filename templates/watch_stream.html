@@ -1,0 +1,928 @@
+{% extends "layout.html" %}
+{% block title %}🔴 {{ streamer.first_name }}'s Study Stream - StudyVerse{% endblock %}
+
+{% block content %}
+<style>
+    /* ════════════════════════════════════════════
+   WATCH STREAM — Watcher View
+════════════════════════════════════════════ */
+    .stream-page {
+        padding: 20px 28px;
+        max-width: 1080px;
+        margin: 0 auto;
+        animation: fadeIn 0.4s ease;
+    }
+
+    @keyframes fadeIn {
+        from {
+            opacity: 0;
+            transform: translateY(12px)
+        }
+
+        to {
+            opacity: 1;
+            transform: translateY(0)
+        }
+    }
+
+    /* ─ LIVE Banner ─ */
+    .live-banner {
+        display: flex;
+        align-items: center;
+        gap: 16px;
+        background: linear-gradient(135deg, rgba(239, 68, 68, 0.12), rgba(249, 115, 22, 0.06));
+        border: 1px solid rgba(239, 68, 68, 0.3);
+        border-radius: 16px;
+        padding: 16px 22px;
+        margin-bottom: 22px;
+        flex-wrap: wrap;
+    }
+
+    .live-dot {
+        width: 10px;
+        height: 10px;
+        border-radius: 50%;
+        background: #ef4444;
+        flex-shrink: 0;
+        animation: livePulse 1.2s ease-in-out infinite;
+        box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.5);
+    }
+
+    @keyframes livePulse {
+        0% {
+            box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.5);
+        }
+
+        70% {
+            box-shadow: 0 0 0 8px rgba(239, 68, 68, 0);
+        }
+
+        100% {
+            box-shadow: 0 0 0 0 rgba(239, 68, 68, 0);
+        }
+    }
+
+    .live-label {
+        font-size: 11px;
+        font-weight: 800;
+        color: #ef4444;
+        letter-spacing: 1.5px;
+        text-transform: uppercase;
+    }
+
+    .live-streamer-info {
+        flex: 1;
+    }
+
+    .live-streamer-info h2 {
+        font-size: 16px;
+        font-weight: 800;
+        color: var(--text-primary);
+        margin-bottom: 3px;
+    }
+
+    .live-streamer-info p {
+        font-size: 12.5px;
+        color: var(--text-muted);
+        margin: 0;
+    }
+
+    .live-meta {
+        display: flex;
+        gap: 14px;
+        align-items: center;
+        flex-wrap: wrap;
+    }
+
+    .live-meta-item {
+        font-size: 12.5px;
+        color: var(--text-muted);
+        display: flex;
+        align-items: center;
+        gap: 5px;
+    }
+
+    .live-meta-item strong {
+        color: var(--text-primary);
+    }
+
+    /* ─ Main Grid ─ */
+    .stream-grid {
+        display: grid;
+        grid-template-columns: 1fr 340px;
+        gap: 20px;
+    }
+
+    /* ─ Timer Panel ─ */
+    .timer-panel {
+        background: var(--bg-card);
+        border: 1px solid var(--border);
+        border-radius: 18px;
+        overflow: hidden;
+    }
+
+    .timer-panel-header {
+        padding: 14px 20px;
+        border-bottom: 1px solid var(--border);
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        background: rgba(255, 255, 255, 0.015);
+    }
+
+    .timer-panel-body {
+        padding: 40px 20px;
+        text-align: center;
+    }
+
+    .streamer-avatar-wrap {
+        position: relative;
+        display: inline-block;
+        margin-bottom: 20px;
+    }
+
+    .streamer-avatar {
+        width: 80px;
+        height: 80px;
+        border-radius: 50%;
+        border: 3px solid #ef4444;
+        box-shadow: 0 0 20px rgba(239, 68, 68, 0.3);
+    }
+
+    .streamer-live-badge {
+        position: absolute;
+        bottom: 0;
+        right: 0;
+        background: #ef4444;
+        color: white;
+        font-size: 9px;
+        font-weight: 800;
+        padding: 2px 6px;
+        border-radius: 8px;
+        letter-spacing: 0.5px;
+    }
+
+    .stream-timer-display {
+        font-size: 72px;
+        font-weight: 900;
+        letter-spacing: -2px;
+        font-family: 'JetBrains Mono', monospace;
+        background: linear-gradient(135deg, #ef4444, #f97316);
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+        background-clip: text;
+        margin-bottom: 8px;
+        line-height: 1;
+    }
+
+    .stream-mode-label {
+        font-size: 13px;
+        font-weight: 600;
+        text-transform: uppercase;
+        letter-spacing: 1.5px;
+        color: var(--text-muted);
+        margin-bottom: 24px;
+    }
+
+    .stream-progress-bar {
+        height: 6px;
+        background: var(--border);
+        border-radius: 3px;
+        overflow: hidden;
+        margin: 0 20px 24px;
+    }
+
+    .stream-progress-fill {
+        height: 100%;
+        background: linear-gradient(90deg, #ef4444, #f97316);
+        border-radius: 3px;
+        transition: width 0.5s ease;
+        width: 0%;
+    }
+
+    /* Watcher count */
+    .watcher-count {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        background: rgba(239, 68, 68, 0.1);
+        color: #f87171;
+        border: 1px solid rgba(239, 68, 68, 0.2);
+        padding: 6px 14px;
+        border-radius: 20px;
+        font-size: 13px;
+        font-weight: 700;
+        margin-bottom: 20px;
+    }
+
+    /* Solidarity button */
+    .btn-solidarity {
+        width: 100%;
+        padding: 14px;
+        background: linear-gradient(135deg, #7c3aed, #4f46e5);
+        color: white;
+        border: none;
+        border-radius: 12px;
+        font-size: 14px;
+        font-weight: 800;
+        cursor: pointer;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 10px;
+        transition: all 0.2s;
+        box-shadow: 0 4px 16px rgba(124, 58, 237, 0.3);
+        margin: 0 20px 20px;
+        box-sizing: border-box;
+        width: calc(100% - 40px);
+    }
+
+    .btn-solidarity:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 8px 24px rgba(124, 58, 237, 0.4);
+    }
+
+    .btn-solidarity.active-solidarity {
+        background: linear-gradient(135deg, #16a34a, #15803d);
+        box-shadow: 0 4px 16px rgba(22, 163, 74, 0.3);
+    }
+
+    .solidarity-timer {
+        display: none;
+        padding: 12px 20px;
+        background: rgba(74, 222, 128, 0.08);
+        border-top: 1px solid rgba(74, 222, 128, 0.15);
+        text-align: center;
+        font-size: 13px;
+        color: #4ade80;
+    }
+
+    .solidarity-timer.visible {
+        display: block;
+    }
+
+    .solidarity-count-display {
+        font-size: 12px;
+        color: var(--text-muted);
+        padding: 0 20px 16px;
+        text-align: center;
+    }
+
+    /* ─ Right Column ─ */
+    .right-col {
+        display: flex;
+        flex-direction: column;
+        gap: 18px;
+    }
+
+    /* Reactions */
+    .reactions-panel {
+        background: var(--bg-card);
+        border: 1px solid var(--border);
+        border-radius: 16px;
+        overflow: hidden;
+    }
+
+    .reactions-row {
+        padding: 16px 20px;
+        display: flex;
+        gap: 10px;
+        justify-content: center;
+        flex-wrap: wrap;
+        border-bottom: 1px solid var(--border);
+    }
+
+    .reaction-btn {
+        width: 48px;
+        height: 48px;
+        border-radius: 12px;
+        background: rgba(255, 255, 255, 0.04);
+        border: 1px solid var(--border);
+        font-size: 22px;
+        cursor: pointer;
+        transition: all 0.15s;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    }
+
+    .reaction-btn:hover {
+        transform: scale(1.25);
+        background: rgba(255, 255, 255, 0.08);
+        border-color: rgba(255, 255, 255, 0.15);
+    }
+
+    .reaction-btn:active {
+        transform: scale(0.95);
+    }
+
+    /* Stream chat */
+    .stream-chat {
+        flex: 1;
+        display: flex;
+        flex-direction: column;
+    }
+
+    .chat-messages {
+        flex: 1;
+        overflow-y: auto;
+        padding: 14px 16px;
+        display: flex;
+        flex-direction: column;
+        gap: 10px;
+        max-height: 260px;
+        min-height: 180px;
+    }
+
+    .chat-msg {
+        display: flex;
+        gap: 8px;
+        align-items: flex-start;
+        animation: msgIn 0.2s ease;
+    }
+
+    @keyframes msgIn {
+        from {
+            opacity: 0;
+            transform: translateX(-6px)
+        }
+
+        to {
+            opacity: 1;
+            transform: translateX(0)
+        }
+    }
+
+    .chat-msg-avatar {
+        width: 24px;
+        height: 24px;
+        border-radius: 50%;
+        flex-shrink: 0;
+    }
+
+    .chat-msg-content {
+        flex: 1;
+    }
+
+    .chat-msg-name {
+        font-size: 11px;
+        font-weight: 700;
+        color: #a78bfa;
+        margin-bottom: 2px;
+    }
+
+    .chat-msg-text {
+        font-size: 13px;
+        color: var(--text-secondary);
+        line-height: 1.5;
+    }
+
+    .chat-msg.system .chat-msg-text {
+        color: #f97316;
+        font-style: italic;
+        font-size: 12px;
+    }
+
+    .chat-input-row {
+        padding: 12px 16px;
+        border-top: 1px solid var(--border);
+        display: flex;
+        gap: 8px;
+    }
+
+    .chat-input-row input {
+        flex: 1;
+        background: rgba(255, 255, 255, 0.04);
+        border: 1px solid var(--border);
+        border-radius: 8px;
+        padding: 9px 12px;
+        color: var(--text-primary);
+        font-size: 13px;
+        outline: none;
+        transition: border-color 0.2s;
+    }
+
+    .chat-input-row input:focus {
+        border-color: #a78bfa;
+    }
+
+    .chat-send-btn {
+        width: 36px;
+        height: 36px;
+        border-radius: 8px;
+        background: #7c3aed;
+        color: white;
+        border: none;
+        cursor: pointer;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        transition: all 0.2s;
+        flex-shrink: 0;
+    }
+
+    .chat-send-btn:hover {
+        background: #6d28d9;
+    }
+
+    /* Floating reactions */
+    .floating-reactions {
+        position: fixed;
+        right: 24px;
+        bottom: 24px;
+        pointer-events: none;
+        z-index: 1000;
+        display: flex;
+        flex-direction: column-reverse;
+        gap: 0;
+    }
+
+    .float-emoji {
+        font-size: 28px;
+        animation: floatUp 2s ease-out forwards;
+        display: block;
+        text-align: center;
+    }
+
+    @keyframes floatUp {
+        0% {
+            opacity: 1;
+            transform: translateY(0) scale(1);
+        }
+
+        80% {
+            opacity: 0.7;
+            transform: translateY(-120px) scale(1.2);
+        }
+
+        100% {
+            opacity: 0;
+            transform: translateY(-160px) scale(0.8);
+        }
+    }
+
+    /* Stream ended overlay */
+    .stream-ended-modal {
+        display: none;
+        position: fixed;
+        inset: 0;
+        background: rgba(0, 0, 0, 0.85);
+        z-index: 2000;
+        place-items: center;
+        backdrop-filter: blur(6px);
+    }
+
+    .stream-ended-modal.open {
+        display: grid;
+        animation: fadeIn 0.3s ease;
+    }
+
+    .ended-card {
+        background: var(--bg-card);
+        border: 1px solid var(--border);
+        border-radius: 20px;
+        padding: 36px;
+        text-align: center;
+        max-width: 360px;
+        width: 90%;
+    }
+
+    .ended-emoji {
+        font-size: 48px;
+        margin-bottom: 16px;
+    }
+
+    .ended-card h3 {
+        font-size: 20px;
+        font-weight: 800;
+        color: var(--text-primary);
+        margin-bottom: 8px;
+    }
+
+    .ended-stats {
+        display: flex;
+        gap: 20px;
+        justify-content: center;
+        margin: 20px 0;
+    }
+
+    .ended-stat {
+        text-align: center;
+    }
+
+    .ended-stat-num {
+        font-size: 24px;
+        font-weight: 900;
+        color: #4ade80;
+    }
+
+    .ended-stat-label {
+        font-size: 11px;
+        color: var(--text-muted);
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+    }
+
+    .btn-ended-close {
+        width: 100%;
+        padding: 12px;
+        background: var(--text-primary);
+        color: var(--bg-main);
+        border: none;
+        border-radius: 10px;
+        font-weight: 700;
+        cursor: pointer;
+        margin-top: 8px;
+    }
+
+    @media (max-width: 768px) {
+        .stream-grid {
+            grid-template-columns: 1fr;
+        }
+
+        .stream-page {
+            padding: 14px;
+        }
+
+        .stream-timer-display {
+            font-size: 52px;
+        }
+    }
+</style>
+
+<div class="stream-page">
+    <!-- Live Banner -->
+    <div class="live-banner">
+        <div class="live-dot"></div>
+        <span class="live-label">Live</span>
+        <div class="live-streamer-info">
+            <h2>{{ streamer.first_name }} {{ streamer.last_name }} is studying live</h2>
+            <p>📚 {{ stream_info.topic }}{% if stream_info.subject %} · {{ stream_info.subject }}{% endif %}</p>
+        </div>
+        <div class="live-meta">
+            <span class="live-meta-item"><i class="fa-solid fa-users"></i> <strong id="watcherCountBanner">{{
+                    stream_info.watchers|length }}</strong> watching</span>
+            <span class="live-meta-item"><i class="fa-solid fa-hourglass-half"></i> Studying for <span
+                    id="elapsedDisplay">0</span> min</span>
+        </div>
+    </div>
+
+    <div class="stream-grid">
+        <!-- LEFT: Timer Panel -->
+        <div class="timer-panel">
+            <div class="timer-panel-header">
+                <i class="fa-solid fa-circle" style="color:#ef4444; font-size:10px;"></i>
+                <span style="font-size:13.5px; font-weight:700; color:var(--text-primary);">
+                    {% if is_own_stream %}Your Live Stream{% else %}{{ streamer.first_name }}'s Timer{% endif %}
+                </span>
+                {% if is_own_stream %}
+                <button onclick="endStream()"
+                    style="margin-left:auto; padding:6px 16px; border-radius:8px; background:rgba(239,68,68,0.15); color:#f87171; border:1px solid rgba(239,68,68,0.2); font-size:12.5px; font-weight:700; cursor:pointer;">
+                    <i class="fa-solid fa-stop"></i> End Stream
+                </button>
+                {% else %}
+                <button onclick="leaveStream()"
+                    style="margin-left:auto; padding:6px 16px; border-radius:8px; background:rgba(148,163,184,0.08); color:var(--text-muted); border:1px solid var(--border); font-size:12.5px; font-weight:600; cursor:pointer;">
+                    <i class="fa-solid fa-arrow-right-from-bracket"></i> Leave
+                </button>
+                {% endif %}
+            </div>
+
+            <div class="timer-panel-body">
+                <!-- Streamer Avatar -->
+                <div class="streamer-avatar-wrap">
+                    <img src="{{ streamer.get_avatar(80) }}" class="streamer-avatar" alt="{{ streamer.first_name }}">
+                    <span class="streamer-live-badge">LIVE</span>
+                </div>
+
+                <!-- Timer display -->
+                <div class="stream-timer-display" id="streamTimerDisplay">
+                    {% set m = stream_info.timer_min %} {{ m }}:00
+                </div>
+                <div class="stream-mode-label" id="streamModeLabel">Focus Mode</div>
+
+                <!-- Progress bar -->
+                <div class="stream-progress-bar">
+                    <div class="stream-progress-fill" id="streamProgressFill"></div>
+                </div>
+
+                <!-- Watcher count -->
+                <div class="watcher-count">
+                    <i class="fa-solid fa-eye"></i>
+                    <span id="watcherCountTimer">{{ stream_info.watchers|length }}</span> watching
+                </div>
+
+                <!-- Solidarity button (hidden for own stream) -->
+                {% if not is_own_stream %}
+                <button class="btn-solidarity" id="solidarityBtn" onclick="joinSolidarity()">
+                    <i class="fa-solid fa-dumbbell"></i> Study Together (+10% XP)
+                </button>
+                <div id="solidarityTimerBox"
+                    style="display:none; padding:12px 20px; background:rgba(74,222,128,0.08); border-top:1px solid rgba(74,222,128,0.15); text-align:center; font-size:13px; color:#4ade80;">
+                    <i class="fa-solid fa-timer"></i> Your Pomodoro: <strong id="solidarityTimerDisplay">25:00</strong>
+                </div>
+                <div class="solidarity-count-display" id="solidarityCountDisplay"></div>
+                {% endif %}
+            </div>
+        </div>
+
+        <!-- RIGHT: Reactions + Chat -->
+        <div class="right-col">
+            <!-- Reaction buttons -->
+            <div class="reactions-panel">
+                <div class="reactions-row">
+                    {% for emoji in ['🔥','❤️','👏','😱','💪','🎯','⚡','🚀'] %}
+                    <button class="reaction-btn" onclick="sendReaction('{{ emoji }}')">{{ emoji }}</button>
+                    {% endfor %}
+                </div>
+                <!-- Stream Chat -->
+                <div class="stream-chat">
+                    <div class="chat-messages" id="chatMessages">
+                        <div class="chat-msg system">
+                            <div class="chat-msg-content">
+                                <div class="chat-msg-text">🔴 Stream started — send {{ streamer.first_name }} some
+                                    encouragement!</div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="chat-input-row">
+                        <input type="text" id="chatInput" placeholder="Cheer them on..." maxlength="200"
+                            onkeydown="if(event.key==='Enter') sendMessage()">
+                        <button class="chat-send-btn" onclick="sendMessage()">
+                            <i class="fa-solid fa-paper-plane"></i>
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Floating reactions container -->
+<div class="floating-reactions" id="floatingReactions"></div>
+
+<!-- Stream Ended Modal -->
+<div class="stream-ended-modal" id="streamEndedModal">
+    <div class="ended-card">
+        <div class="ended-emoji">🎉</div>
+        <h3>Session Complete!</h3>
+        <p style="color:var(--text-muted); font-size:13.5px; margin-bottom:0;">{{ streamer.first_name }} just finished
+            their study session!</p>
+        <div class="ended-stats">
+            <div class="ended-stat">
+                <div class="ended-stat-num" id="endedMinutes">--</div>
+                <div class="ended-stat-label">Minutes</div>
+            </div>
+            <div class="ended-stat">
+                <div class="ended-stat-num" id="endedWatchers">--</div>
+                <div class="ended-stat-label">Watchers</div>
+            </div>
+        </div>
+        <button class="btn-ended-close" onclick="window.location.href='/live'">Go to Live Streams</button>
+    </div>
+</div>
+
+<script src="https://cdn.socket.io/4.7.2/socket.io.min.js"></script>
+<script>
+    const STREAM_ID = "{{ streamer.id }}";
+    const IS_OWN_STREAM = {{ 'true' if is_own_stream else 'false' }};
+    const TIMER_MIN = {{ stream_info.timer_min }};
+    const TOTAL_SEC = TIMER_MIN * 60;
+    const SOLIDARITY_KEY = 'sv_solidarity_' + STREAM_ID;
+
+    let socket, solidarityInterval = null, solidaryActive = false;
+    let _localTimerInterval = null;
+    let _localElapsed = 0;
+    let _totalSec = TOTAL_SEC;
+    let _streamEnded = false;
+
+    // ── Connect ──────────────────────────────────────────────────────────────────
+    window.addEventListener('DOMContentLoaded', () => {
+        socket = io();
+
+        socket.on('connect', () => {
+            socket.emit('join_user_room', {});
+            // Always join the stream room — backend handles owner vs watcher logic
+            // Owner gets stream_state (elapsed, timer_min) but isn't counted as a watcher
+            socket.emit('join_stream', { stream_id: STREAM_ID });
+        });
+
+        // Stream state — START local countdown
+        socket.on('stream_state', (d) => {
+            _localElapsed = d.elapsed || 0;
+            _totalSec = (d.timer_min || TIMER_MIN) * 60;
+            updateWatcherCount(d.watcher_count || 0);
+            renderTimerFromElapsed(_localElapsed);
+            startLocalCountdown();
+
+            // Replay chat history
+            if (d.recent_messages && d.recent_messages.length) {
+                d.recent_messages.forEach(msg => {
+                    if (msg.type === 'system') appendSystemMsg(msg.text);
+                    else appendMessage(msg);
+                });
+            }
+        });
+
+        // Timer resync from streamer every 5s
+        socket.on('timer_update', (d) => {
+            _localElapsed = d.elapsed || 0;
+            renderTimerFromElapsed(_localElapsed);
+            document.getElementById('streamModeLabel').textContent =
+                (d.mode === 'focus') ? 'Focus Mode' : '☕ Break Time';
+            updateElapsedDisplay(_localElapsed);
+        });
+
+        socket.on('new_reaction', (d) => { spawnFloatingEmoji(d.emoji); });
+        socket.on('new_stream_message', (d) => { appendMessage(d); });
+
+        socket.on('watcher_joined', (d) => {
+            updateWatcherCount(d.watcher_count);
+            appendSystemMsg('👀 ' + d.name + ' joined the stream!');
+        });
+        socket.on('watcher_left', (d) => {
+            updateWatcherCount(d.watcher_count);
+            appendSystemMsg('� ' + d.name + ' left the stream.');
+        });
+        socket.on('solidarity_joined', (d) => {
+            appendSystemMsg('💪 ' + d.name + ' is studying along!');
+        });
+
+        // Host ended the stream
+        socket.on('stream_ended', (d) => {
+            _streamEnded = true;
+            clearInterval(_localTimerInterval);
+            clearSolidarity();
+            document.getElementById('endedMinutes').textContent = d.duration_min || 0;
+            document.getElementById('endedWatchers').textContent = d.watchers || 0;
+            document.getElementById('streamEndedModal').classList.add('open');
+        });
+
+        socket.on('stream_not_found', () => { window.location.href = '/live'; });
+
+        // Restore solidarity from localStorage after page refresh
+        restoreSolidarity();
+    });
+
+    // ── Timer ─────────────────────────────────────────────────────────────────────
+    function startLocalCountdown() {
+        clearInterval(_localTimerInterval);
+        _localTimerInterval = setInterval(() => {
+            if (_streamEnded) { clearInterval(_localTimerInterval); return; }
+            _localElapsed++;
+            renderTimerFromElapsed(_localElapsed);
+            updateElapsedDisplay(_localElapsed);
+            if (_localElapsed >= _totalSec) {
+                clearInterval(_localTimerInterval);
+                // Session timer done — notify in chat, but wait for host's stream_ended event
+                appendSystemMsg('⏱️ Session timer complete! Waiting for ' + (IS_OWN_STREAM ? 'you' : 'the streamer') + ' to end the stream...');
+            }
+        }, 1000);
+    }
+    function renderTimerFromElapsed(elapsedSec) {
+        const rem = Math.max(_totalSec - elapsedSec, 0);
+        const m = String(Math.floor(rem / 60)).padStart(2, '0');
+        const s = String(rem % 60).padStart(2, '0');
+        document.getElementById('streamTimerDisplay').textContent = m + ':' + s;
+        const pct = Math.min((elapsedSec / _totalSec) * 100, 100);
+        document.getElementById('streamProgressFill').style.width = pct + '%';
+    }
+    function updateWatcherCount(n) {
+        document.getElementById('watcherCountBanner').textContent = n;
+        document.getElementById('watcherCountTimer').textContent = n;
+    }
+    function updateElapsedDisplay(secs) {
+        const m = Math.floor(secs / 60);
+        document.getElementById('elapsedDisplay').textContent = m;
+    }
+
+    // ── Reactions ─────────────────────────────────────────────────────────────────
+    function sendReaction(emoji) {
+        socket.emit('stream_reaction', { stream_id: STREAM_ID, emoji });
+        spawnFloatingEmoji(emoji);
+    }
+    function spawnFloatingEmoji(emoji) {
+        const wrap = document.getElementById('floatingReactions');
+        const el = document.createElement('span');
+        el.className = 'float-emoji';
+        el.textContent = emoji;
+        el.style.marginLeft = (Math.random() * 60 - 30) + 'px';
+        wrap.appendChild(el);
+        setTimeout(() => el.remove(), 2000);
+    }
+
+    // ── Chat ──────────────────────────────────────────────────────────────────────
+    function sendMessage() {
+        const inp = document.getElementById('chatInput');
+        const msg = inp.value.trim();
+        if (!msg) return;
+        socket.emit('stream_message', { stream_id: STREAM_ID, message: msg });
+        inp.value = '';
+    }
+    function appendMessage(d) {
+        const box = document.getElementById('chatMessages');
+        const div = document.createElement('div');
+        div.className = 'chat-msg';
+        div.innerHTML = `
+    <img src="${escHtml(d.avatar)}" class="chat-msg-avatar" alt="">
+    <div class="chat-msg-content">
+      <div class="chat-msg-name">${escHtml(d.name)}</div>
+      <div class="chat-msg-text">${escHtml(d.message)}</div>
+    </div>`;
+        box.appendChild(div);
+        box.scrollTop = box.scrollHeight;
+    }
+    function appendSystemMsg(text) {
+        const box = document.getElementById('chatMessages');
+        const div = document.createElement('div');
+        div.className = 'chat-msg system';
+        div.innerHTML = `<div class="chat-msg-content"><div class="chat-msg-text">${text}</div></div>`;
+        box.appendChild(div);
+        box.scrollTop = box.scrollHeight;
+    }
+
+    // ── Solidarity (persists across refresh) ──────────────────────────────────────
+    function joinSolidarity() {
+        if (solidaryActive) return;
+        solidaryActive = true;
+        socket.emit('solidarity_join', { stream_id: STREAM_ID });
+
+        const startedAt = Date.now();
+        localStorage.setItem(SOLIDARITY_KEY, startedAt);
+
+        startSolidarityTimer(startedAt);
+        setSolidarityActiveUI();
+    }
+    function restoreSolidarity() {
+        const savedAt = localStorage.getItem(SOLIDARITY_KEY);
+        if (!savedAt) return;
+        const elapsed = Math.floor((Date.now() - parseInt(savedAt)) / 1000);
+        const remaining = 25 * 60 - elapsed;
+        if (remaining <= 0) {
+            localStorage.removeItem(SOLIDARITY_KEY);
+            return;
+        }
+        solidaryActive = true;
+        setSolidarityActiveUI();
+        startSolidarityTimer(parseInt(savedAt));
+    }
+    function startSolidarityTimer(startedAt) {
+        clearInterval(solidarityInterval);
+        solidarityInterval = setInterval(() => {
+            const elapsed = Math.floor((Date.now() - startedAt) / 1000);
+            const rem = Math.max(25 * 60 - elapsed, 0);
+            const m = String(Math.floor(rem / 60)).padStart(2, '0');
+            const s = String(rem % 60).padStart(2, '0');
+            const el = document.getElementById('solidarityTimerDisplay');
+            if (el) el.textContent = m + ':' + s;
+            if (rem <= 0) {
+                clearInterval(solidarityInterval);
+                localStorage.removeItem(SOLIDARITY_KEY);
+                appendSystemMsg('🎉 You completed a solidarity session! Great work!');
+            }
+        }, 1000);
+        const timerBox = document.getElementById('solidarityTimerBox');
+        if (timerBox) timerBox.style.display = 'block';
+    }
+    function setSolidarityActiveUI() {
+        const btn = document.getElementById('solidarityBtn');
+        if (btn) {
+            btn.classList.add('active-solidarity');
+            btn.innerHTML = '<i class="fa-solid fa-check"></i> Studying Together! ✓';
+            btn.onclick = null;
+        }
+    }
+    function clearSolidarity() {
+        clearInterval(solidarityInterval);
+        localStorage.removeItem(SOLIDARITY_KEY);
+    }
+
+    // ── Leave Stream ──────────────────────────────────────────────────────────────
+    function leaveStream() {
+        socket.emit('leave_stream', { stream_id: STREAM_ID });
+        clearSolidarity();
+        setTimeout(() => window.location.href = '/live', 300);
+    }
+
+    // ── Own stream: End ──────────────────────────────────────────────────────────
+    function endStream() {
+        if (!confirm('End your live study stream?')) return;
+        const durMin = Math.floor(_localElapsed / 60);
+        socket.emit('end_stream', { stream_id: STREAM_ID, duration_min: durMin });
+        _streamEnded = true;
+        clearInterval(_localTimerInterval);
+        // Show end summary modal immediately for host
+        document.getElementById('endedMinutes').textContent = durMin;
+        document.getElementById('endedWatchers').textContent = document.getElementById('watcherCountTimer').textContent || 0;
+        document.getElementById('streamEndedModal').classList.add('open');
+    }
+
+    function escHtml(s) {
+        const d = document.createElement('div');
+        d.appendChild(document.createTextNode(String(s || '')));
+        return d.innerHTML;
+    }
+    // Highlight 'Live Streams' in sidebar
+    document.querySelector('[data-nav="live"]') && document.querySelector('[data-nav="live"]').classList.add('active');
+</script>
+{% endblock %}

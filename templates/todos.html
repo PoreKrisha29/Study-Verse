@@ -1,0 +1,950 @@
+{# Extends base layout with sidebar and navigation #}
+{% extends "layout.html" %}
+
+{% block title %}Assignments - StudyVerse{% endblock %}
+
+{% block content %}
+{# Top header with user avatar #}
+<header class="top-bar todos-header">
+    <div class="page-title">All Assignments</div>
+    <div class="top-actions">
+        <div class="user-profile-mini" style="display: flex; align-items: center; gap: 8px;">
+            <div style="width: 40px; height: 40px; border-radius: 50%; background: linear-gradient(135deg, #06b6d4, #0891b2); display: flex; align-items: center; justify-content: center; color: white; font-weight: 700; font-size: 1rem; box-shadow: 0 4px 12px rgba(6, 182, 212, 0.3); cursor: pointer; transition: all 0.3s ease;"
+                onclick="window.location.href='/settings'"
+                title="{{ current_user.first_name }} {{ current_user.last_name }}">
+                {{ current_user.first_name[0].upper() if current_user.first_name else 'U' }}
+            </div>
+        </div>
+    </div>
+</header>
+
+<div class="dashboard-grid" style="grid-template-columns: 1fr;">
+    <div class="widget" style="min-height: 80vh; background: transparent; border: none; padding: 0;">
+        <div class="widget-header-todos">
+            <div class="widget-title">Project Tasks</div>
+            <div class="header-actions-todos">
+                <input type="text" placeholder="Search tasks..." class="search-input-todos">
+                <button class="btn-primary-todos" onclick="openAddTaskModal()">+ New Task</button>
+            </div>
+        </div>
+
+        <div class="task-list-container">
+            <!-- Header -->
+            <div class="task-tree-header">
+                <div class="col-expand"></div>
+                <div class="col-name">Task Name</div>
+                <div class="col-category">Category</div>
+                <div class="col-priority">Priority</div>
+                <div class="col-status">Status</div>
+                <div class="col-due">Due Date</div>
+                <div class="col-action">Action</div>
+            </div>
+
+            {# Personal tasks grouped by category #}
+            <div id="personal-tasks-container">
+                {# Group tasks by category to show parent-child hierarchy #}
+
+                {# 1. Tasks with Categories #}
+                {% set categories = [] %}
+                {% for t in personal_todos %}
+                {% if t.category and t.category not in categories %}
+                {% if categories.append(t.category) %}{% endif %}
+                {% endif %}
+                {% endfor %}
+
+                {% for cat in categories %}
+                {% set ns_cat = namespace(total=0, done=0) %}
+                {% for t in personal_todos %}
+                {% if t.category == cat %}
+                {% set ns_cat.total = ns_cat.total + 1 %}
+                {% if t.completed %}
+                {% set ns_cat.done = ns_cat.done + 1 %}
+                {% endif %}
+                {% endif %}
+                {% endfor %}
+                {% set percent = (ns_cat.done / ns_cat.total * 100)|int if ns_cat.total > 0 else 0 %}
+                {% set cat_finished = (ns_cat.done == ns_cat.total and ns_cat.total > 0) %}
+
+                <div class="task-row parent">
+                    <div class="flex-center">
+                        <button class="toggle-btn {% if not cat_finished %}expanded{% endif %}"
+                            onclick="toggleGroup(this)">
+                            <i class="fa-solid fa-chevron-right"
+                                style="transition: transform 0.2s; {% if not cat_finished %}transform: rotate(90deg);{% endif %}"></i>
+                        </button>
+                    </div>
+                    <div class="task-title col-name">
+                        {% if 'python' in cat.lower() %}
+                        <i class="fa-brands fa-python" style="margin-right: 8px; color: #3b82f6;"></i>
+                        {% elif 'web' in cat.lower() or 'design' in cat.lower() %}
+                        <i class="fa-solid fa-globe" style="margin-right: 8px; color: #a855f7;"></i>
+                        {% else %}
+                        <i class="fa-solid fa-layer-group" style="margin-right: 8px;"></i>
+                        {% endif %}
+                        {{ cat }}
+                        <span class="task-count-badge">{{ ns_cat.total }}</span>
+                    </div>
+                    <div class="col-category">-</div>
+                    <div class="col-priority">-</div>
+                    <div class="col-status">-</div>
+                    <div class="col-due">
+                        <div class="progress-container-todos">
+                            <div class="grid-progress">
+                                <div class="grid-progress-bar" style="width: {{ percent }}%;"></div>
+                            </div>
+                            <span class="progress-text">{{ percent }}%</span>
+                        </div>
+                    </div>
+                    <div class="col-action"></div>
+                </div>
+
+                {# Subtasks under each category #}
+                <div class="task-group" style="display: {% if cat_finished %}none{% else %}block{% endif %};">
+                    {% for t in personal_todos %}
+                    {% if t.category == cat %}
+                    <div class="task-row subtask">
+                        <div class="flex-center"></div> <!-- Indent -->
+                        <div class="task-cell col-name">
+                            <form method="POST" action="{{ url_for('todos_toggle', todo_id=t.id) }}" style="margin:0;">
+                                <input type="checkbox" class="task-checkbox {% if t.completed %}checked{% endif %}"
+                                    onchange="this.form.submit()" {% if t.completed %}checked{% endif %}>
+                            </form>
+                            <div class="task-title"
+                                style="margin-left: 12px; {% if t.completed %}text-decoration: line-through; opacity: 0.5;{% endif %}">
+                                {{ t.title }}
+                            </div>
+                        </div>
+                        <div class="task-cell col-category">Self</div>
+                        <div class="task-cell col-priority">
+                            <span
+                                class="badge {% if t.priority == 'High' %}badge-high{% elif t.priority == 'Medium' %}badge-med{% else %}badge-low{% endif %}">
+                                {{ t.priority }}
+                            </span>
+                        </div>
+                        <div class="task-cell col-status">
+                            {% if t.completed %}
+                            <span class="badge badge-done">Done</span>
+                            {% else %}
+                            <span class="badge badge-todo">Todo</span>
+                            {% endif %}
+                        </div>
+                        <div class="task-cell col-due">
+                            {% if t.due_date %}
+                                {{ t.due_date }}
+                                <span class="due-badge" data-due="{{ t.due_date }}"></span>
+                            {% endif %}
+                            {% if t.due_time %} {{ t.due_time }}{% endif %}
+                            {% if not t.due_date and not t.due_time %}-{% endif %}
+                        </div>
+                        <div class="task-cell col-action">
+                            <form method="POST" action="{{ url_for('todos_delete', todo_id=t.id) }}" style="margin:0;">
+                                <button class="btn-icon-delete" type="submit">
+                                    <i class="fa-solid fa-xmark"></i>
+                                </button>
+                            </form>
+                        </div>
+                    </div>
+                    {% endif %}
+                    {% endfor %}
+                </div>
+                {% endfor %}
+
+                {# 2. Uncategorized Tasks (Inbox) #}
+                {% set has_uncategorized = false %}
+                {% for t in personal_todos %}{% if not t.category %}{% set has_uncategorized = true %}{% endif %}{%
+                endfor %}
+
+                {% if has_uncategorized %}
+                {% set ns_uncat = namespace(total=0, done=0) %}
+                {% for t in personal_todos %}
+                {% if not t.category %}
+                {% set ns_uncat.total = ns_uncat.total + 1 %}
+                {% if t.completed %}
+                {% set ns_uncat.done = ns_uncat.done + 1 %}
+                {% endif %}
+                {% endif %}
+                {% endfor %}
+                {% set uncategorized_pct = (ns_uncat.done / ns_uncat.total * 100)|int if ns_uncat.total > 0 else 0 %}
+                {% set uncat_finished = (ns_uncat.done == ns_uncat.total and ns_uncat.total > 0) %}
+
+                <div class="task-row parent">
+                    <div class="flex-center">
+                        <button class="toggle-btn {% if not uncat_finished %}expanded{% endif %}"
+                            onclick="toggleGroup(this)">
+                            <i class="fa-solid fa-chevron-right"
+                                style="transition: transform 0.2s; {% if not uncat_finished %}transform: rotate(90deg);{% endif %}"></i>
+                        </button>
+                    </div>
+                    <div class="task-title" style="font-weight: 600; color: var(--text-secondary);">
+                        <i class="fa-solid fa-inbox" style="margin-right: 8px;"></i>
+                        Inbox (Uncategorized)
+                    </div>
+                    <div>-</div>
+                    <div>-</div>
+                    <div>-</div>
+                    <div>
+                        <div style="display: flex; align-items: center; gap: 10px; width: 100%;">
+                            <div class="grid-progress" style="flex: 1;">
+                                <div class="grid-progress-bar" style="width: {{ uncategorized_pct }}%;"></div>
+                            </div>
+                            <span style="font-size: 0.75rem; color: var(--text-secondary); min-width: 30px;">{{
+                                uncategorized_pct }}%</span>
+                        </div>
+                    </div>
+                    <div></div>
+                </div>
+                <div class="task-group" style="display: {% if uncat_finished %}none{% else %}block{% endif %};">
+                    {% for t in personal_todos %}
+                    {% if not t.category %}
+                    <div class="task-row subtask">
+                        <div class="flex-center"></div>
+                        <div class="task-cell">
+                            <form method="POST" action="{{ url_for('todos_toggle', todo_id=t.id) }}" style="margin:0;">
+                                <input type="checkbox" class="task-checkbox {% if t.completed %}checked{% endif %}"
+                                    onchange="this.form.submit()" {% if t.completed %}checked{% endif %}>
+                            </form>
+                            <div class="task-title"
+                                style="margin-left: 12px; {% if t.completed %}text-decoration: line-through; opacity: 0.5;{% endif %}">
+                                {{ t.title }}
+                            </div>
+                        </div>
+                        <div class="task-cell">-</div>
+                        <div class="task-cell">
+                            <span
+                                class="badge {% if t.priority == 'High' %}badge-high{% elif t.priority == 'Medium' %}badge-med{% else %}badge-low{% endif %}">
+                                {{ t.priority }}
+                            </span>
+                        </div>
+                        <div class="task-cell">
+                            {% if t.completed %}
+                            <span class="badge badge-done">Done</span>
+                            {% else %}
+                            <span class="badge badge-todo">Pending</span>
+                            {% endif %}
+                        </div>
+                        <div class="task-cell" style="color: var(--text-secondary); font-size: 0.85rem;">
+                            {% if t.due_date %}
+                                {{ t.due_date }}
+                                <span class="due-badge" data-due="{{ t.due_date }}"></span>
+                            {% endif %}
+                            {% if t.due_time %} {{ t.due_time }}{% endif %}
+                            {% if not t.due_date and not t.due_time %}-{% endif %}
+                        </div>
+                        <div class="task-cell">
+                            <form method="POST" action="{{ url_for('todos_delete', todo_id=t.id) }}" style="margin:0;">
+                                <button class="btn-ghost" type="submit"
+                                    style="color: var(--destructive); padding: 4px;">
+                                    <i class="fa-solid fa-trash"></i>
+                                </button>
+                            </form>
+                        </div>
+                    </div>
+                    {% endif %}
+                    {% endfor %}
+                </div>
+                {% endif %}
+
+                {% if not personal_todos %}
+                <div style="padding: 60px 40px; text-align: center; color: var(--text-secondary);">
+                    <div style="font-size:3rem;margin-bottom:16px;">&#x1F4CB;</div>
+                    <div style="font-size:1.1rem;font-weight:700;color:var(--text-primary);margin-bottom:8px;">No tasks yet!</div>
+                    <div style="font-size:0.9rem;color:var(--text-muted);margin-bottom:20px;max-width:300px;margin-inline:auto;">Every big goal starts with a single task. Add yours now.</div>
+                    <button onclick="openAddTaskModal()" style="padding:10px 24px;background:var(--accent-green);color:#000;border:none;border-radius:12px;font-weight:700;cursor:pointer;font-size:0.9rem;">+ Create First Task</button>
+                </div>
+                {% endif %}
+            </div>
+
+
+
+        </div>
+    </div>
+</div>
+
+{# Modal for creating new task groups with subtasks #}
+<div id="addTaskModal" class="modal">
+    <div class="modal-content" style="max-width: 500px;">
+        <div class="modal-header">
+            <h2 style="font-size: 1.5rem;">New Task Group</h2>
+            <span class="close-modal" onclick="closeAddTaskModal()">&times;</span>
+        </div>
+        <div id="addTaskForm">
+            <!-- Task Title (becomes Category) -->
+            <div class="form-group">
+                <label>Task Title</label>
+                <input type="text" id="taskTitle" placeholder="e.g. History Project" required>
+            </div>
+
+            <!-- Priority Buttons -->
+            <div class="form-group">
+                <label>Priority</label>
+                <div class="priority-selector">
+                    <button type="button" class="priority-btn" data-value="Low"
+                        onclick="selectPriority('Low')">Low</button>
+                    <button type="button" class="priority-btn active" data-value="Medium"
+                        onclick="selectPriority('Medium')">Medium</button>
+                    <button type="button" class="priority-btn" data-value="High"
+                        onclick="selectPriority('High')">High</button>
+                </div>
+                <input type="hidden" id="taskPriority" value="Medium">
+            </div>
+
+            <!-- Deadline -->
+            <div class="form-group">
+                <label>Deadline (Date & Time)</label>
+                <div style="display: flex; gap: 10px;">
+                    <input type="date" id="taskDueDate" style="flex: 2;">
+                    <input type="time" id="taskDueTime" style="flex: 1;">
+                </div>
+            </div>
+
+            <hr style="border: 0; border-top: 1px solid var(--border); margin: 20px 0;">
+
+            <!-- Subtasks Section -->
+            <div class="form-group">
+                <label>Subtasks</label>
+                <div id="subtaskList"
+                    style="margin-bottom: 10px; display: flex; flex-direction: column; gap: 8px; max-height: 250px; overflow-y: auto; padding-right: 4px;">
+                    <!-- Subtasks will appear here -->
+                </div>
+                <button type="button" class="btn-secondary" onclick="promptSubtask()"
+                    style="width: 100%; border-style: dashed;">
+                    + Add Sub Task
+                </button>
+            </div>
+
+            <input type="hidden" id="modal-is-group" value="0">
+
+            <div class="modal-btn-group" style="margin-top: 24px;">
+                <button type="button" class="btn-secondary btn-cancel" onclick="closeAddTaskModal()"
+                    style="font-weight: 500;">Cancel</button>
+                <button type="button" id="btnDone" class="btn-primary" onclick="submitTask()" disabled
+                    style="background: var(--accent-green); color: black; opacity: 0.5; cursor: not-allowed; font-weight: 700; padding: 10px 24px; box-shadow: 0 4px 15px rgba(74, 222, 128, 0.2); transition: all 0.3s ease;">
+                    Done
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+<style>
+    .todos-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 24px;
+        flex-wrap: wrap;
+        gap: 15px;
+    }
+
+
+
+    .user-profile-mini>div:hover {
+        transform: scale(1.1);
+        box-shadow: 0 6px 20px rgba(6, 182, 212, 0.5);
+    }
+
+
+    .widget-header-todos {
+        margin-bottom: 20px;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        flex-wrap: wrap;
+        gap: 15px;
+    }
+
+    .header-actions-todos {
+        display: flex;
+        gap: 10px;
+        flex: 1;
+        justify-content: flex-end;
+        min-width: 300px;
+    }
+
+    .search-input-todos {
+        background: rgba(255, 255, 255, 0.03);
+        border: 1px solid var(--border);
+        color: var(--text-primary);
+        padding: 10px 16px;
+        border-radius: 12px;
+        outline: none;
+        flex: 1;
+        max-width: 300px;
+        transition: all 0.3s ease;
+        font-family: var(--font-body);
+    }
+
+    .search-input-todos:focus {
+        background: rgba(255, 255, 255, 0.06);
+        border-color: var(--accent-green);
+        box-shadow: 0 0 15px rgba(74, 222, 128, 0.1);
+    }
+
+    .btn-primary-todos {
+        background: var(--accent-green);
+        color: black;
+        border: none;
+        padding: 10px 20px;
+        border-radius: 12px;
+        font-weight: 700;
+        cursor: pointer;
+        white-space: nowrap;
+        transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        box-shadow: 0 4px 12px rgba(74, 222, 128, 0.2);
+        display: flex;
+        align-items: center;
+        gap: 8px;
+    }
+
+    .btn-primary-todos:hover {
+        background: var(--accent-green-bright);
+        transform: translateY(-2px);
+        box-shadow: 0 6px 20px rgba(74, 222, 128, 0.3);
+    }
+
+    .btn-primary-todos:active {
+        transform: translateY(0);
+    }
+
+    .task-tree-header,
+    .task-row {
+        display: grid;
+        grid-template-columns: 40px 2.5fr 1fr 1fr 1fr 1fr 50px;
+        gap: 12px;
+        align-items: center;
+    }
+
+    .task-count-badge {
+        font-size: 0.7rem;
+        background: rgba(255, 255, 255, 0.1);
+        padding: 2px 8px;
+        border-radius: 4px;
+        margin-left: 8px;
+        color: var(--text-secondary);
+        font-weight: 400;
+    }
+
+    .progress-container-todos {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        width: 100%;
+    }
+
+    .btn-icon-delete {
+        background: transparent;
+        border: 1px solid transparent;
+        color: var(--text-secondary);
+        cursor: pointer;
+        transition: 0.2s;
+        border-radius: 6px;
+        width: 32px;
+        height: 32px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    }
+
+    .btn-icon-delete:hover {
+        background: rgba(239, 68, 68, 0.1);
+        color: #ef4444;
+    }
+
+    @media (max-width: 1024px) {
+
+        .task-tree-header,
+        .task-row {
+            grid-template-columns: 40px 1.5fr 1fr 80px 50px;
+        }
+
+        .col-category,
+        .col-status {
+            display: none !important;
+        }
+    }
+
+    @media (max-width: 768px) {
+        .page-title {
+            font-size: 1.5rem;
+            width: 100%;
+        }
+
+        .top-actions {
+            width: 100%;
+            justify-content: space-between;
+        }
+
+        /* Fix: was min-width: 300px — caused overflow on phones */
+        .header-actions-todos {
+            min-width: unset !important;
+            width: 100%;
+            flex-wrap: wrap;
+        }
+
+        /* Search input full width on mobile */
+        .search-input-todos {
+            max-width: 100% !important;
+            width: 100%;
+        }
+
+        .task-tree-header,
+        .task-row {
+            grid-template-columns: 30px 1fr 90px 36px;
+            padding: 10px 8px;
+            gap: 8px;
+        }
+
+        .col-priority,
+        .col-due {
+            display: none !important;
+        }
+
+        .task-title {
+            font-size: 0.85rem !important;
+        }
+
+        .progress-text {
+            display: none;
+        }
+
+        .grid-progress {
+            height: 4px;
+        }
+
+        /* Modal width on mobile */
+        .modal-content {
+            margin: 12px;
+            max-width: calc(100vw - 24px) !important;
+        }
+    }
+
+    @media (max-width: 480px) {
+        .task-tree-header,
+        .task-row {
+            grid-template-columns: 28px 1fr 32px;
+            gap: 6px;
+            padding: 8px 6px;
+        }
+
+        /* Hide status column too on very small phones */
+        .col-status {
+            display: none !important;
+        }
+
+        .btn-primary-todos {
+            padding: 8px 14px;
+            font-size: 0.85rem;
+        }
+
+        .widget-header-todos {
+            gap: 10px;
+        }
+
+        /* Priority buttons full row */
+        .priority-selector {
+            gap: 6px;
+        }
+
+        .priority-btn {
+            padding: 8px 6px;
+            font-size: 0.8rem;
+        }
+    }
+
+    @media (max-width: 360px) {
+        .todos-header {
+            margin-bottom: 16px;
+        }
+
+        .task-tree-header,
+        .task-row {
+            grid-template-columns: 24px 1fr 28px;
+            gap: 4px;
+            padding: 8px 4px;
+        }
+
+        .task-title {
+            font-size: 0.78rem !important;
+        }
+
+        .badge {
+            font-size: 0.62rem;
+            padding: 2px 6px;
+        }
+    }
+
+    .priority-selector {
+        display: flex;
+        gap: 10px;
+    }
+
+    .priority-btn {
+        flex: 1;
+        padding: 10px;
+        background: rgba(255, 255, 255, 0.03);
+        border: 1px solid var(--border);
+        color: var(--text-secondary);
+        border-radius: 8px;
+        cursor: pointer;
+        transition: all 0.2s;
+        font-weight: 500;
+        font-size: 0.9rem;
+    }
+
+    .priority-btn:hover {
+        background: rgba(255, 255, 255, 0.08);
+        border-color: var(--text-muted);
+    }
+
+    .priority-btn.active {
+        background: var(--accent-green);
+        color: black;
+        border-color: var(--accent-green);
+        font-weight: 600;
+        box-shadow: 0 4px 12px rgba(74, 222, 128, 0.2);
+    }
+
+    .subtask-item {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        background: rgba(255, 255, 255, 0.02);
+        padding: 10px 14px;
+        border-radius: 8px;
+        border: 1px solid var(--border);
+        animation: fadeIn 0.2s ease;
+    }
+
+    @keyframes fadeIn {
+        from {
+            opacity: 0;
+            transform: translateY(5px);
+        }
+
+        to {
+            opacity: 1;
+            transform: translateY(0);
+        }
+    }
+
+    .subtask-item span {
+        font-size: 0.9rem;
+        color: var(--text-primary);
+    }
+
+    .subtask-remove {
+        color: var(--text-muted);
+        cursor: pointer;
+        padding: 4px;
+        transition: color 0.2s;
+    }
+
+    .subtask-remove:hover {
+        color: var(--destructive);
+    }
+
+    /* Custom Scrollbar for SubtaskList */
+    #subtaskList::-webkit-scrollbar {
+        width: 5px;
+    }
+
+    #subtaskList::-webkit-scrollbar-track {
+        background: rgba(255, 255, 255, 0.02);
+        border-radius: 10px;
+    }
+
+    #subtaskList::-webkit-scrollbar-thumb {
+        background: rgba(255, 255, 255, 0.1);
+        border-radius: 10px;
+    }
+
+    #subtaskList::-webkit-scrollbar-thumb:hover {
+        background: rgba(255, 255, 255, 0.2);
+    }
+</style>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    document.querySelector('[data-nav="todos"]').classList.add('active');
+
+    let currentSubtasks = [];
+
+
+
+    function toggleGroup(btn) {
+        const row = btn.closest('.task-row');
+        const group = row.nextElementSibling;
+        if (group && group.classList.contains('task-group')) {
+            if (group.style.display === 'none') {
+                group.style.display = 'block';
+                btn.classList.add('expanded');
+                // Ensure icon rotates
+                const icon = btn.querySelector('i');
+                if (icon) icon.style.transform = 'rotate(90deg)';
+            } else {
+                group.style.display = 'none';
+                btn.classList.remove('expanded');
+                const icon = btn.querySelector('i');
+                if (icon) icon.style.transform = 'rotate(0deg)';
+            }
+        }
+    }
+
+    function openAddTaskModal() {
+        document.getElementById('addTaskModal').style.display = 'flex';
+        // Reset form
+        document.getElementById('taskTitle').value = '';
+        document.getElementById('taskTitle').addEventListener('input', updateDoneButton);
+        document.getElementById('taskDueDate').value = '';
+        document.getElementById('taskDueTime').value = '';
+
+        // Prevent selection of past dates
+        const today = new Date().toISOString().split('T')[0];
+        document.getElementById('taskDueDate').min = today;
+
+        selectPriority('Medium');
+        currentSubtasks = [];
+        updateSubtaskList();
+    }
+
+    function closeAddTaskModal() {
+        document.getElementById('addTaskModal').style.display = 'none';
+    }
+
+    // Modal Interaction Logic
+    function selectPriority(priority) {
+        document.getElementById('taskPriority').value = priority;
+        document.querySelectorAll('.priority-btn').forEach(btn => {
+            if (btn.dataset.value === priority) {
+                btn.classList.add('active');
+            } else {
+                btn.classList.remove('active');
+            }
+        });
+    }
+
+    function promptSubtask() {
+        const subtask = prompt("Enter subtask name:");
+        if (subtask && subtask.trim() !== "") {
+            currentSubtasks.push(subtask.trim());
+            updateSubtaskList();
+        }
+    }
+
+    function removeSubtask(index) {
+        currentSubtasks.splice(index, 1);
+        updateSubtaskList();
+    }
+
+    function updateSubtaskList() {
+        const list = document.getElementById('subtaskList');
+        list.innerHTML = '';
+
+        currentSubtasks.forEach((task, index) => {
+            const div = document.createElement('div');
+            div.className = 'subtask-item';
+            div.innerHTML = `
+                <span>${task}</span>
+                <i class="fa-solid fa-times subtask-remove" onclick="removeSubtask(${index})"></i>
+            `;
+            list.appendChild(div);
+        });
+
+        // Auto-scroll to bottom
+        list.scrollTop = list.scrollHeight;
+        updateDoneButton();
+    }
+
+    function updateDoneButton() {
+        const title = document.getElementById('taskTitle').value.trim();
+        const btnDone = document.getElementById('btnDone');
+        if (title.length > 0) {
+            btnDone.disabled = false;
+            btnDone.style.opacity = '1';
+            btnDone.style.cursor = 'pointer';
+        } else {
+            btnDone.disabled = true;
+            btnDone.style.opacity = '0.5';
+            btnDone.style.cursor = 'not-allowed';
+        }
+    }
+
+    // Submit task group with all subtasks to backend
+    function submitTask() {
+        const title = document.getElementById('taskTitle').value.trim();
+        if (!title) return;
+
+        let category = title; // Title acts as Category by default
+        let isGroup = document.getElementById('modal-is-group').value === '1';
+        let subtasksToSend = [...currentSubtasks];
+
+        if (subtasksToSend.length === 0) {
+            // Treat as single standalone task if no subtasks were added
+            subtasksToSend = [title];
+            category = ''; // Uncategorized
+            isGroup = false;
+        }
+
+        const priority = document.getElementById('taskPriority').value;
+        const dueDate = document.getElementById('taskDueDate').value;
+        const dueTime = document.getElementById('taskDueTime').value; // Get Time
+
+        const payload = {
+            category: category,
+            priority: priority,
+            due_date: dueDate,
+            due_time: dueTime,
+            is_group: isGroup,
+            subtasks: subtasksToSend
+        };
+
+        fetch('/todos/add_batch', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify(payload)
+        })
+            .then(response => response.json())
+            .then(data => {
+                if (data.status === 'success') {
+                    closeAddTaskModal();
+                    window.location.reload();
+                } else {
+                    alert('Error creating tasks');
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                alert('An error occurred');
+            });
+    }
+
+    window.onclick = function (event) {
+        const modal = document.getElementById('addTaskModal');
+        if (event.target == modal) {
+            modal.style.display = 'none';
+        }
+    }
+
+    // Real-time search filter for tasks
+    document.addEventListener('DOMContentLoaded', () => {
+        const searchInput = document.querySelector('.search-input-todos');
+        if (searchInput) {
+            searchInput.addEventListener('input', function (e) {
+                const term = e.target.value.toLowerCase().trim();
+                const parents = document.querySelectorAll('.task-row.parent');
+
+                parents.forEach(parent => {
+                    const group = parent.nextElementSibling;
+                    if (!group || !group.classList.contains('task-group')) return;
+
+                    const children = group.querySelectorAll('.task-row.subtask');
+                    const toggleBtn = parent.querySelector('.toggle-btn');
+
+                    // Clear / Reset
+                    if (term === '') {
+                        parent.style.display = ''; // Reset to grid
+                        children.forEach(child => child.style.display = '');
+
+                        // Restore visible state based on toggle button
+                        const isExpanded = toggleBtn && toggleBtn.classList.contains('expanded');
+                        group.style.display = isExpanded ? 'block' : 'none';
+                        return;
+                    }
+
+                    // Search Check
+                    const parentText = parent.textContent.toLowerCase();
+                    const pMatch = parentText.includes(term);
+                    let hasVisibleChildren = false;
+
+                    children.forEach(child => {
+                        const childText = child.textContent.toLowerCase();
+                        const cMatch = childText.includes(term);
+
+                        if (pMatch || cMatch) {
+                            child.style.display = '';
+                            hasVisibleChildren = true;
+                        } else {
+                            child.style.display = 'none';
+                        }
+                    });
+
+                    if (pMatch || hasVisibleChildren) {
+                        parent.style.display = '';
+                        group.style.display = 'block';
+                    } else {
+                        parent.style.display = 'none';
+                        group.style.display = 'none';
+                    }
+                });
+            });
+        }
+    });
+
+    // ── Due-Date Countdown Badges ─────────────────────────────────
+    document.addEventListener('DOMContentLoaded', () => {
+        const today = new Date();
+        today.setHours(0, 0, 0, 0);
+
+        document.querySelectorAll('.due-badge[data-due]').forEach(badge => {
+            const raw = badge.dataset.due;
+            if (!raw) return;
+            const due = new Date(raw);
+            due.setHours(0, 0, 0, 0);
+            const diffDays = Math.round((due - today) / 86400000);
+
+            let label, color, bg;
+            if (diffDays < 0) {
+                label = `${Math.abs(diffDays)}d overdue`;
+                color = '#ef4444'; bg = 'rgba(239,68,68,0.12)';
+            } else if (diffDays === 0) {
+                label = 'Today'; color = '#f97316'; bg = 'rgba(249,115,22,0.12)';
+            } else if (diffDays === 1) {
+                label = 'Tomorrow'; color = '#fbbf24'; bg = 'rgba(251,191,36,0.12)';
+            } else if (diffDays <= 7) {
+                label = `${diffDays}d left`; color = '#60a5fa'; bg = 'rgba(96,165,250,0.12)';
+            } else {
+                return; // Far future — no badge needed
+            }
+
+            badge.textContent = label;
+            badge.style.cssText = `
+                display:inline-block; margin-left:6px;
+                font-size:0.65rem; font-weight:700; padding:2px 7px;
+                border-radius:6px; color:${color}; background:${bg};
+                border:1px solid ${color}40; letter-spacing:0.3px;
+                vertical-align:middle;
+            `;
+        });
+
+        // ── Checkbox completion animation ────────────────────────
+        document.querySelectorAll('.task-checkbox').forEach(cb => {
+            cb.addEventListener('change', function() {
+                if (this.checked) {
+                    const row = this.closest('.task-row');
+                    if (!row) return;
+                    row.style.transition = 'opacity 0.4s ease, transform 0.4s ease';
+                    row.style.opacity   = '0.4';
+                    row.style.transform = 'scale(0.98) translateX(6px)';
+                    // Let the form submit naturally after animation
+                    setTimeout(() => {
+                        row.style.opacity   = '';
+                        row.style.transform = '';
+                    }, 500);
+                }
+            });
+        });
+    });
+</script>
+<style>
+    /* Smooth row hover for tasks */
+    .task-row.subtask {
+        transition: background 0.2s ease;
+    }
+    .task-row.subtask:hover {
+        background: rgba(255,255,255,0.03);
+        border-radius: 8px;
+    }
+</style>
+{% endblock %}

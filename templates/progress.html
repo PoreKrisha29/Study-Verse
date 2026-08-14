@@ -1,0 +1,675 @@
+{% extends "layout.html" %}
+
+{% block title %}Progress - StudyVerse{% endblock %}
+
+{% block content %}
+<div class="page-header" style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:12px;">
+    <div>
+        <h1 class="page-title">Progress Tracker</h1>
+        <p style="color:var(--text-secondary);font-size:0.9rem;margin-top:4px;">Your study performance at a glance.</p>
+    </div>
+    <!-- Weekly Goal Ring -->
+    <div style="display:flex;align-items:center;gap:20px;background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.08);border-radius:18px;padding:16px 24px;">
+        <div style="position:relative;width:80px;height:80px;flex-shrink:0;">
+            <svg width="80" height="80" viewBox="0 0 80 80" style="transform:rotate(-90deg);">
+                <circle cx="40" cy="40" r="32" fill="none" stroke="rgba(255,255,255,0.06)" stroke-width="8"/>
+                <circle id="goal-ring" cx="40" cy="40" r="32" fill="none" stroke="#4ade80" stroke-width="8"
+                    stroke-dasharray="201.1" stroke-dashoffset="201.1" stroke-linecap="round"
+                    style="transition:stroke-dashoffset 1.4s cubic-bezier(0.34,1.0,0.64,1);"/>
+            </svg>
+            <div style="position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;">
+                <span id="goal-pct" style="font-size:1rem;font-weight:800;color:white;">0%</span>
+            </div>
+        </div>
+        <div>
+            <div style="font-size:0.75rem;color:var(--text-secondary);text-transform:uppercase;letter-spacing:0.5px;font-weight:700;">Weekly Goal</div>
+            <div style="font-size:1.4rem;font-weight:800;color:var(--text-primary);margin:4px 0;"><span id="goal-hours">0</span>h <span style="font-size:0.9rem;color:var(--text-muted);font-weight:500;">/ 7h</span></div>
+            <div id="goal-label" style="font-size:0.78rem;color:#4ade80;font-weight:600;">Keep going! 💪</div>
+        </div>
+    </div>
+</div>
+
+<!-- Habit Tracker Matrix -->
+<div class="card" style="margin-bottom: 24px; padding: 0; overflow: hidden;">
+    <div class="card-header progress-card-header">
+        <div class="header-main-info">
+            <div class="header-title-row">
+                <span class="matrix-title">Habit Matrix</span>
+                <span class="badge badge-high" id="weekly-completion-badge">0% Consistency</span>
+            </div>
+            <div class="header-subtitle">
+                {% if streak_freezes and streak_freezes > 0 %}
+                <span class="freeze-tag">
+                    <i class="fa-solid fa-snowflake"></i> {{ streak_freezes }} Freeze{{ 's' if streak_freezes > 1 else
+                    '' }}
+                </span>
+                {% endif %}
+                <span class="overview-text">Weekly Overview</span>
+                <span class="mobile-scroll-hint"><i class="fa-solid fa-arrows-left-right"></i> Scroll</span>
+            </div>
+        </div>
+    </div>
+
+    <!-- Matrix Table Container -->
+    <div style="overflow-x: auto;">
+        <div id="habit-matrix" style="display: grid; grid-template-columns: 200px repeat(7, 1fr); min-width: 800px;">
+            <!-- Javascript will populate this -->
+            <div style="grid-column: span 8; text-align: center; padding: 40px; color: var(--text-secondary);">
+                Loading Habit Matrix...
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Charts Row -->
+<div class="progress-charts-grid">
+    <!-- Line Chart (Focus Hours Trend) -->
+    <div class="card" style="grid-column: 1 / -1;">
+        <div class="card-header">
+            <div class="card-title">Focus Trend</div>
+        </div>
+        <div style="height: 250px;">
+            <canvas id="lineChart"></canvas>
+        </div>
+    </div>
+
+    <!-- Task Category Distribution (Pie Chart) -->
+    <div class="card" style="grid-column: span 2; min-height: 450px; display: flex; flex-direction: column;">
+        <div class="card-header">
+            <div class="card-title">Task Distribution</div>
+        </div>
+        <div style="flex: 1; position: relative; padding: 20px;">
+            <canvas id="categoryPieChart"></canvas>
+        </div>
+    </div>
+</div>
+
+<!-- Performance Summary -->
+<div class="card">
+    <div class="card-header">
+        <div class="card-title">Academic Health</div>
+    </div>
+    <div style="display: flex; flex-direction: column; gap: 16px; margin-top: 24px;">
+
+        <div class="stat-summary-box">
+            <div class="stat-icon" style="background: rgba(74, 222, 128, 0.1); color: var(--accent-green);">
+                <i class="fa-solid fa-check-double"></i>
+            </div>
+            <div style="flex:1;">
+                <div style="font-size: 0.8rem; color: var(--text-secondary);">Completed Tasks</div>
+                <div style="font-size: 1.2rem; font-weight: 700;">
+                    <span class="count-up" data-target="{{ completed_todos }}">0</span> / {{ total_todos }}
+                </div>
+            </div>
+            <div style="font-size:0.75rem;font-weight:700;padding:4px 10px;border-radius:8px;
+                background:rgba(74,222,128,0.1);color:#4ade80;">
+                {{ completion_percent }}%
+            </div>
+        </div>
+
+        <div class="stat-summary-box">
+            <div class="stat-icon" style="background: rgba(167, 139, 250, 0.1); color: var(--accent-purple);">
+                <i class="fa-solid fa-clock"></i>
+            </div>
+            <div style="flex:1;">
+                <div style="font-size: 0.8rem; color: var(--text-secondary);">Focus Time (Week)</div>
+                <div style="font-size: 1.2rem; font-weight: 700;">
+                    <span class="count-up" data-target="{{ weekly_hours }}" data-suffix="h">0h</span>
+                </div>
+            </div>
+        </div>
+
+        <div class="stat-summary-box">
+            <div class="stat-icon" style="background: rgba(251, 191, 36, 0.1); color: #fbbf24;">
+                <i class="fa-solid fa-fire-flame-curved"></i>
+            </div>
+            <div style="flex:1;">
+                <div style="font-size: 0.8rem; color: var(--text-secondary);">Study Sessions (Week)</div>
+                <div style="font-size: 1.2rem; font-weight: 700;">
+                    <span class="count-up" data-target="{{ sessions_week }}">0</span> done
+                </div>
+            </div>
+        </div>
+
+    </div>
+</div>
+
+<!-- Top Topics Proficiency -->
+{% if top_topics %}
+<div class="card" style="margin-top:24px;">
+    <div class="card-header">
+        <div class="card-title">🏆 Top Topics</div>
+        <div style="font-size:0.8rem;color:var(--text-secondary);">Your strongest subjects</div>
+    </div>
+    <div style="display:flex;flex-direction:column;gap:14px;margin-top:20px;">
+        {% for t in top_topics %}
+        <div>
+            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;">
+                <span style="font-size:0.88rem;font-weight:600;color:var(--text-primary);">{{ t.topic_name }}</span>
+                <span style="font-size:0.78rem;font-weight:700;color:
+                    {% if t.proficiency >= 80 %}#4ade80{% elif t.proficiency >= 50 %}#fbbf24{% else %}#ef4444{% endif %};">{{ t.proficiency }}%</span>
+            </div>
+            <div style="height:6px;background:rgba(255,255,255,0.07);border-radius:6px;overflow:hidden;">
+                <div class="topic-bar" data-width="{{ t.proficiency }}"
+                    style="height:100%;width:0%;border-radius:6px;background:
+                    {% if t.proficiency >= 80 %}linear-gradient(90deg,#4ade80,#22d3ee){% elif t.proficiency >= 50 %}linear-gradient(90deg,#fbbf24,#f97316){% else %}linear-gradient(90deg,#ef4444,#f43f5e){% endif %};
+                    transition:width 1s ease;"></div>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+</div>
+{% endif %}
+
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script>
+    document.addEventListener('DOMContentLoaded', function () {
+        console.log("Progress page scripts initializing...");
+
+        // Highlight Sidebar
+        const navItem = document.querySelector('[data-nav="progress"]');
+        if (navItem) navItem.classList.add('active');
+
+        // --- Habit Matrix Logic ---
+        const defaultHabits = [
+            { id: 'h1', name: 'Reading' },
+            { id: 'h2', name: 'Coding' },
+            { id: 'h3', name: 'Exercise' },
+            { id: 'h4', name: 'Meditate' }
+        ];
+
+        const days = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
+        let habitList = defaultHabits;
+
+        try {
+            const stored = localStorage.getItem('StudyVerse_habits');
+            if (stored) habitList = JSON.parse(stored);
+        } catch (e) {
+            console.error("Error parsing habit data:", e);
+        }
+
+        function getLocalDateString(d) {
+            const year = d.getFullYear();
+            const month = String(d.getMonth() + 1).padStart(2, '0');
+            const day = String(d.getDate()).padStart(2, '0');
+            return `${year}-${month}-${day}`;
+        }
+
+        function getWeekDates() {
+            const now = new Date();
+            const day = now.getDay();
+            const diff = now.getDate() - day + (day === 0 ? -6 : 1);
+            const monday = new Date(now);
+            monday.setDate(diff);
+
+            const weekDates = [];
+            for (let i = 0; i < 7; i++) {
+                const d = new Date(monday);
+                d.setDate(diff + i);
+                weekDates.push(getLocalDateString(d));
+            }
+            return weekDates;
+        }
+
+        window.verseAddHabit = function (name) {
+            if (!name || !name.trim()) return;
+            const trimmed = name.trim();
+            // Avoid duplicate habits by name (case-insensitive)
+            if (habitList.some(h => h.name.toLowerCase() === trimmed.toLowerCase())) {
+                return;
+            }
+            const newId = 'h' + Date.now();
+            habitList.push({ id: newId, name: trimmed });
+            saveHabits();
+        };
+
+        window.addHabit = function () {
+            const name = prompt("Enter new habit name:");
+            if (name && name.trim()) {
+                window.verseAddHabit(name);
+            }
+        };
+
+        window.deleteHabit = function (id) {
+            if (confirm("Delete this habit?")) {
+                habitList = habitList.filter(h => h.id !== id);
+                saveHabits();
+            }
+        };
+
+        window.toggleCheck = function (habitId, dateStr) {
+            const key = `check_${habitId}_${dateStr}`;
+            const current = localStorage.getItem(key) === 'true';
+            localStorage.setItem(key, !current);
+            renderMatrix();
+
+            // Dispatch custom event for cross-component sync
+            window.dispatchEvent(new CustomEvent('habitChanged', {
+                detail: { habitId, dateStr, checked: !current }
+            }));
+        };
+
+        function saveHabits() {
+            localStorage.setItem('StudyVerse_habits', JSON.stringify(habitList));
+            renderMatrix();
+        }
+
+        function renderMatrix() {
+            const grid = document.getElementById('habit-matrix');
+            if (!grid) return;
+
+            grid.innerHTML = '';
+            const weekDates = getWeekDates();
+            const todayStr = getLocalDateString(new Date());
+
+            // Corner
+            const corner = document.createElement('div');
+            corner.innerHTML = 'HABITS';
+            corner.style.cssText = `padding: 16px; font-weight: 600; color: var(--text-secondary); border-bottom: 1px solid var(--border); border-right: 1px solid var(--border); background: rgba(255,255,255,0.02); display: flex; align-items: center;`;
+            grid.appendChild(corner);
+
+            // Header Row
+            weekDates.forEach((dateStr, index) => {
+                const dayName = days[index];
+                const isToday = (dateStr === todayStr);
+                const cell = document.createElement('div');
+                cell.innerHTML = `<div style="color: ${isToday ? 'var(--accent-green)' : 'var(--text-secondary)'}; font-weight: 600;">${dayName}</div>`;
+                cell.style.cssText = `padding: 16px; text-align: center; border-bottom: 1px solid var(--border); border-right: ${index === 6 ? 'none' : '1px solid var(--border)'}; background: ${isToday ? 'rgba(74, 222, 128, 0.05)' : 'rgba(255,255,255,0.02)'};`;
+                grid.appendChild(cell);
+            });
+
+            let totalChecks = 0;
+            let totalPossible = 0;
+            const dailyCounts = Array(7).fill(0);
+
+            // Habit Rows
+            habitList.forEach(habit => {
+                // Name
+                const nameCell = document.createElement('div');
+                nameCell.className = 'habit-name-cell';
+                nameCell.innerHTML = `<span style="font-weight: 500;">${habit.name}</span> <button onclick="deleteHabit('${habit.id}')" class="delete-btn" style="opacity: 0; transition: opacity 0.2s; background: none; border: none; color: var(--destructive); cursor: pointer; padding: 4px;"><i class="fa-solid fa-trash"></i></button>`;
+                nameCell.style.cssText = `padding: 12px 16px; display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid var(--border); border-right: 1px solid var(--border); color: var(--text-primary); background: var(--bg-card);`;
+                nameCell.onmouseenter = () => { const btn = nameCell.querySelector('.delete-btn'); if (btn) btn.style.opacity = '1'; };
+                nameCell.onmouseleave = () => { const btn = nameCell.querySelector('.delete-btn'); if (btn) btn.style.opacity = '0'; };
+                grid.appendChild(nameCell);
+
+                // Checks
+                weekDates.forEach((dateStr, index) => {
+                    const key = `check_${habit.id}_${dateStr}`;
+                    const isChecked = localStorage.getItem(key) === 'true';
+                    if (isChecked) { totalChecks++; dailyCounts[index]++; }
+                    totalPossible++;
+
+                    const cell = document.createElement('div');
+                    cell.style.cssText = `display: flex; justify-content: center; align-items: center; border-bottom: 1px solid var(--border); border-right: ${index === 6 ? 'none' : '1px solid var(--border)'}; padding: 8px; background: var(--bg-card);`;
+                    cell.innerHTML = `<div onclick="toggleCheck('${habit.id}', '${dateStr}')" style="width: 24px; height: 24px; border-radius: 6px; border: 2px solid ${isChecked ? 'var(--accent-green)' : 'var(--text-muted)'}; background: ${isChecked ? 'var(--accent-green)' : 'transparent'}; color: ${isChecked ? '#000' : 'transparent'}; display: flex; align-items: center; justify-content: center; cursor: pointer; transition: all 0.2s;"><i class="fa-solid fa-check" style="font-size: 0.8rem;"></i></div>`;
+                    grid.appendChild(cell);
+                });
+            });
+
+            // Add Habit Button
+            const addCell = document.createElement('div');
+            addCell.style.cssText = `grid-column: 1 / -1; padding: 12px 16px; border-bottom: 1px solid var(--border); cursor: pointer; color: var(--text-secondary); font-size: 0.9rem; transition: background 0.2s; display: flex; align-items: center; gap: 8px;`;
+            addCell.innerHTML = '<i class="fa-solid fa-plus"></i> Add Habit';
+            addCell.onmouseenter = () => { addCell.style.background = 'rgba(255,255,255,0.03)'; addCell.style.color = 'var(--accent-green)'; };
+            addCell.onmouseleave = () => { addCell.style.background = 'transparent'; addCell.style.color = 'var(--text-secondary)'; };
+            addCell.onclick = window.addHabit;
+            grid.appendChild(addCell);
+
+            // Summary Row Header
+            const summaryLabel = document.createElement('div');
+            summaryLabel.textContent = 'Completion %';
+            summaryLabel.style.cssText = `padding: 16px; font-weight: 600; color: var(--text-secondary); border-right: 1px solid var(--border);`;
+            grid.appendChild(summaryLabel);
+
+            // Summary Cells
+            weekDates.forEach((_, index) => {
+                const count = dailyCounts[index];
+                const total = habitList.length;
+                const pct = total > 0 ? Math.round((count / total) * 100) : 0;
+                const cell = document.createElement('div');
+                cell.style.cssText = `padding: 16px 12px; text-align: center; border-right: ${index === 6 ? 'none' : '1px solid var(--border)'}; display: flex; flex-direction: column; justify-content: center; gap: 8px;`;
+                cell.innerHTML = `<div style="font-size: 0.85rem; font-weight: 700; color: ${pct === 100 ? 'var(--accent-green)' : 'var(--text-primary)'};">${pct}%</div><div style="width: 100%; height: 6px; background: rgba(255,255,255,0.1); border-radius: 3px; overflow: hidden;"><div style="height: 100%; width: ${pct}%; background: var(--accent-green); transition: width 0.3s; box-shadow: 0 0 10px rgba(74, 222, 128, 0.3);"></div></div>`;
+                grid.appendChild(cell);
+            });
+
+            // Update Badge
+            const totalPct = totalPossible > 0 ? Math.round((totalChecks / totalPossible) * 100) : 0;
+            const badgeEl = document.getElementById('weekly-completion-badge');
+            if (badgeEl) {
+                badgeEl.textContent = `${totalPct}% Consistency`;
+                if (totalPct === 100) {
+                    badgeEl.style.background = 'rgba(74, 222, 128, 0.2)';
+                    badgeEl.style.color = 'var(--accent-green)';
+                    badgeEl.style.border = '1px solid var(--accent-green)';
+                } else {
+                    badgeEl.style.background = '';
+                    badgeEl.style.color = '';
+                    badgeEl.style.border = '';
+                }
+            }
+        }
+
+        // Helper for Verse voice assistant: toggle multiple habits for a given day.
+        // config = { habits: ['reading','coding'], day: 'today'|'mon'|'tue'|... }
+        window.verseToggleHabits = function (config) {
+            if (!config) return;
+            let { habits, day } = config;
+            if (!habits) return;
+
+            if (typeof habits === 'string') {
+                habits = [habits];
+            }
+            if (!Array.isArray(habits) || habits.length === 0) return;
+
+            const normalizedHabits = habits
+                .map(h => String(h).trim().toLowerCase())
+                .filter(Boolean);
+            if (!normalizedHabits.length) return;
+
+            const weekDates = getWeekDates();
+            const todayStr = getLocalDateString(new Date());
+
+            let targetIndex = 0;
+            if (typeof day === 'string' && day.trim()) {
+                const d = day.trim().toLowerCase();
+                if (d === 'today') {
+                    targetIndex = weekDates.indexOf(todayStr);
+                    if (targetIndex < 0) targetIndex = 0;
+                } else {
+                    const shortDayMap = {
+                        'mon': 0, 'monday': 0,
+                        'tue': 1, 'tues': 1, 'tuesday': 1,
+                        'wed': 2, 'weds': 2, 'wednesday': 2,
+                        'thu': 3, 'thur': 3, 'thurs': 3, 'thursday': 3,
+                        'fri': 4, 'friday': 4,
+                        'sat': 5, 'saturday': 5,
+                        'sun': 6, 'sunday': 6
+                    };
+                    if (shortDayMap.hasOwnProperty(d)) {
+                        targetIndex = shortDayMap[d];
+                    }
+                }
+            } else {
+                // Default to "today"
+                targetIndex = weekDates.indexOf(todayStr);
+                if (targetIndex < 0) targetIndex = 0;
+            }
+
+            const dateStr = weekDates[targetIndex] || todayStr;
+
+            normalizedHabits.forEach(hName => {
+                const habit = habitList.find(h => h.name.toLowerCase() === hName);
+                if (habit) {
+                    toggleCheck(habit.id, dateStr);
+                }
+            });
+        };
+
+        // Try to render immediately
+        try {
+            renderMatrix();
+        } catch (e) {
+            console.error("Matrix render failed:", e);
+        }
+
+        // --- Charts Logic ---
+        try {
+            const dailyLabels = {{ daily_hours | map(attribute = 'label') | list | tojson
+        }};
+    const dailyData = {{ daily_hours | map(attribute = 'hours') | list | tojson }};
+
+    const chartLabels = (dailyLabels && dailyLabels.length) ? dailyLabels : ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
+    const chartData = (dailyData && dailyData.length) ? dailyData : [0, 0, 0, 0, 0, 0, 0];
+
+    const lineChartEl = document.getElementById('lineChart');
+    if (lineChartEl && typeof Chart !== 'undefined') {
+        new Chart(lineChartEl.getContext('2d'), {
+            type: 'line',
+            data: {
+                labels: chartLabels,
+                datasets: [{
+                    label: 'Focus Hours',
+                    data: chartData,
+                    borderColor: '#4ade80',
+                    backgroundColor: 'rgba(74, 222, 128, 0.1)',
+                    tension: 0.4,
+                    fill: true
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                scales: {
+                    y: { grid: { color: 'rgba(255,255,255,0.05)' }, beginAtZero: true },
+                    x: { grid: { display: false } }
+                }
+            }
+        });
+    } else {
+        console.warn("Chart.js not loaded or element missing");
+    }
+    } catch (e) {
+        console.error("Chart rendering failed:", e);
+    }
+
+    // --- Pie Chart Logic ---
+    try {
+        const catData = {{ category_distribution | tojson
+    }};
+    const pieLabels = Object.keys(catData);
+    const pieValues = Object.values(catData);
+
+    const pieCtx = document.getElementById('categoryPieChart').getContext('2d');
+    new Chart(pieCtx, {
+        type: 'doughnut',
+        data: {
+            labels: pieLabels,
+            datasets: [{
+                data: pieValues,
+                backgroundColor: [
+                    '#4ade80', '#60a5fa', '#a78bfa', '#fbbf24', '#f472b6', '#22d3ee'
+                ],
+                borderWidth: 0,
+                hoverOffset: 20
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+                legend: {
+                    position: 'bottom',
+                    labels: {
+                        color: '#a1a1aa',
+                        padding: 20,
+                        font: { size: 12 }
+                    }
+                }
+            },
+            cutout: '70%'
+        }
+    });
+    } catch (e) {
+        console.error("Pie Chart rendering failed:", e);
+    }
+
+});
+</script>
+
+<script>
+// ── Count-up animation ────────────────────────────────────────
+document.addEventListener('DOMContentLoaded', () => {
+    // Count-up numbers
+    document.querySelectorAll('.count-up').forEach(el => {
+        const target = parseFloat(el.dataset.target) || 0;
+        const suffix = el.dataset.suffix || '';
+        const isFloat = String(target).includes('.');
+        const dur = 1400, steps = 60;
+        let step = 0;
+        const timer = setInterval(() => {
+            step++;
+            const progress = step / steps;
+            const ease = 1 - Math.pow(1 - progress, 3);
+            const val = target * ease;
+            el.textContent = (isFloat ? val.toFixed(1) : Math.floor(val)) + suffix;
+            if (step >= steps) { el.textContent = (isFloat ? target.toFixed(1) : target) + suffix; clearInterval(timer); }
+        }, dur / steps);
+    });
+
+    // Animate topic bars
+    setTimeout(() => {
+        document.querySelectorAll('.topic-bar').forEach(bar => {
+            bar.style.width = (bar.dataset.width || 0) + '%';
+        });
+    }, 300);
+
+    // Weekly goal ring
+    const weeklyHours = {{ weekly_hours | default(0) }};
+    const goalTarget  = 7;
+    const pct  = Math.min(100, Math.round((weeklyHours / goalTarget) * 100));
+    const ring = document.getElementById('goal-ring');
+    const pctEl = document.getElementById('goal-pct');
+    const hoursEl = document.getElementById('goal-hours');
+    const labelEl = document.getElementById('goal-label');
+
+    if (ring) {
+        setTimeout(() => {
+            ring.style.strokeDashoffset = 201.1 - (201.1 * pct / 100);
+            ring.style.stroke = pct >= 100 ? '#fbbf24' : pct >= 60 ? '#4ade80' : '#7c3aed';
+        }, 200);
+    }
+    // Count-up the hours
+    let step = 0, steps = 60;
+    const timer2 = setInterval(() => {
+        step++;
+        const ease = 1 - Math.pow(1 - step/steps, 3);
+        if (hoursEl) hoursEl.textContent = (weeklyHours * ease).toFixed(1);
+        if (pctEl)   pctEl.textContent   = Math.floor(pct * ease) + '%';
+        if (step >= steps) {
+            if (hoursEl) hoursEl.textContent = weeklyHours.toFixed(1);
+            if (pctEl)   pctEl.textContent   = pct + '%';
+            clearInterval(timer2);
+        }
+    }, 1400/60);
+
+    if (labelEl) {
+        if (pct >= 100)     labelEl.textContent = '🎉 Goal Crushed!';
+        else if (pct >= 70) labelEl.textContent = '🔥 Almost there!';
+        else if (pct >= 40) labelEl.textContent = '💪 Keep going!';
+        else                labelEl.textContent = '🚀 Start strong!';
+        labelEl.style.color = pct >= 100 ? '#fbbf24' : pct >= 60 ? '#4ade80' : '#a78bfa';
+    }
+});
+</script>
+<style>
+    .progress-card-header {
+        padding: 24px;
+        border-bottom: 1px solid var(--border);
+    }
+
+    .header-title-row {
+        display: flex;
+        align-items: center;
+        gap: 16px;
+        margin-bottom: 12px;
+    }
+
+    .matrix-title {
+        font-weight: 700;
+        font-size: 1.25rem;
+        color: var(--text-primary);
+    }
+
+    .header-subtitle {
+        display: flex;
+        gap: 12px;
+        align-items: center;
+        flex-wrap: wrap;
+    }
+
+    .freeze-tag {
+        display: flex;
+        align-items: center;
+        gap: 6px;
+        color: #60a5fa;
+        background: rgba(96, 165, 250, 0.1);
+        padding: 4px 12px;
+        border-radius: 20px;
+        font-weight: 600;
+        font-size: 0.85rem;
+    }
+
+    .overview-text {
+        color: var(--text-secondary);
+        font-weight: 500;
+        font-size: 0.9rem;
+    }
+
+    .mobile-scroll-hint {
+        display: none;
+        font-size: 0.75rem;
+        color: var(--accent-green);
+        background: rgba(74, 222, 128, 0.1);
+        padding: 2px 8px;
+        border-radius: 4px;
+        margin-left: auto;
+    }
+
+    .progress-charts-grid {
+        display: grid;
+        grid-template-columns: 2fr 1fr;
+        gap: 24px;
+        padding-bottom: 80px;
+    }
+
+    @media (max-width: 1024px) {
+        .progress-charts-grid {
+            grid-template-columns: 1fr;
+        }
+    }
+
+    @media (max-width: 768px) {
+        .mobile-scroll-hint {
+            display: inline-flex;
+            align-items: center;
+            gap: 4px;
+        }
+
+        .matrix-title {
+            font-size: 1.1rem;
+        }
+
+        .header-title-row {
+            gap: 10px;
+        }
+
+        #weekly-completion-badge {
+            font-size: 0.85rem !important;
+        }
+    }
+
+    .stat-summary-box {
+        display: flex;
+        align-items: center;
+        gap: 16px;
+        background: rgba(255, 255, 255, 0.03);
+        padding: 16px;
+        border-radius: 12px;
+        border: 1px solid var(--border);
+    }
+
+    .stat-icon {
+        width: 40px;
+        height: 40px;
+        border-radius: 10px;
+        display: grid;
+        place-items: center;
+        font-size: 1.2rem;
+    }
+</style>
+{% endblock %}

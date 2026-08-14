@@ -1,0 +1,443 @@
+{% extends "layout.html" %}
+{% block title %}📡 Live Study Streams - StudyVerse{% endblock %}
+
+{% block content %}
+<style>
+    .live-page {
+        padding: 24px 32px;
+        max-width: 1000px;
+        margin: 0 auto;
+        animation: fadeUp 0.4s ease;
+    }
+
+    @keyframes fadeUp {
+        from {
+            opacity: 0;
+            transform: translateY(14px)
+        }
+
+        to {
+            opacity: 1;
+            transform: translateY(0)
+        }
+    }
+
+    .live-header {
+        margin-bottom: 28px;
+    }
+
+    .live-header h1 {
+        font-size: 26px;
+        font-weight: 800;
+        background: linear-gradient(135deg, #ef4444, #f97316, #a78bfa);
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+        background-clip: text;
+        margin-bottom: 6px;
+    }
+
+    .live-header p {
+        color: var(--text-secondary);
+        font-size: 14px;
+    }
+
+    /* Go Live CTA (if no one is live) */
+    .go-live-cta {
+        background: linear-gradient(135deg, rgba(239, 68, 68, 0.1), rgba(249, 115, 22, 0.06));
+        border: 1px dashed rgba(239, 68, 68, 0.3);
+        border-radius: 18px;
+        padding: 40px 32px;
+        text-align: center;
+        margin-bottom: 24px;
+    }
+
+    .go-live-cta i {
+        font-size: 40px;
+        color: #ef4444;
+        margin-bottom: 16px;
+        display: block;
+    }
+
+    .go-live-cta h2 {
+        font-size: 18px;
+        font-weight: 800;
+        color: var(--text-primary);
+        margin-bottom: 8px;
+    }
+
+    .go-live-cta p {
+        color: var(--text-muted);
+        font-size: 13.5px;
+        margin-bottom: 20px;
+    }
+
+    .btn-go-live-big {
+        display: inline-flex;
+        align-items: center;
+        gap: 10px;
+        padding: 14px 32px;
+        border-radius: 12px;
+        background: linear-gradient(135deg, #ef4444, #f97316);
+        color: white;
+        border: none;
+        font-size: 15px;
+        font-weight: 800;
+        cursor: pointer;
+        text-decoration: none;
+        box-shadow: 0 6px 20px rgba(239, 68, 68, 0.3);
+        transition: all 0.2s;
+    }
+
+    .btn-go-live-big:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 10px 28px rgba(239, 68, 68, 0.4);
+        color: white;
+    }
+
+    /* Stream cards grid */
+    .streams-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+        gap: 18px;
+        margin-bottom: 32px;
+    }
+
+    .stream-card {
+        background: var(--bg-card);
+        border: 1px solid var(--border);
+        border-radius: 16px;
+        overflow: hidden;
+        transition: all 0.2s;
+        text-decoration: none;
+        color: inherit;
+        display: block;
+    }
+
+    .stream-card:hover {
+        border-color: #ef4444;
+        transform: translateY(-3px);
+        box-shadow: 0 8px 28px rgba(0, 0, 0, 0.25);
+    }
+
+    .stream-card-top {
+        background: linear-gradient(135deg, rgba(239, 68, 68, 0.12), rgba(249, 115, 22, 0.07));
+        padding: 20px;
+        display: flex;
+        gap: 14px;
+        align-items: center;
+    }
+
+    .stream-card-avatar {
+        position: relative;
+        flex-shrink: 0;
+    }
+
+    .stream-card-avatar img {
+        width: 56px;
+        height: 56px;
+        border-radius: 50%;
+        border: 2.5px solid #ef4444;
+        box-shadow: 0 0 14px rgba(239, 68, 68, 0.35);
+    }
+
+    .live-badge-sm {
+        position: absolute;
+        bottom: -4px;
+        right: -4px;
+        background: #ef4444;
+        color: white;
+        font-size: 8px;
+        font-weight: 800;
+        padding: 2px 5px;
+        border-radius: 6px;
+    }
+
+    .stream-card-info h3 {
+        font-size: 15px;
+        font-weight: 800;
+        color: var(--text-primary);
+        margin-bottom: 4px;
+    }
+
+    .stream-card-info p {
+        font-size: 12.5px;
+        color: var(--text-muted);
+        margin: 0;
+    }
+
+    .stream-card-info .subject-pill {
+        display: inline-block;
+        margin-top: 4px;
+        padding: 2px 10px;
+        border-radius: 20px;
+        font-size: 11.5px;
+        font-weight: 600;
+        background: rgba(249, 115, 22, 0.12);
+        color: #f97316;
+        border: 1px solid rgba(249, 115, 22, 0.2);
+    }
+
+    .stream-card-bottom {
+        padding: 14px 20px;
+        border-top: 1px solid var(--border);
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+    }
+
+    .stream-meta-item {
+        font-size: 12px;
+        color: var(--text-muted);
+        display: flex;
+        align-items: center;
+        gap: 5px;
+    }
+
+    .stream-meta-item i {
+        font-size: 11px;
+    }
+
+    .btn-watch {
+        padding: 7px 18px;
+        border-radius: 8px;
+        font-size: 12.5px;
+        font-weight: 700;
+        background: rgba(239, 68, 68, 0.12);
+        color: #f87171;
+        border: 1px solid rgba(239, 68, 68, 0.2);
+        cursor: pointer;
+        display: flex;
+        align-items: center;
+        gap: 6px;
+        transition: all 0.2s;
+        text-decoration: none;
+    }
+
+    .btn-watch:hover {
+        background: rgba(239, 68, 68, 0.22);
+        color: #f87171;
+    }
+
+    /* Empty state */
+    .empty-live {
+        text-align: center;
+        padding: 60px 20px;
+        color: var(--text-muted);
+    }
+
+    .empty-live i {
+        font-size: 40px;
+        opacity: 0.25;
+        display: block;
+        margin-bottom: 14px;
+    }
+
+    .empty-live h3 {
+        font-size: 16px;
+        font-weight: 700;
+        color: var(--text-secondary);
+        margin-bottom: 8px;
+    }
+
+    .empty-live p {
+        font-size: 13.5px;
+    }
+
+    /* Live pulse header */
+    .live-count-header {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        margin-bottom: 16px;
+    }
+
+    .live-pulsedot {
+        width: 8px;
+        height: 8px;
+        border-radius: 50%;
+        background: #ef4444;
+        animation: lp 1.2s ease infinite;
+        box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.5);
+    }
+
+    @keyframes lp {
+        0% {
+            box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.5);
+        }
+
+        70% {
+            box-shadow: 0 0 0 8px rgba(239, 68, 68, 0);
+        }
+
+        100% {
+            box-shadow: 0 0 0 0 rgba(239, 68, 68, 0);
+        }
+    }
+
+    .live-count-label {
+        font-size: 14px;
+        font-weight: 700;
+        color: var(--text-primary);
+    }
+
+    .live-count-sub {
+        font-size: 12px;
+        color: var(--text-muted);
+    }
+
+    @media(max-width:768px) {
+        .live-page {
+            padding: 16px;
+        }
+    }
+
+    /* ── Polish additions ── */
+    .stream-card {
+        opacity: 0;
+        animation: streamCardIn 0.5s cubic-bezier(0.34,1.2,0.64,1) forwards;
+    }
+    @keyframes streamCardIn {
+        from { opacity:0; transform: translateY(18px) scale(0.97); }
+        to   { opacity:1; transform: translateY(0)   scale(1); }
+    }
+
+    /* Avatar live ring heartbeat */
+    .stream-card-avatar img {
+        animation: avatarRing 2s ease-in-out infinite;
+    }
+    @keyframes avatarRing {
+        0%,100% { box-shadow: 0 0 10px rgba(239,68,68,0.35); }
+        50%      { box-shadow: 0 0 22px rgba(239,68,68,0.75); }
+    }
+
+    /* Go-live button breathing glow */
+    .btn-go-live-big {
+        animation: goLiveGlow 2.4s ease-in-out infinite;
+    }
+    @keyframes goLiveGlow {
+        0%,100% { box-shadow: 0 6px 20px rgba(239,68,68,0.3); }
+        50%      { box-shadow: 0 8px 32px rgba(239,68,68,0.6); }
+    }
+
+    /* Watch button stronger hover */
+    .btn-watch:hover {
+        background: rgba(239,68,68,0.28) !important;
+        transform: scale(1.04);
+        box-shadow: 0 4px 12px rgba(239,68,68,0.2);
+    }
+
+    /* Empty satellite icon gentle pulse */
+    .empty-live i {
+        animation: satPulse 3s ease-in-out infinite;
+    }
+    @keyframes satPulse {
+        0%,100% { opacity:0.25; transform: scale(1); }
+        50%      { opacity:0.4;  transform: scale(1.08); }
+    }
+</style>
+
+<div class="live-page">
+    <div class="live-header">
+        <h1><i class="fa-solid fa-satellite-dish" style="font-size:22px; -webkit-text-fill-color:#ef4444;"></i> Live
+            Study Streams</h1>
+        <p>Watch your friends study live, cheer them on, and join in solidarity for bonus XP.</p>
+    </div>
+
+    <!-- Go Live CTA card OR You're Live banner -->
+    {% if user_is_live and own_stream %}
+    <div class="go-live-cta"
+        style="background:linear-gradient(135deg,rgba(239,68,68,0.12),rgba(249,115,22,0.06)); border-color:rgba(239,68,68,0.2);">
+        <div style="display:flex;align-items:center;gap:10px;margin-bottom:8px;">
+            <span
+                style="width:10px;height:10px;border-radius:50%;background:#ef4444;animation:lp 1.2s ease infinite;"></span>
+            <span
+                style="font-size:13px;font-weight:800;color:#f87171;text-transform:uppercase;letter-spacing:0.5px;">YOU
+                ARE LIVE</span>
+        </div>
+        <h2 style="margin-bottom:6px;">📡 {{ own_stream.topic }}</h2>
+        {% if own_stream.subject %}<p style="margin-bottom:14px;">{{ own_stream.subject }} &middot; {{
+            own_stream.watcher_count }} watching</p>{% endif %}
+        <a href="/stream/{{ own_stream.user_id }}" class="btn-go-live-big"
+            style="background:linear-gradient(135deg,#ef4444,#f97316);">
+            <i class="fa-solid fa-eye"></i> View Your Stream
+        </a>
+    </div>
+    {% else %}
+    <div class="go-live-cta">
+        <i class="fa-solid fa-broadcast-tower"></i>
+        <h2>Go Live &amp; Study Together</h2>
+        <p>Start a live study session. Friends get notified, can watch your timer, and cheer you on in real-time.</p>
+        <a href="/pomodoro" class="btn-go-live-big">
+            <i class="fa-solid fa-circle" style="font-size:10px;"></i> Start Your Live Session
+        </a>
+    </div>
+    {% endif %}
+
+    <!-- Active streams -->
+    {% if live_friends %}
+    <div class="live-count-header">
+        <div class="live-pulsedot"></div>
+        <span class="live-count-label">{{ live_friends|length }} friend{{ 's' if live_friends|length != 1 }} live right
+            now</span>
+        <span class="live-count-sub">&middot; Updates automatically</span>
+    </div>
+    <div class="streams-grid" id="streamsGrid">
+        {% for s in live_friends %}
+        <a class="stream-card" href="/stream/{{ s.user_id }}">
+            <div class="stream-card-top">
+                <div class="stream-card-avatar">
+                    <img src="{{ s.avatar }}" alt="{{ s.name }}">
+                    <span class="live-badge-sm">LIVE</span>
+                </div>
+                <div class="stream-card-info">
+                    <h3>{{ s.name }}</h3>
+                    <p>📚 {{ s.topic }}</p>
+                    {% if s.subject %}<span class="subject-pill">{{ s.subject }}</span>{% endif %}
+                </div>
+            </div>
+            <div class="stream-card-bottom">
+                <span class="stream-meta-item" id="wc-{{ s.user_id }}"><i class="fa-solid fa-eye"></i> {{
+                    s.watcher_count }} watching</span>
+                <span class="stream-meta-item"><i class="fa-solid fa-hourglass-half"></i> {{ s.timer_min }} min
+                    session</span>
+                <span class="btn-watch"><i class="fa-solid fa-play"></i> Watch</span>
+            </div>
+        </a>
+        {% endfor %}
+    </div>
+    {% else %}
+    <div class="empty-live">
+        <i class="fa-solid fa-satellite-dish"></i>
+        <h3>No one is live right now</h3>
+        <p>Be the first! Start a study session and your friends will see you live.<br>Or add more friends so you can
+            watch each other study.</p>
+    </div>
+    {% endif %}
+</div>
+
+<script>
+    document.querySelector('[data-nav="live"]') && document.querySelector('[data-nav="live"]').classList.add('active');
+
+    // Stagger stream card entrances
+    document.querySelectorAll('.stream-card').forEach((card, i) => {
+        card.style.animationDelay = (i * 0.1) + 's';
+    });
+
+    // Auto-refresh live feed every 15 seconds
+    setInterval(() => {
+        fetch('/api/streams/live')
+            .then(r => r.json())
+            .then(data => {
+                const grid = document.getElementById('streamsGrid');
+                if (!grid) return;
+                data.streams.forEach(s => {
+                    const card = grid.querySelector(`[href="/stream/${s.user_id}"]`);
+                    if (card) {
+                        const wEl = card.querySelector('.stream-meta-item');
+                        if (wEl) wEl.innerHTML = `<i class="fa-solid fa-eye"></i> ${s.watcher_count} watching`;
+                    }
+                });
+            }).catch(() => {});
+    }, 15000);
+</script>
+{% endblock %}

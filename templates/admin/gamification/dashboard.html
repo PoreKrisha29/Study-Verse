@@ -1,0 +1,486 @@
+{% extends "admin/base.html" %}
+{% block title %}Gamification Management{% endblock %}
+{% block page_title %}Gamification{% endblock %}
+
+{% block content %}
+<style>
+    .gami-stats {
+        display: grid;
+        grid-template-columns: repeat(3, 1fr);
+        gap: 16px;
+        margin-bottom: 28px;
+    }
+
+    .gami-stat {
+        background: var(--bg-card);
+        border: 1px solid var(--border);
+        border-radius: var(--radius-lg);
+        padding: 22px;
+        position: relative;
+        overflow: hidden;
+        transition: var(--transition);
+    }
+
+    .gami-stat:hover {
+        transform: translateY(-2px);
+        box-shadow: var(--shadow-md);
+    }
+
+    .gami-stat::after {
+        content: '';
+        position: absolute;
+        top: 0;
+        right: 0;
+        width: 80px;
+        height: 80px;
+        border-radius: 50%;
+        transform: translate(30px, -30px);
+        opacity: 0.06;
+    }
+
+    .gami-stat-icon {
+        width: 44px;
+        height: 44px;
+        border-radius: 12px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        margin-bottom: 14px;
+        font-size: 18px;
+    }
+
+    .gami-stat-val {
+        font-size: 32px;
+        font-weight: 800;
+        color: var(--text-primary);
+        letter-spacing: -1px;
+        line-height: 1;
+        margin-bottom: 4px;
+    }
+
+    .gami-stat-label {
+        font-size: 12px;
+        color: var(--text-muted);
+        font-weight: 600;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+    }
+
+    /* colour variants */
+    .gsc-purple .gami-stat-icon {
+        background: rgba(139, 92, 246, 0.1);
+        color: #8b5cf6;
+    }
+
+    .gsc-purple::after {
+        background: #8b5cf6;
+    }
+
+    .gsc-purple:hover {
+        border-color: rgba(139, 92, 246, 0.3);
+    }
+
+    .gsc-blue .gami-stat-icon {
+        background: rgba(59, 130, 246, 0.1);
+        color: #3b82f6;
+    }
+
+    .gsc-blue::after {
+        background: #3b82f6;
+    }
+
+    .gsc-blue:hover {
+        border-color: rgba(59, 130, 246, 0.3);
+    }
+
+    .gsc-green .gami-stat-icon {
+        background: rgba(74, 222, 128, 0.1);
+        color: #4ade80;
+    }
+
+    .gsc-green::after {
+        background: #4ade80;
+    }
+
+    .gsc-green:hover {
+        border-color: rgba(74, 222, 128, 0.3);
+    }
+
+    .gsc-orange .gami-stat-icon {
+        background: rgba(245, 158, 11, 0.1);
+        color: #f59e0b;
+    }
+
+    .gsc-orange::after {
+        background: #f59e0b;
+    }
+
+    .gsc-orange:hover {
+        border-color: rgba(245, 158, 11, 0.3);
+    }
+
+    .gsc-pink .gami-stat-icon {
+        background: rgba(236, 72, 153, 0.1);
+        color: #ec4899;
+    }
+
+    .gsc-pink::after {
+        background: #ec4899;
+    }
+
+    .gsc-pink:hover {
+        border-color: rgba(236, 72, 153, 0.3);
+    }
+
+    .gsc-teal .gami-stat-icon {
+        background: rgba(20, 184, 166, 0.1);
+        color: #14b8a6;
+    }
+
+    .gsc-teal::after {
+        background: #14b8a6;
+    }
+
+    .gsc-teal:hover {
+        border-color: rgba(20, 184, 166, 0.3);
+    }
+
+    /* section cards */
+    .section-card {
+        background: var(--bg-card);
+        border: 1px solid var(--border);
+        border-radius: var(--radius-lg);
+        overflow: hidden;
+        margin-bottom: 22px;
+    }
+
+    .section-head {
+        padding: 17px 22px;
+        border-bottom: 1px solid var(--border);
+        font-size: 15px;
+        font-weight: 700;
+        color: var(--text-primary);
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        background: rgba(255, 255, 255, 0.015);
+    }
+
+    .section-head i {
+        color: var(--accent);
+        font-size: 14px;
+    }
+
+    .section-body {
+        padding: 0;
+    }
+
+    /* user row */
+    .user-row {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding: 14px 22px;
+        border-bottom: 1px solid var(--border);
+        transition: var(--transition);
+    }
+
+    .user-row:last-child {
+        border-bottom: none;
+    }
+
+    .user-row:hover {
+        background: rgba(74, 222, 128, 0.025);
+    }
+
+    .ur-left {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+    }
+
+    .ur-rank-num {
+        width: 26px;
+        height: 26px;
+        border-radius: 50%;
+        background: var(--bg-card-2);
+        border: 1px solid var(--border);
+        display: grid;
+        place-items: center;
+        font-size: 12px;
+        font-weight: 700;
+        color: var(--text-muted);
+        flex-shrink: 0;
+    }
+
+    .ur-rank-num.top1 {
+        background: rgba(245, 158, 11, 0.1);
+        color: #f59e0b;
+        border-color: rgba(245, 158, 11, 0.3);
+    }
+
+    .ur-rank-num.top2 {
+        background: rgba(148, 163, 184, 0.1);
+        color: #94a3b8;
+        border-color: rgba(148, 163, 184, 0.3);
+    }
+
+    .ur-rank-num.top3 {
+        background: rgba(180, 83, 9, 0.1);
+        color: #b45309;
+        border-color: rgba(180, 83, 9, 0.3);
+    }
+
+    .ur-avatar {
+        width: 38px;
+        height: 38px;
+        border-radius: 50%;
+        object-fit: cover;
+        border: 2px solid var(--border);
+    }
+
+    .ur-name {
+        font-size: 14px;
+        font-weight: 600;
+        color: var(--text-primary);
+        margin-bottom: 2px;
+    }
+
+    .ur-sub {
+        font-size: 12px;
+        color: var(--text-muted);
+    }
+
+    .xp-value {
+        font-size: 13.5px;
+        font-weight: 700;
+        color: var(--accent);
+        font-family: 'JetBrains Mono', monospace;
+        background: rgba(74, 222, 128, 0.08);
+        border: 1px solid rgba(74, 222, 128, 0.15);
+        padding: 5px 12px;
+        border-radius: 20px;
+    }
+
+    /* badge items */
+    .badge-row {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding: 14px 22px;
+        border-bottom: 1px solid var(--border);
+        transition: var(--transition);
+    }
+
+    .badge-row:last-child {
+        border-bottom: none;
+    }
+
+    .badge-row:hover {
+        background: rgba(74, 222, 128, 0.025);
+    }
+
+    .badge-left {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+    }
+
+    .badge-icon-wrap {
+        width: 40px;
+        height: 40px;
+        border-radius: 10px;
+        background: rgba(245, 158, 11, 0.1);
+        border: 1px solid rgba(245, 158, 11, 0.2);
+        display: grid;
+        place-items: center;
+        font-size: 18px;
+        color: #f59e0b;
+    }
+
+    .badge-name {
+        font-size: 14px;
+        font-weight: 600;
+        color: var(--text-primary);
+        margin-bottom: 2px;
+    }
+
+    .badge-desc {
+        font-size: 12px;
+        color: var(--text-muted);
+    }
+
+    /* XP transactions */
+    .xp-tx {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding: 13px 22px;
+        border-bottom: 1px solid var(--border);
+        transition: var(--transition);
+    }
+
+    .xp-tx:last-child {
+        border-bottom: none;
+    }
+
+    .xp-tx:hover {
+        background: rgba(74, 222, 128, 0.025);
+    }
+
+    .xp-tx-left {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+    }
+
+    .xp-tx-id {
+        font-size: 14px;
+        font-weight: 600;
+        color: var(--text-primary);
+    }
+
+    .xp-tx-source {
+        font-size: 12px;
+        color: var(--text-muted);
+        background: var(--bg-card-2);
+        border: 1px solid var(--border);
+        padding: 2px 8px;
+        border-radius: 12px;
+    }
+
+    .xp-tx-time {
+        font-size: 12px;
+        color: var(--text-muted);
+    }
+
+    .xp-pos {
+        color: var(--accent);
+        font-weight: 700;
+        font-size: 14px;
+    }
+
+    .xp-neg {
+        color: #ef4444;
+        font-weight: 700;
+        font-size: 14px;
+    }
+</style>
+
+<!-- Stat cards (2 rows of 3) -->
+<div class="gami-stats">
+    <div class="gami-stat gsc-purple">
+        <div class="gami-stat-icon"><i class="fa-solid fa-star"></i></div>
+        <div class="gami-stat-val">{{ '{:,}'.format(stats.total_xp|int) }}</div>
+        <div class="gami-stat-label">Total XP Awarded</div>
+    </div>
+    <div class="gami-stat gsc-blue">
+        <div class="gami-stat-icon"><i class="fa-solid fa-chart-bar"></i></div>
+        <div class="gami-stat-val">{{ stats.avg_xp }}</div>
+        <div class="gami-stat-label">Avg XP / User</div>
+    </div>
+    <div class="gami-stat gsc-green">
+        <div class="gami-stat-icon"><i class="fa-solid fa-arrow-trend-up"></i></div>
+        <div class="gami-stat-val">{{ stats.max_level }}</div>
+        <div class="gami-stat-label">Highest Level</div>
+    </div>
+    <div class="gami-stat gsc-teal">
+        <div class="gami-stat-icon"><i class="fa-solid fa-signal"></i></div>
+        <div class="gami-stat-val">{{ stats.avg_level }}</div>
+        <div class="gami-stat-label">Avg Level</div>
+    </div>
+    <div class="gami-stat gsc-orange">
+        <div class="gami-stat-icon"><i class="fa-solid fa-medal"></i></div>
+        <div class="gami-stat-val">{{ stats.total_badges }}</div>
+        <div class="gami-stat-label">Badge Types</div>
+    </div>
+    <div class="gami-stat gsc-pink">
+        <div class="gami-stat-icon"><i class="fa-solid fa-ribbon"></i></div>
+        <div class="gami-stat-val">{{ stats.total_earned }}</div>
+        <div class="gami-stat-label">Badges Earned</div>
+    </div>
+</div>
+
+<!-- Content row -->
+<div style="display: grid; grid-template-columns: 1fr 1fr; gap: 22px; margin-bottom: 22px;">
+
+    <!-- Top 10 Users -->
+    <div class="section-card">
+        <div class="section-head">
+            <i class="fa-solid fa-trophy"></i> Top 10 by XP
+        </div>
+        <div class="section-body">
+            {% for user in stats.top_users %}
+            <div class="user-row">
+                <div class="ur-left">
+                    <div
+                        class="ur-rank-num {{ 'top1' if loop.index==1 else 'top2' if loop.index==2 else 'top3' if loop.index==3 else '' }}">
+                        {{ loop.index }}
+                    </div>
+                    <img src="{{ user.get_avatar(40) }}" class="ur-avatar" alt="{{ user.first_name }}">
+                    <div>
+                        <div class="ur-name">{{ user.first_name }} {{ user.last_name }}</div>
+                        <div class="ur-sub">Lv {{ user.level }} • {{ user.rank }}</div>
+                    </div>
+                </div>
+                <span class="xp-value">{{ '{:,}'.format(user.total_xp) }} XP</span>
+            </div>
+            {% else %}
+            <div style="text-align:center; padding:40px; color:var(--text-muted);">No users yet</div>
+            {% endfor %}
+        </div>
+    </div>
+
+    <!-- Popular Badges -->
+    <div class="section-card">
+        <div class="section-head">
+            <i class="fa-solid fa-medal"></i> Most Popular Badges
+        </div>
+        <div class="section-body">
+            {% for badge, count in stats.popular_badges %}
+            <div class="badge-row">
+                <div class="badge-left">
+                    <div class="badge-icon-wrap">
+                        <i class="fa-solid {{ badge.icon }}"></i>
+                    </div>
+                    <div>
+                        <div class="badge-name">{{ badge.name }}</div>
+                        <div class="badge-desc">{{ badge.description }}</div>
+                    </div>
+                </div>
+                <span class="badge badge-orange"
+                    style="background:rgba(245,158,11,0.1); color:#f59e0b; border-color:rgba(245,158,11,0.2);">
+                    {{ count }} earned
+                </span>
+            </div>
+            {% else %}
+            <div style="text-align:center; padding:40px; color:var(--text-muted);">No badges yet</div>
+            {% endfor %}
+        </div>
+    </div>
+
+</div>
+
+<!-- Recent XP Transactions (full width) -->
+<div class="section-card">
+    <div class="section-head">
+        <i class="fa-solid fa-clock-rotate-left"></i> Recent XP Transactions
+    </div>
+    <div class="section-body">
+        {% for xp in stats.recent_xp %}
+        <div class="xp-tx">
+            <div class="xp-tx-left">
+                <div class="xp-tx-id">User #{{ xp.user_id }}</div>
+                <span class="xp-tx-source">{{ xp.source.replace('_',' ').title() }}</span>
+                <span class="xp-tx-time">{{ (xp.timestamp | to_ist).strftime('%b %d, %H:%M') }}</span>
+            </div>
+            <span class="{{ 'xp-pos' if xp.amount > 0 else 'xp-neg' }}">
+                {{ '+' if xp.amount > 0 else '' }}{{ xp.amount }} XP
+            </span>
+        </div>
+        {% else %}
+        <div style="text-align:center; padding:40px; color:var(--text-muted);">No XP activity yet</div>
+        {% endfor %}
+    </div>
+</div>
+{% endblock %}

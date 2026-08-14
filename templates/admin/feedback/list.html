@@ -1,0 +1,298 @@
+{% extends "admin/base.html" %}
+{% block title %}User Feedback{% endblock %}
+{% block page_title %}User Feedback{% endblock %}
+
+{% block content %}
+<style>
+    .sentiment-grid {
+        display: grid;
+        grid-template-columns: repeat(5, 1fr);
+        gap: 12px;
+        margin-bottom: 28px;
+    }
+
+    .sentiment-card {
+        background: var(--bg-card, #1a1a2e);
+        border: 1px solid rgba(255, 255, 255, 0.08);
+        border-radius: 14px;
+        padding: 20px 16px;
+        text-align: center;
+        transition: transform 0.2s;
+    }
+
+    .sentiment-card:hover {
+        transform: translateY(-2px);
+    }
+
+    .sentiment-emoji {
+        font-size: 2rem;
+        margin-bottom: 8px;
+        display: block;
+    }
+
+    .sentiment-count {
+        font-size: 1.8rem;
+        font-weight: 800;
+        color: #fff;
+    }
+
+    .sentiment-label {
+        font-size: 0.75rem;
+        color: #888;
+        margin-top: 4px;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+    }
+
+    .filter-bar {
+        display: flex;
+        gap: 12px;
+        align-items: center;
+        flex-wrap: wrap;
+        margin-bottom: 20px;
+        background: rgba(255, 255, 255, 0.03);
+        border: 1px solid rgba(255, 255, 255, 0.08);
+        border-radius: 12px;
+        padding: 14px 18px;
+    }
+
+    .filter-bar select,
+    .filter-bar a {
+        background: rgba(255, 255, 255, 0.06);
+        border: 1px solid rgba(255, 255, 255, 0.1);
+        border-radius: 8px;
+        color: #fff;
+        padding: 8px 14px;
+        font-size: 0.85rem;
+        text-decoration: none;
+        cursor: pointer;
+        outline: none;
+    }
+
+    .filter-bar a.active {
+        background: #4ade80;
+        color: #000;
+        border-color: #4ade80;
+        font-weight: 700;
+    }
+
+    .fb-table {
+        width: 100%;
+        border-collapse: collapse;
+    }
+
+    .fb-table th {
+        text-align: left;
+        padding: 10px 14px;
+        font-size: 0.72rem;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+        color: #666;
+        border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+    }
+
+    .fb-table td {
+        padding: 14px 14px;
+        border-bottom: 1px solid rgba(255, 255, 255, 0.04);
+        font-size: 0.88rem;
+        color: #ccc;
+        vertical-align: middle;
+    }
+
+    .fb-table tr:hover td {
+        background: rgba(255, 255, 255, 0.03);
+    }
+
+    .rating-pill {
+        display: inline-flex;
+        align-items: center;
+        gap: 5px;
+        padding: 4px 10px;
+        border-radius: 20px;
+        font-size: 0.8rem;
+        font-weight: 600;
+    }
+
+    .rating-love {
+        background: rgba(74, 222, 128, 0.15);
+        color: #4ade80;
+    }
+
+    .rating-happy {
+        background: rgba(96, 165, 250, 0.15);
+        color: #60a5fa;
+    }
+
+    .rating-neutral {
+        background: rgba(251, 191, 36, 0.15);
+        color: #fbbf24;
+    }
+
+    .rating-sad {
+        background: rgba(249, 115, 22, 0.15);
+        color: #f97316;
+    }
+
+    .rating-awful {
+        background: rgba(239, 68, 68, 0.15);
+        color: #ef4444;
+    }
+
+    .cat-badge {
+        padding: 3px 9px;
+        border-radius: 6px;
+        font-size: 0.72rem;
+        font-weight: 700;
+        text-transform: uppercase;
+        letter-spacing: 0.4px;
+    }
+
+    .cat-bug {
+        background: rgba(239, 68, 68, 0.1);
+        color: #ef4444;
+    }
+
+    .cat-feature {
+        background: rgba(139, 92, 246, 0.1);
+        color: #a78bfa;
+    }
+
+    .cat-general {
+        background: rgba(148, 163, 184, 0.1);
+        color: #94a3b8;
+    }
+
+    .empty-state {
+        text-align: center;
+        padding: 60px 20px;
+        color: #555;
+    }
+
+    .empty-state i {
+        font-size: 3rem;
+        margin-bottom: 16px;
+        display: block;
+    }
+</style>
+
+<!-- Sentiment Summary -->
+<div class="sentiment-grid">
+    <div class="sentiment-card">
+        <span class="sentiment-emoji">😍</span>
+        <div class="sentiment-count">{{ rating_counts.love }}</div>
+        <div class="sentiment-label">Love it</div>
+    </div>
+    <div class="sentiment-card">
+        <span class="sentiment-emoji">😊</span>
+        <div class="sentiment-count">{{ rating_counts.happy }}</div>
+        <div class="sentiment-label">Happy</div>
+    </div>
+    <div class="sentiment-card">
+        <span class="sentiment-emoji">😐</span>
+        <div class="sentiment-count">{{ rating_counts.neutral }}</div>
+        <div class="sentiment-label">Neutral</div>
+    </div>
+    <div class="sentiment-card">
+        <span class="sentiment-emoji">😞</span>
+        <div class="sentiment-count">{{ rating_counts.sad }}</div>
+        <div class="sentiment-label">Sad</div>
+    </div>
+    <div class="sentiment-card">
+        <span class="sentiment-emoji">😡</span>
+        <div class="sentiment-count">{{ rating_counts.awful }}</div>
+        <div class="sentiment-label">Awful</div>
+    </div>
+</div>
+
+<!-- Filter Bar -->
+<div class="filter-bar">
+    <span style="color:#888; font-size:0.8rem; font-weight:600;">FILTER:</span>
+    <a href="{{ url_for('admin_feedback') }}"
+        class="{{ 'active' if not request.args.get('rating') and not request.args.get('category') }}">All ({{ total
+        }})</a>
+    <a href="?rating=love" class="{{ 'active' if request.args.get('rating') == 'love' }}">😍 Love</a>
+    <a href="?rating=happy" class="{{ 'active' if request.args.get('rating') == 'happy' }}">😊 Happy</a>
+    <a href="?rating=neutral" class="{{ 'active' if request.args.get('rating') == 'neutral' }}">😐 Neutral</a>
+    <a href="?rating=sad" class="{{ 'active' if request.args.get('rating') == 'sad' }}">😞 Sad</a>
+    <a href="?rating=awful" class="{{ 'active' if request.args.get('rating') == 'awful' }}">😡 Awful</a>
+    <span style="color:#444; margin: 0 4px;">|</span>
+    <a href="?category=bug" class="{{ 'active' if request.args.get('category') == 'bug' }}">🐛 Bugs</a>
+    <a href="?category=feature" class="{{ 'active' if request.args.get('category') == 'feature' }}">✨ Features</a>
+    <a href="?category=general" class="{{ 'active' if request.args.get('category') == 'general' }}">💬 General</a>
+</div>
+
+<!-- Feedback Table -->
+<div
+    style="background: var(--bg-card, #1a1a2e); border: 1px solid rgba(255,255,255,0.08); border-radius: 16px; overflow: hidden;">
+    {% if feedbacks %}
+    <table class="fb-table">
+        <thead>
+            <tr>
+                <th>User</th>
+                <th>Rating</th>
+                <th>Category</th>
+                <th>Message</th>
+                <th>Page</th>
+                <th>Time</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for fb in feedbacks %}
+            <tr>
+                <td>
+                    {% if fb.user %}
+                    <div style="display:flex; align-items:center; gap:10px;">
+                        <img src="{{ fb.user.get_avatar(32) }}" style="width:28px;height:28px;border-radius:50%;">
+                        <div>
+                            <div style="font-weight:600;color:#fff;font-size:0.85rem;">{{ fb.user.first_name }} {{
+                                fb.user.last_name }}</div>
+                            <div style="font-size:0.72rem;color:#666;">{{ fb.user.email }}</div>
+                        </div>
+                    </div>
+                    {% else %}
+                    <span style="color:#555;">Anonymous</span>
+                    {% endif %}
+                </td>
+                <td>
+                    {% set emoji_map = {'love': '😍', 'happy': '😊', 'neutral': '😐', 'sad': '😞', 'awful': '😡'} %}
+                    <span class="rating-pill rating-{{ fb.rating }}">
+                        {{ emoji_map.get(fb.rating, '😐') }} {{ fb.rating | capitalize }}
+                    </span>
+                </td>
+                <td>
+                    <span class="cat-badge cat-{{ fb.category }}">
+                        {% if fb.category == 'bug' %}🐛 Bug
+                        {% elif fb.category == 'feature' %}✨ Feature
+                        {% else %}💬 General{% endif %}
+                    </span>
+                </td>
+                <td style="max-width:320px;">
+                    {% if fb.message %}
+                    <span style="color:#e2e8f0;">{{ fb.message }}</span>
+                    {% else %}
+                    <span style="color:#444;font-style:italic;">No message</span>
+                    {% endif %}
+                </td>
+                <td>
+                    {% if fb.page_url %}
+                    <span style="font-size:0.78rem;color:#666;font-family:monospace;">{{ fb.page_url[-40:] }}</span>
+                    {% else %}<span style="color:#444;">–</span>{% endif %}
+                </td>
+                <td style="white-space:nowrap;color:#666;font-size:0.8rem;">
+                    {% if fb.created_at %}
+                    {{ (fb.created_at + timedelta(hours=5, minutes=30)).strftime('%d %b, %I:%M %p') }}
+                    {% else %}–{% endif %}
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+    {% else %}
+    <div class="empty-state">
+        <i class="fa-regular fa-comment-dots"></i>
+        <div style="font-size:1.1rem;font-weight:600;color:#777;margin-bottom:8px;">No feedback yet</div>
+        <div style="color:#555;font-size:0.85rem;">Feedback from users will appear here once the widget goes live.</div>
+    </div>
+    {% endif %}
+</div>
+{% endblock %}

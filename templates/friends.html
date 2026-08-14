@@ -1,0 +1,590 @@
+{% extends "layout.html" %}
+
+{% block title %}Friends - StudyVerse{% endblock %}
+
+{% block content %}
+<header class="friends-header">
+    <div class="friends-header-info">
+        <h1 class="page-title-friends">Friends & Community</h1>
+        <p class="friends-subtitle">Connect with other students to stay motivated.</p>
+    </div>
+    <div class="friends-actions">
+        <div class="mode-switcher-friends">
+            <a href="/friends" class="mode-btn-friends active">Friends</a>
+            <a href="/group" class="mode-btn-friends">Group</a>
+        </div>
+    </div>
+</header>
+
+<div class="card search-card">
+    <div class="search-input-wrapper">
+        <i class="fa-solid fa-search search-icon"></i>
+        <input type="text" id="user-search" placeholder="Search students by name or email..."
+            class="search-input-friends">
+    </div>
+    <div id="search-results" class="search-results-container">
+        <h3 class="search-results-title">Search Results</h3>
+        <div id="results-list" class="results-list"></div>
+    </div>
+</div>
+
+<div class="friends-grid">
+    <!-- Friend Requests -->
+    <div class="card list-card">
+        <div class="list-header">
+            <div class="list-title"><i class="fa-solid fa-user-plus"></i> Friend Requests</div>
+            {% if friend_requests %}
+            <span class="badge badge-request-count">{{ friend_requests|length }}</span>
+            {% endif %}
+        </div>
+        <div class="items-container">
+            {% if friend_requests %}
+            {% for req in friend_requests %}
+            <div class="friend-item-row" id="req-{{ req.request_id }}">
+                <img src="{{ req.avatar }}" class="friend-avatar">
+                <div class="friend-info">
+                    <div class="friend-name">{{ req.name }}</div>
+                    <div class="friend-rank">Lvl {{ req.level }} • {{ req.rank.name }}</div>
+                </div>
+                <div class="friend-actions-small">
+                    <button onclick="respondRequest({{ req.request_id }}, 'accept')" class="btn-icon accept">
+                        <i class="fa-solid fa-check"></i>
+                    </button>
+                    <button onclick="respondRequest({{ req.request_id }}, 'reject')" class="btn-icon reject">
+                        <i class="fa-solid fa-xmark"></i>
+                    </button>
+                </div>
+            </div>
+            {% endfor %}
+            {% else %}
+            <div class="empty-state-text">No pending requests.</div>
+            {% endif %}
+        </div>
+    </div>
+
+    <!-- My Friends -->
+    <div class="card list-card">
+        <div class="list-header">
+            <div class="list-title"><i class="fa-solid fa-users"></i> My Friends</div>
+            <span class="friend-count-label">{{ my_friends|length }} Friends</span>
+        </div>
+        <div class="items-container">
+            {% if my_friends %}
+            {% for friend in my_friends %}
+            <div class="friend-item-row no-bg">
+                <img src="{{ friend.avatar }}" class="friend-avatar">
+                <div class="friend-info">
+                    <div class="friend-name">
+                        <a href="{{ url_for('profile', user_id=friend.id) }}" class="profile-link">{{ friend.name }}</a>
+                    </div>
+                    {% if friend.is_public %}
+                    <div class="friend-rank">{{ friend.rank.name }}</div>
+                    {% else %}
+                    <div class="friend-rank">Private Profile</div>
+                    {% endif %}
+                </div>
+                {% if friend.is_public %}
+                <div class="friend-level-tag">Lvl {{ friend.level }}</div>
+                {% endif %}
+                <!-- 1-to-1 Call Button -->
+                <button
+                    onclick="startDmCall('{{ friend.id }}', '{{ friend.name }}')"
+                    title="Call {{ friend.name }}"
+                    class="friend-call-btn">
+                    <i class="fa-solid fa-phone"></i>
+                </button>
+            </div>
+            {% endfor %}
+            {% else %}
+            <div class="empty-state-text">
+                You haven't added any friends yet. Use the search bar to find people!
+            </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    const CURRENT_USER_ID   = window.CURRENT_USER_ID;
+    const CURRENT_USER_NAME = window.CURRENT_USER_NAME;
+
+    document.querySelector('[data-nav="group"]').classList.add('active');
+
+    // Stagger friend row entrance
+    document.querySelectorAll('.friend-item-row').forEach((row, i) => {
+        row.style.animationDelay = (i * 0.07) + 's';
+    });
+
+    // Search Logic
+    const searchInput = document.getElementById('user-search');
+    const resultsContainer = document.getElementById('search-results');
+    const resultsList = document.getElementById('results-list');
+
+    let debounceTimer;
+
+    searchInput.addEventListener('input', (e) => {
+        clearTimeout(debounceTimer);
+        const query = e.target.value.trim();
+
+        if (query.length < 2) {
+            resultsContainer.style.display = 'none';
+            return;
+        }
+
+        debounceTimer = setTimeout(() => {
+            fetch(`/api/users/search?q=${encodeURIComponent(query)}`)
+                .then(res => res.json())
+                .then(users => {
+                    resultsList.innerHTML = '';
+                    if (users.length > 0) {
+                        resultsContainer.style.display = 'block';
+                        users.forEach(user => {
+                            const div = document.createElement('div');
+                            div.className = 'friend-item';
+                            div.style = 'display: flex; align-items: center; gap: 12px; padding: 12px; background: rgba(255,255,255,0.03); border-radius: 8px;';
+
+                            let actionBtn = '';
+                            if (user.status === 'none') {
+                                actionBtn = `<button onclick="sendRequest(${user.id}, this)" class="btn-sm" style="background: var(--accent-green); color: black; padding: 4px 12px; border-radius: 4px; border:none; cursor: pointer;">Add</button>`;
+                            } else if (user.status === 'pending') {
+                                actionBtn = `<span class="text-muted" style="font-size: 0.8rem;">Pending</span>`;
+                            } else if (user.status === 'sent') {
+                                actionBtn = `<span class="text-muted" style="font-size: 0.8rem;">Sent</span>`;
+                            } else if (user.status === 'received') {
+                                actionBtn = `<span class="text-muted" style="font-size: 0.8rem;">Check Requests</span>`;
+                            } else if (user.status === 'accepted') {
+                                actionBtn = `<span style="color: var(--accent-green); font-size: 0.8rem;"><i class="fa-solid fa-check"></i> Friends</span>`;
+                            }
+
+                            div.innerHTML = `
+                                <a href="/profile/${user.id}" style="display: flex; align-items: center; gap: 12px; flex: 1; text-decoration: none; color: inherit;">
+                                    <img src="${user.avatar}" style="width: 32px; height: 32px; border-radius: 50%;">
+                                    <div style="flex: 1;">
+                                        <div style="font-weight: 600; color: var(--text-primary);">${user.name}</div>
+                                        <div style="font-size: 0.75rem; color: var(--text-secondary);">${user.email}</div>
+                                    </div>
+                                </a>
+                                ${actionBtn}
+                            `;
+                            resultsList.appendChild(div);
+                        });
+                    } else {
+                        resultsContainer.style.display = 'block';
+                        resultsList.innerHTML = '<div style="color: var(--text-secondary); padding: 8px;">No users found.</div>';
+                    }
+                });
+        }, 300);
+    });
+
+    function sendRequest(userId, btn) {
+        fetch(`/friends/request/${userId}`, { method: 'POST' })
+            .then(res => res.json())
+            .then(data => {
+                if (data.status === 'success') {
+                    btn.outerHTML = '<span class="text-muted" style="font-size: 0.8rem;">Sent</span>';
+                } else {
+                    alert(data.error || 'Failed to send request');
+                }
+            });
+    }
+
+    function respondRequest(reqId, action) {
+        const endpoint = action === 'accept' ? `/friends/accept/${reqId}` : `/friends/reject/${reqId}`;
+        fetch(endpoint, { method: 'POST' })
+            .then(res => res.json())
+            .then(data => {
+                if (data.status === 'success') {
+                    document.getElementById(`req-${reqId}`).remove();
+                    if (action === 'accept') {
+                        location.reload();
+                    }
+                } else {
+                    alert(data.error || 'Failed to process request');
+                }
+            });
+    }
+</script>
+<style>
+    .search-card {
+        margin-bottom: 24px;
+        padding: 24px;
+        background: rgba(255, 255, 255, 0.02);
+        border: 1px solid rgba(255, 255, 255, 0.05);
+    }
+
+    .search-input-wrapper {
+        position: relative;
+    }
+
+    .search-icon {
+        position: absolute;
+        left: 15px;
+        top: 50%;
+        transform: translateY(-50%);
+        color: var(--text-secondary);
+        font-size: 1.1rem;
+    }
+
+    .search-input-friends {
+        width: 100%;
+        padding: 14px 14px 14px 45px;
+        background: rgba(255, 255, 255, 0.05);
+        border: 1px solid var(--border);
+        border-radius: 12px;
+        color: #fff;
+        font-size: 1rem;
+        outline: none;
+        transition: border-color 0.2s;
+    }
+
+    .search-input-friends:focus {
+        border-color: var(--accent-green);
+    }
+
+    .search-results-container {
+        margin-top: 20px;
+        display: none;
+    }
+
+    .search-results-title {
+        font-size: 0.85rem;
+        color: var(--text-secondary);
+        margin-bottom: 12px;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+        font-weight: 700;
+    }
+
+    .friends-grid {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 24px;
+    }
+
+    .list-card {
+        background: rgba(255, 255, 255, 0.02);
+        padding: 0;
+        overflow: hidden;
+    }
+
+    .list-header {
+        padding: 24px;
+        border-bottom: 1px solid var(--border);
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+    }
+
+    .list-title {
+        font-weight: 700;
+        font-size: 1.1rem;
+        color: #fff;
+        display: flex;
+        align-items: center;
+        gap: 10px;
+    }
+
+    .badge-request-count {
+        background: var(--accent-green) !important;
+        color: #000 !important;
+        font-weight: 800;
+    }
+
+    .friend-count-label {
+        font-size: 0.85rem;
+        color: var(--text-secondary);
+    }
+
+    .items-container {
+        padding: 16px;
+        display: flex;
+        flex-direction: column;
+        gap: 12px;
+    }
+
+    .friend-item-row {
+        display: flex;
+        align-items: center;
+        gap: 15px;
+        padding: 12px;
+        background: rgba(255, 255, 255, 0.03);
+        border-radius: 12px;
+        transition: transform 0.2s ease, box-shadow 0.2s ease;
+        opacity: 0;
+        animation: rowAppear 0.4s cubic-bezier(0.34,1.2,0.64,1) forwards;
+    }
+
+    @keyframes rowAppear {
+        from { opacity:0; transform: translateX(-12px); }
+        to   { opacity:1; transform: translateX(0); }
+    }
+
+    .friend-item-row:hover {
+        transform: translateY(-2px) !important;
+        box-shadow: 0 6px 20px rgba(0,0,0,0.25);
+    }
+
+    
+    .friend-item-row.no-bg {
+        background: transparent;
+        border-bottom: 1px solid var(--border);
+        border-radius: 0;
+        padding: 15px 12px;
+    }
+
+    .friend-item-row.no-bg:last-child {
+        border-bottom: none;
+    }
+
+    .friend-avatar {
+        width: 48px;
+        height: 48px;
+        border-radius: 50%;
+        border: 2px solid rgba(255,255,255,0.15);
+        transition: border-color 0.2s;
+    }
+
+    .friend-item-row:hover .friend-avatar {
+        border-color: var(--accent-green);
+    }
+
+    .friend-info {
+        flex: 1;
+    }
+
+    .friend-name {
+        font-weight: 700;
+        color: #fff;
+        margin-bottom: 2px;
+    }
+
+    .profile-link {
+        color: inherit;
+        text-decoration: none;
+    }
+
+    .profile-link:hover {
+        color: var(--accent-green);
+    }
+
+    .friend-rank {
+        font-size: 0.8rem;
+        color: var(--text-secondary);
+    }
+
+    .friend-actions-small {
+        display: flex;
+        gap: 8px;
+    }
+
+    .btn-icon {
+        width: 36px;
+        height: 36px;
+        border-radius: 10px;
+        border: none;
+        display: grid;
+        place-items: center;
+        cursor: pointer;
+        transition: transform 0.2s;
+    }
+
+    .btn-icon.accept {
+        color: var(--accent-green);
+        background: rgba(74, 222, 128, 0.1);
+    }
+
+    .btn-icon.reject {
+        color: var(--destructive);
+        background: rgba(239, 68, 68, 0.1);
+    }
+
+    .btn-icon:hover {
+        transform: scale(1.1);
+    }
+
+    .friend-call-btn {
+        width: 36px; height: 36px; border-radius: 50%; border: 1px solid rgba(99,102,241,0.3);
+        background: rgba(99,102,241,0.12); color: #818cf8; cursor: pointer;
+        display: grid; place-items: center; font-size: 0.85rem; flex-shrink: 0;
+        transition: all 0.2s;
+    }
+    .friend-call-btn:hover {
+        background: rgba(99,102,241,0.3); transform: scale(1.1);
+        box-shadow: 0 4px 14px rgba(99,102,241,0.3);
+    }
+
+    .friend-level-tag {
+        font-size: 0.9rem;
+        font-weight: 800;
+        color: var(--accent-green);
+        background: rgba(74, 222, 128, 0.08);
+        padding: 4px 10px;
+        border-radius: 8px;
+        border: 1px solid rgba(74,222,128,0.2);
+        position: relative;
+        overflow: hidden;
+    }
+
+    .friend-level-tag::after {
+        content: '';
+        position: absolute;
+        top: 0; left: -100%;
+        width: 60%; height: 100%;
+        background: linear-gradient(90deg, transparent, rgba(74,222,128,0.2), transparent);
+        animation: lvlShimmer 3s infinite ease-in-out;
+    }
+
+    @keyframes lvlShimmer {
+        0%   { left: -100%; }
+        100% { left: 200%; }
+    }
+
+    .empty-state-text {
+        text-align: center;
+        padding: 30px;
+        color: var(--text-secondary);
+        font-size: 0.9rem;
+        line-height: 1.5;
+    }
+
+    @media (max-width: 1024px) {
+        .friends-grid {
+            grid-template-columns: 1fr;
+        }
+    }
+
+    @media (max-width: 768px) {
+        .friends-header {
+            flex-direction: column;
+            gap: 15px;
+        }
+
+        .mode-switcher-friends {
+            width: 100%;
+        }
+
+        .mode-btn-friends {
+            flex: 1;
+            text-align: center;
+        }
+
+        .page-title-friends {
+            font-size: 1.75rem;
+        }
+
+        .friend-avatar {
+            width: 40px;
+            height: 40px;
+        }
+
+        /* Search card padding */
+        .search-card {
+            padding: 16px !important;
+        }
+    }
+
+    @media (max-width: 480px) {
+        .page-title-friends {
+            font-size: 1.4rem;
+        }
+
+        /* Friends header — tighter */
+        .friends-header {
+            gap: 10px;
+        }
+
+        /* Search input font size */
+        .search-input-friends {
+            font-size: 0.9rem;
+            padding: 12px 12px 12px 40px;
+        }
+
+        /* Friend rows — tighter */
+        .friend-item-row {
+            gap: 10px;
+            padding: 10px;
+        }
+
+        .friend-avatar {
+            width: 36px;
+            height: 36px;
+        }
+
+        .friend-name {
+            font-size: 0.9rem;
+        }
+
+        .friend-rank {
+            font-size: 0.72rem;
+        }
+
+        .friend-level-tag {
+            font-size: 0.8rem;
+            padding: 3px 8px;
+        }
+
+        /* List header */
+        .list-header {
+            padding: 16px;
+        }
+
+        .list-title {
+            font-size: 0.95rem;
+        }
+
+        /* Items container */
+        .items-container {
+            padding: 10px;
+            gap: 8px;
+        }
+
+        /* Search card */
+        .search-card {
+            padding: 12px !important;
+            margin-bottom: 16px;
+        }
+    }
+
+    @media (max-width: 360px) {
+        .page-title-friends {
+            font-size: 1.2rem;
+        }
+
+        .friends-subtitle {
+            font-size: 0.85rem;
+        }
+
+        .friend-avatar {
+            width: 32px;
+            height: 32px;
+        }
+
+        .friend-item-row {
+            gap: 8px;
+            padding: 8px;
+        }
+
+        .friend-name {
+            font-size: 0.82rem;
+        }
+
+        .friend-rank {
+            font-size: 0.68rem;
+        }
+
+        /* Mode switcher buttons smaller */
+        .mode-btn-friends {
+            font-size: 0.85rem;
+            padding: 8px 10px;
+        }
+
+        .btn-icon {
+            width: 30px;
+            height: 30px;
+        }
+    }
+
+</style>
+{% endblock %}

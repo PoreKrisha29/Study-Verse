@@ -1,0 +1,427 @@
+{% extends "layout.html" %}
+
+{% block title %}Ticket #{{ ticket.id }} - StudyVerse{% endblock %}
+
+{% block content %}
+<div class="support-detail-container">
+
+    <!-- Header -->
+    <div class="support-header">
+        <div>
+            <a href="{{ url_for('support') }}" class="back-link">
+                <i class="fa-solid fa-arrow-left"></i> Back to Support
+            </a>
+            <h1 class="ticket-subject">{{ ticket.subject }}</h1>
+            <div class="ticket-meta">
+                <span class="meta-item id">#{{ ticket.id }}</span>
+                <span class="dot"></span>
+                <span class="meta-item"><i class="fa-solid fa-tag"></i> {{ ticket.category|title }}</span>
+                <span class="dot"></span>
+                <span class="meta-item priority-{{ ticket.priority }}">
+                    <i class="fa-solid fa-flag"></i> {{ ticket.priority|title }} Priority
+                </span>
+            </div>
+        </div>
+
+        <div>
+            <div class="status-badge status-{{ ticket.status }}">
+                {{ ticket.status|replace('_', ' ') }}
+            </div>
+        </div>
+    </div>
+
+    <!-- Chat Area -->
+    <div class="chat-card">
+
+        <!-- Messages -->
+        <div class="chat-messages">
+            <div class="chat-date-divider">
+                <span>Ticket created on {{ ticket.created_at|ist_time }}</span>
+            </div>
+
+            {% for message in messages %}
+            <div class="message-wrapper {% if message.is_admin %}admin{% else %}user{% endif %}">
+                <!-- Sender Info -->
+                <div class="message-info">
+                    {% if message.is_admin %}Support Agent{% else %}You{% endif %} • {{ message.created_at|ist_time }}
+                </div>
+
+                <!-- Message Bubble -->
+                <div class="message-bubble">{{ message.message }}</div>
+            </div>
+            {% endfor %}
+
+            {% if ticket.status == 'closed' %}
+            <div class="ticket-closed-notice">
+                <div class="closed-icon">🔒</div>
+                <h3>Ticket Closed</h3>
+                <p>This support request has been marked as resolved. If you need further assistance, please open a new
+                    ticket.</p>
+            </div>
+            {% endif %}
+
+            <div id="scroll-anchor"></div>
+        </div>
+
+        <!-- Reply Input -->
+        {% if ticket.status != 'closed' %}
+        <div class="chat-input-area">
+            <form action="{{ url_for('support_reply', ticket_id=ticket.id) }}" method="POST" class="reply-form">
+                <textarea name="message" required placeholder="Type your reply here..." rows="1"
+                    class="chat-input"></textarea>
+                <button type="submit" class="send-btn">
+                    <i class="fa-solid fa-paper-plane"></i>
+                </button>
+            </form>
+
+        </div>
+        {% endif %}
+    </div>
+</div>
+
+<style>
+    .support-detail-container {
+        max-width: 900px;
+        margin: 0 auto;
+        display: flex;
+        flex-direction: column;
+        gap: 20px;
+        height: calc(100vh - 100px);
+        /* Fill available height */
+    }
+
+    /* Header */
+    .support-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: flex-start;
+        padding-bottom: 0;
+    }
+
+    .back-link {
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        color: var(--text-secondary);
+        text-decoration: none;
+        font-size: 0.9rem;
+        transition: color 0.2s;
+        margin-bottom: 16px;
+    }
+
+    .back-link:hover {
+        color: var(--text-primary);
+    }
+
+    .ticket-subject {
+        margin: 0 0 8px 0;
+        font-size: 1.75rem;
+        font-weight: 700;
+        line-height: 1.2;
+    }
+
+    .ticket-meta {
+        display: flex;
+        gap: 12px;
+        font-size: 0.85rem;
+        color: var(--text-secondary);
+        align-items: center;
+    }
+
+    .meta-item.id {
+        font-family: var(--font-mono);
+        opacity: 0.7;
+    }
+
+    .dot {
+        width: 4px;
+        height: 4px;
+        border-radius: 50%;
+        background: var(--border);
+    }
+
+    .meta-item.priority-urgent {
+        color: var(--destructive);
+        font-weight: 600;
+    }
+
+    .meta-item.priority-high {
+        color: #f59e0b;
+    }
+
+    .status-badge {
+        padding: 6px 14px;
+        border-radius: 20px;
+        font-size: 0.8rem;
+        font-weight: 600;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+    }
+
+    .status-badge.status-closed {
+        background: rgba(128, 128, 128, 0.1);
+        color: var(--text-secondary);
+        border: 1px solid var(--border);
+    }
+
+    .status-badge.status-in_progress {
+        background: rgba(59, 130, 246, 0.1);
+        color: #3b82f6;
+        border: 1px solid rgba(59, 130, 246, 0.2);
+    }
+
+    .status-badge.status-open {
+        background: rgba(74, 222, 128, 0.1);
+        color: var(--accent-green);
+        border: 1px solid rgba(74, 222, 128, 0.2);
+    }
+
+    /* Chat Card */
+    .chat-card {
+        flex: 1;
+        background: var(--bg-card);
+        border: 1px solid var(--border);
+        border-radius: 20px;
+        display: flex;
+        flex-direction: column;
+        overflow: hidden;
+        min-height: 400px;
+    }
+
+    .chat-messages {
+        flex: 1;
+        padding: 24px;
+        overflow-y: auto;
+        display: flex;
+        flex-direction: column;
+        gap: 16px;
+        /* Reduced gap between messages */
+        scroll-behavior: smooth;
+    }
+
+    .chat-date-divider {
+        text-align: center;
+        margin: 8px 0 16px 0;
+    }
+
+    .chat-date-divider span {
+        background: rgba(128, 128, 128, 0.1);
+        padding: 4px 12px;
+        border-radius: 12px;
+        font-size: 0.75rem;
+        color: var(--text-secondary);
+    }
+
+    /* Message Styling */
+    .message-wrapper {
+        max-width: 85%;
+        display: flex;
+        flex-direction: column;
+        gap: 4px;
+        animation: messageFadeIn 0.3s ease-out;
+    }
+
+    .message-wrapper.user {
+        align-self: flex-end;
+        align-items: flex-end;
+    }
+
+    .message-wrapper.admin {
+        align-self: flex-start;
+        align-items: flex-start;
+    }
+
+    .message-info {
+        font-size: 0.75rem;
+        opacity: 0.7;
+        margin-bottom: 2px;
+    }
+
+    .message-wrapper.user .message-info {
+        text-align: right;
+    }
+
+    .message-wrapper.admin .message-info {
+        text-align: left;
+    }
+
+    .message-bubble {
+        padding: 12px 16px;
+        border-radius: 12px;
+        line-height: 1.5;
+        font-size: 0.95rem;
+        white-space: pre-wrap;
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+        word-wrap: break-word;
+    }
+
+    .message-wrapper.user .message-bubble {
+        background: var(--accent-green);
+        color: #000;
+        border-bottom-right-radius: 2px;
+        border-top-right-radius: 12px;
+    }
+
+    .message-wrapper.admin .message-bubble {
+        background: #262626;
+        color: white;
+        border: 1px solid #333;
+        border-bottom-left-radius: 2px;
+        border-top-left-radius: 12px;
+    }
+
+    /* Closed Notice */
+    .ticket-closed-notice {
+        margin-top: 24px;
+        padding: 24px;
+        background: rgba(128, 128, 128, 0.05);
+        border-radius: 12px;
+        text-align: center;
+        border: 1px solid var(--border);
+        color: var(--text-primary);
+    }
+
+    .closed-icon {
+        font-size: 1.5rem;
+        margin-bottom: 8px;
+    }
+
+    .ticket-closed-notice h3 {
+        margin: 0 0 6px 0;
+        font-size: 1.1rem;
+        color: var(--text-primary);
+    }
+
+    .ticket-closed-notice p {
+        color: var(--text-secondary);
+        margin: 0;
+        font-size: 0.9rem;
+    }
+
+    /* Input Area */
+    .chat-input-area {
+        padding: 20px;
+        background: var(--bg-card);
+        border-top: 1px solid var(--border);
+    }
+
+    .reply-form {
+        display: flex;
+        gap: 12px;
+        align-items: flex-end;
+    }
+
+    .chat-input {
+        flex: 1;
+        padding: 12px 16px;
+        background: var(--bg-primary);
+        border: 1px solid var(--border);
+        border-radius: 12px;
+        color: var(--text-primary);
+        resize: none;
+        max-height: 150px;
+        min-height: 48px;
+        line-height: 1.5;
+        font-family: inherit;
+        font-size: 0.95rem;
+        outline: none;
+        transition: border-color 0.2s;
+    }
+
+    .chat-input:focus {
+        border-color: var(--accent-green);
+    }
+
+    .send-btn {
+        height: 48px;
+        width: 48px;
+        border-radius: 12px;
+        background: var(--accent-green);
+        border: none;
+        color: #000;
+        cursor: pointer;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 1.1rem;
+        transition: transform 0.1s, filter 0.2s;
+        flex-shrink: 0;
+    }
+
+    .send-btn:hover {
+        filter: brightness(1.1);
+    }
+
+    .send-btn:active {
+        transform: scale(0.95);
+    }
+
+    .input-hint {
+        font-size: 0.75rem;
+        color: var(--text-secondary);
+        margin-top: 10px;
+        text-align: center;
+        opacity: 0.7;
+    }
+
+    @keyframes messageFadeIn {
+        from {
+            opacity: 0;
+            transform: translateY(8px);
+        }
+
+        to {
+            opacity: 1;
+            transform: translateY(0);
+        }
+    }
+
+    /* Scrollbars */
+    .chat-messages::-webkit-scrollbar {
+        width: 6px;
+    }
+
+    .chat-messages::-webkit-scrollbar-track {
+        background: transparent;
+    }
+
+    .chat-messages::-webkit-scrollbar-thumb {
+        background: rgba(128, 128, 128, 0.2);
+        border-radius: 3px;
+    }
+
+    .chat-messages::-webkit-scrollbar-thumb:hover {
+        background: rgba(128, 128, 128, 0.4);
+    }
+</style>
+
+<script>
+    document.addEventListener('DOMContentLoaded', () => {
+        const chatContainer = document.querySelector('.chat-messages');
+        const anchor = document.getElementById('scroll-anchor');
+        const textarea = document.querySelector('.chat-input');
+
+        // Scroll to bottom
+        anchor.scrollIntoView({ behavior: 'auto' });
+
+        // Auto-resize textarea
+        if (textarea) {
+            textarea.addEventListener('input', function () {
+                this.style.height = 'auto';
+                this.style.height = (this.scrollHeight) + 'px';
+            });
+            textarea.focus();
+
+            // Enter to submit (Shift+Enter for new line)
+            textarea.addEventListener('keydown', function (e) {
+                if (e.key === 'Enter' && !e.shiftKey) {
+                    e.preventDefault();
+                    if (this.value.trim()) {
+                        this.form.submit();
+                    }
+                }
+            });
+        }
+    });
+</script>
+{% endblock %}

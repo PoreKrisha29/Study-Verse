@@ -1,0 +1,509 @@
+/* ============================================================
+   VERSE — AI Voice Assistant for StudyVerse
+   ============================================================ */
+
+/* ── Welcome Overlay ─────────────────────────────────────── */
+#verse-welcome-overlay {
+    position: fixed;
+    inset: 0;
+    z-index: 99999;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    background: radial-gradient(ellipse at center, #0d1b2a 0%, #000 70%);
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.6s ease;
+}
+
+#verse-welcome-overlay.verse-show {
+    opacity: 1;
+    pointer-events: all;
+}
+
+#verse-welcome-overlay.verse-hide {
+    opacity: 0;
+    pointer-events: none;
+}
+
+/* Pulsing rings behind the avatar */
+.verse-rings {
+    position: absolute;
+    width: 240px;
+    height: 240px;
+    border-radius: 50%;
+}
+
+.verse-ring {
+    position: absolute;
+    inset: 0;
+    border-radius: 50%;
+    border: 2px solid rgba(14, 165, 233, 0.25);
+    animation: verseRingPulse 2.4s ease-out infinite;
+}
+
+.verse-ring:nth-child(2) {
+    animation-delay: 0.6s;
+}
+
+.verse-ring:nth-child(3) {
+    animation-delay: 1.2s;
+}
+
+.verse-ring:nth-child(4) {
+    animation-delay: 1.8s;
+}
+
+@keyframes verseRingPulse {
+    0% {
+        transform: scale(1);
+        opacity: 0.8;
+    }
+
+    100% {
+        transform: scale(2.6);
+        opacity: 0;
+    }
+}
+
+/* Orb avatar */
+.verse-orb {
+    width: 120px;
+    height: 120px;
+    border-radius: 50%;
+    background: radial-gradient(circle at 35% 35%, #38bdf8, #0ea5e9 50%, #0369a1);
+    box-shadow:
+        0 0 40px rgba(14, 165, 233, 0.6),
+        0 0 80px rgba(14, 165, 233, 0.3),
+        inset 0 0 30px rgba(255, 255, 255, 0.15);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 3rem;
+    animation: verseBreathe 3s ease-in-out infinite;
+    position: relative;
+    z-index: 2;
+}
+
+@keyframes verseBreathe {
+
+    0%,
+    100% {
+        transform: scale(1);
+        box-shadow: 0 0 40px rgba(14, 165, 233, 0.6), 0 0 80px rgba(14, 165, 233, 0.3);
+    }
+
+    50% {
+        transform: scale(1.07);
+        box-shadow: 0 0 60px rgba(14, 165, 233, 0.9), 0 0 120px rgba(14, 165, 233, 0.5);
+    }
+}
+
+/* Welcome text */
+.verse-welcome-title {
+    font-size: 2.4rem;
+    font-weight: 800;
+    color: #fff;
+    margin-top: 32px;
+    letter-spacing: -1px;
+    text-align: center;
+    opacity: 0;
+    transform: translateY(20px);
+    transition: opacity 0.7s 0.4s ease, transform 0.7s 0.4s ease;
+}
+
+.verse-welcome-overlay.verse-show .verse-welcome-title,
+#verse-welcome-overlay.verse-show .verse-welcome-title {
+    opacity: 1;
+    transform: translateY(0);
+}
+
+.verse-welcome-subtitle {
+    font-size: 1.1rem;
+    color: #94a3b8;
+    margin-top: 12px;
+    text-align: center;
+    max-width: 540px;
+    line-height: 1.7;
+    padding: 0 24px;
+    opacity: 0;
+    transform: translateY(20px);
+    transition: opacity 0.7s 0.7s ease, transform 0.7s 0.7s ease;
+}
+
+#verse-welcome-overlay.verse-show .verse-welcome-subtitle {
+    opacity: 1;
+    transform: translateY(0);
+}
+
+/* Waveform bars in welcome */
+.verse-waveform-welcome {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    margin-top: 32px;
+    height: 48px;
+    opacity: 0;
+    transition: opacity 0.7s 1s ease;
+}
+
+#verse-welcome-overlay.verse-show .verse-waveform-welcome {
+    opacity: 1;
+}
+
+.verse-wave-bar {
+    width: 5px;
+    border-radius: 10px;
+    background: linear-gradient(to top, #0ea5e9, #38bdf8);
+    animation: verseWave 1.2s ease-in-out infinite;
+}
+
+.verse-wave-bar:nth-child(1) {
+    height: 18px;
+    animation-delay: 0.0s;
+}
+
+.verse-wave-bar:nth-child(2) {
+    height: 30px;
+    animation-delay: 0.1s;
+}
+
+.verse-wave-bar:nth-child(3) {
+    height: 42px;
+    animation-delay: 0.2s;
+}
+
+.verse-wave-bar:nth-child(4) {
+    height: 24px;
+    animation-delay: 0.3s;
+}
+
+.verse-wave-bar:nth-child(5) {
+    height: 36px;
+    animation-delay: 0.4s;
+}
+
+.verse-wave-bar:nth-child(6) {
+    height: 48px;
+    animation-delay: 0.5s;
+}
+
+.verse-wave-bar:nth-child(7) {
+    height: 36px;
+    animation-delay: 0.4s;
+}
+
+.verse-wave-bar:nth-child(8) {
+    height: 24px;
+    animation-delay: 0.3s;
+}
+
+.verse-wave-bar:nth-child(9) {
+    height: 42px;
+    animation-delay: 0.2s;
+}
+
+.verse-wave-bar:nth-child(10) {
+    height: 30px;
+    animation-delay: 0.1s;
+}
+
+.verse-wave-bar:nth-child(11) {
+    height: 18px;
+    animation-delay: 0.0s;
+}
+
+@keyframes verseWave {
+
+    0%,
+    100% {
+        transform: scaleY(0.4);
+        opacity: 0.5;
+    }
+
+    50% {
+        transform: scaleY(1.0);
+        opacity: 1.0;
+    }
+}
+
+/* Dismiss hint */
+.verse-dismiss-hint {
+    margin-top: 36px;
+    font-size: 0.8rem;
+    color: rgba(255, 255, 255, 0.25);
+    letter-spacing: 1px;
+    text-transform: uppercase;
+    opacity: 0;
+    transition: opacity 0.7s 1.5s ease;
+}
+
+#verse-welcome-overlay.verse-show .verse-dismiss-hint {
+    opacity: 1;
+}
+
+
+/* ── Floating Mic Button ─────────────────────────────────── */
+#verse-mic-btn {
+    position: fixed;
+    bottom: 100px;
+    right: 28px;
+    z-index: 9999;
+    width: 60px;
+    height: 60px;
+    border-radius: 50%;
+    border: none;
+    cursor: pointer;
+    background: linear-gradient(135deg, #0ea5e9, #6366f1);
+    box-shadow:
+        0 4px 20px rgba(14, 165, 233, 0.5),
+        0 0 0 0 rgba(14, 165, 233, 0.4);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.4rem;
+    color: #fff;
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+    animation: verseMicIdle 3s ease-in-out infinite;
+}
+
+@keyframes verseMicIdle {
+
+    0%,
+    100% {
+        box-shadow: 0 4px 20px rgba(14, 165, 233, 0.5), 0 0 0 0 rgba(14, 165, 233, 0.3);
+    }
+
+    50% {
+        box-shadow: 0 4px 28px rgba(14, 165, 233, 0.7), 0 0 0 10px rgba(14, 165, 233, 0.0);
+    }
+}
+
+#verse-mic-btn:hover {
+    transform: scale(1.1);
+}
+
+#verse-mic-btn.verse-listening {
+    background: linear-gradient(135deg, #ef4444, #f97316);
+    animation: verseMicListening 0.8s ease-in-out infinite;
+}
+
+@keyframes verseMicListening {
+
+    0%,
+    100% {
+        box-shadow: 0 4px 20px rgba(239, 68, 68, 0.5), 0 0 0 0 rgba(239, 68, 68, 0.4);
+        transform: scale(1);
+    }
+
+    50% {
+        box-shadow: 0 4px 28px rgba(239, 68, 68, 0.8), 0 0 0 14px rgba(239, 68, 68, 0.0);
+        transform: scale(1.05);
+    }
+}
+
+#verse-mic-btn.verse-thinking {
+    background: linear-gradient(135deg, #a855f7, #6366f1);
+    animation: verseThink 1s linear infinite;
+}
+
+@keyframes verseThink {
+    from {
+        transform: rotate(0deg);
+    }
+
+    to {
+        transform: rotate(360deg);
+    }
+}
+
+/* Verse label under mic */
+#verse-mic-label {
+    position: fixed;
+    bottom: 82px;
+    right: 18px;
+    z-index: 9999;
+    font-size: 0.6rem;
+    font-weight: 700;
+    letter-spacing: 1.5px;
+    text-transform: uppercase;
+    color: rgba(255, 255, 255, 0.4);
+    text-align: center;
+    width: 78px;
+    pointer-events: none;
+    transition: color 0.3s;
+}
+
+
+/* ── Transcript / Response Bubble ────────────────────────── */
+#verse-bubble {
+    position: fixed;
+    bottom: 170px;
+    right: 24px;
+    z-index: 9998;
+    max-width: 300px;
+    min-width: 200px;
+    background: rgba(10, 15, 30, 0.95);
+    border: 1px solid rgba(14, 165, 233, 0.3);
+    border-radius: 18px 18px 4px 18px;
+    padding: 14px 18px;
+    backdrop-filter: blur(20px);
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.5), 0 0 0 1px rgba(14, 165, 233, 0.1);
+    opacity: 0;
+    transform: translateY(12px) scale(0.95);
+    transition: opacity 0.3s ease, transform 0.3s ease;
+    pointer-events: none;
+}
+
+#verse-bubble.verse-bubble-show {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+    pointer-events: all;
+}
+
+.verse-bubble-header {
+    font-size: 0.65rem;
+    font-weight: 800;
+    letter-spacing: 1.5px;
+    text-transform: uppercase;
+    color: #0ea5e9;
+    margin-bottom: 8px;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+
+.verse-bubble-dot {
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background: #0ea5e9;
+    animation: verseDotPulse 1s ease-in-out infinite;
+}
+
+@keyframes verseDotPulse {
+
+    0%,
+    100% {
+        opacity: 1;
+        transform: scale(1);
+    }
+
+    50% {
+        opacity: 0.4;
+        transform: scale(0.7);
+    }
+}
+
+.verse-bubble-text {
+    font-size: 0.88rem;
+    color: #e2e8f0;
+    line-height: 1.55;
+    font-weight: 400;
+}
+
+.verse-bubble-user {
+    font-size: 0.75rem;
+    color: #64748b;
+    margin-top: 8px;
+    font-style: italic;
+    border-top: 1px solid rgba(255, 255, 255, 0.05);
+    padding-top: 8px;
+}
+
+/* ── Mini waveform in bubble when listening ───────────────── */
+.verse-mini-wave {
+    display: flex;
+    align-items: center;
+    gap: 3px;
+    height: 20px;
+    margin-top: 4px;
+}
+
+.verse-mini-bar {
+    width: 3px;
+    border-radius: 3px;
+    background: #0ea5e9;
+    animation: verseWave 0.8s ease-in-out infinite;
+}
+
+.verse-mini-bar:nth-child(1) {
+    height: 8px;
+    animation-delay: 0.0s;
+}
+
+.verse-mini-bar:nth-child(2) {
+    height: 14px;
+    animation-delay: 0.12s;
+}
+
+.verse-mini-bar:nth-child(3) {
+    height: 20px;
+    animation-delay: 0.24s;
+}
+
+.verse-mini-bar:nth-child(4) {
+    height: 14px;
+    animation-delay: 0.36s;
+}
+
+.verse-mini-bar:nth-child(5) {
+    height: 8px;
+    animation-delay: 0.48s;
+}
+
+/* ── Toast notification from Verse ──────────────────────── */
+.verse-toast {
+    position: fixed;
+    bottom: 90px;
+    left: 50%;
+    transform: translateX(-50%) translateY(20px);
+    background: rgba(10, 15, 30, 0.95);
+    border: 1px solid rgba(99, 102, 241, 0.4);
+    border-radius: 14px;
+    padding: 12px 24px;
+    color: #e2e8f0;
+    font-size: 0.9rem;
+    font-weight: 500;
+    z-index: 99997;
+    opacity: 0;
+    transition: opacity 0.3s ease, transform 0.3s ease;
+    backdrop-filter: blur(16px);
+    max-width: 380px;
+    text-align: center;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.4);
+    pointer-events: none;
+}
+
+.verse-toast.verse-toast-show {
+    opacity: 1;
+    transform: translateX(-50%) translateY(0);
+}
+
+/* ── Responsive ──────────────────────────────────────────── */
+@media (max-width: 768px) {
+    #verse-mic-btn {
+        bottom: 90px;
+        right: 18px;
+        width: 52px;
+        height: 52px;
+        font-size: 1.2rem;
+    }
+
+    #verse-bubble {
+        right: 12px;
+        max-width: 260px;
+        bottom: 155px;
+    }
+
+    .verse-welcome-title {
+        font-size: 1.7rem;
+    }
+
+    .verse-orb {
+        width: 90px;
+        height: 90px;
+        font-size: 2.2rem;
+    }
+}

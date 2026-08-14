@@ -1,0 +1,1618 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}StudyVerse{% endblock %}</title>
+
+    <!-- Preconnect for performance -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link rel="preconnect" href="https://cdnjs.cloudflare.com">
+    <link rel="preconnect" href="https://cdn.jsdelivr.net">
+
+    <!-- Fonts - Moved from CSS @import for parallel loading -->
+    <link
+        href="https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;700&display=swap"
+        rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Fira+Code:wght@400;500&display=swap" rel="stylesheet">
+
+    <!-- Stylesheets -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}?v=1.0.9">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/zen_mode.css') }}?v=1.0.1">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/verse_assistant.css') }}?v=1.0.0">
+    <link rel="icon" type="image/png" href="{{ url_for('static', filename='img/favicon.png') }}">
+
+    <!-- ✅ PWA: Installable on Android & iOS -->
+    <link rel="manifest" href="/static/manifest.json">
+    <meta name="theme-color" content="#0ea5e9">
+    <meta name="mobile-web-app-capable" content="yes">
+
+    <!-- iOS-specific PWA tags -->
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="StudyVerse">
+    <link rel="apple-touch-icon" href="/static/img/icon-192.png">
+    <link rel="apple-touch-startup-image" href="/static/img/icon-512.png">
+
+    <!-- Microsoft Tiles -->
+    <meta name="msapplication-TileImage" content="/static/img/icon-192.png">
+    <meta name="msapplication-TileColor" content="#0ea5e9">
+
+    <!-- Register Service Worker + PWA Install Prompt -->
+    <script>
+        // ── Service Worker ──────────────────────────────────────
+        if ('serviceWorker' in navigator) {
+            window.addEventListener('load', () => {
+                navigator.serviceWorker.register('/sw.js', { scope: '/' })
+                    .then(reg => console.log('[PWA] SW registered:', reg.scope))
+                    .catch(err => console.warn('[PWA] SW failed:', err));
+            });
+        }
+
+        // ── Capture beforeinstallprompt (Chrome/Edge/Android) ───
+        window._pwaInstallEvent = null;
+        window.addEventListener('beforeinstallprompt', (e) => {
+            e.preventDefault();
+            window._pwaInstallEvent = e;
+            console.log('[PWA] beforeinstallprompt captured ✓');
+        });
+
+        // ── Hybrid Smart PWA Banner Logic ────────────────────────
+        // Rules:
+        //   - Never show if already installed (standalone mode)
+        //   - Never show if user dismissed 3+ times (permanent)
+        //   - Never show if within the 7-day snooze window
+        //   - Otherwise show once after 3s page settle
+        window.addEventListener('load', () => {
+            // Already installed as PWA? Skip entirely.
+            if (window.matchMedia('(display-mode: standalone)').matches) return;
+            if (window.navigator.standalone === true) return; // iOS standalone
+
+            const dismissCount  = parseInt(localStorage.getItem('pwa_dismissed_count') || '0', 10);
+            const dismissedUntil = parseInt(localStorage.getItem('pwa_dismissed_until') || '0', 10);
+            const now = Date.now();
+
+            // Permanent suppression after 3 strikes
+            if (dismissCount >= 3) return;
+
+            // Still within the 7-day snooze window?
+            if (now < dismissedUntil) return;
+
+            const isIOS = /iphone|ipad|ipod/i.test(navigator.userAgent);
+            const type = isIOS ? 'ios' : 'android';
+
+            // Show after 3s so page settles
+            setTimeout(() => {
+                if (typeof showPWABanner === 'function') {
+                    showPWABanner(type);
+                }
+            }, 3000);
+        });
+    </script>
+</head>
+
+<body class="{{ active_theme if active_theme }}">
+    <div class="app-container">
+        <!-- Mobile Header / Burger -->
+        <div class="mobile-header">
+            <button id="sidebar-toggle" class="sidebar-toggle">
+                <i class="fa-solid fa-bars"></i>
+            </button>
+            <div class="logo-mobile">
+                <i class="fa-solid fa-graduation-cap"></i>
+                <span>StudyVerse</span>
+            </div>
+        </div>
+
+        <!-- Sidebar -->
+        <aside class="sidebar" id="app-sidebar">
+            <div class="sidebar-header">
+                <div class="logo">
+                    <i class="fa-solid fa-graduation-cap"></i>
+                    <span>StudyVerse</span>
+                </div>
+                <button id="desktop-sidebar-toggle" class="desktop-sidebar-toggle">
+                    <i class="fa-solid fa-chevron-left"></i>
+                </button>
+            </div>
+
+            <nav class="nav-menu">
+                <a href="/dashboard" class="nav-item" data-nav="dashboard" title="Dashboard">
+                    <i class="fa-solid fa-house"></i>
+                    <span>Dashboard</span>
+                </a>
+                <a href="/pomodoro" class="nav-item" data-nav="pomodoro" title="Focus Mode">
+                    <i class="fa-solid fa-clock"></i>
+                    <span>Focus Mode</span>
+                </a>
+                <a href="/todos" class="nav-item" data-nav="todos" title="Task Manager">
+                    <i class="fa-solid fa-list-check"></i>
+                    <span>Task Manager</span>
+                </a>
+                <a href="/quiz" class="nav-item" data-nav="quiz" title="Start Quiz">
+                    <i class="fa-solid fa-brain"></i>
+                    <span>Start Quiz</span>
+                </a>
+                <a href="/syllabus" class="nav-item" data-nav="syllabus" title="Syllabus">
+                    <i class="fa-solid fa-book"></i>
+                    <span>Syllabus</span>
+                </a>
+                <a href="/topic-resolver" class="nav-item" data-nav="resolver" title="AI Topic Resolver"
+                    style="position:relative;">
+                    <i class="fa-solid fa-wand-magic-sparkles"></i>
+                    <span>Topic Resolver</span>
+                    <span
+                        style="position:absolute; top:6px; right:8px; background:linear-gradient(135deg,#7c3aed,#4f46e5); color:white; font-size:9px; font-weight:800; padding:1px 5px; border-radius:6px; letter-spacing:0.3px;">AI</span>
+                </a>
+                <a href="/photo-solver" class="nav-item" data-nav="photo-solver" title="AI Photo Solver"
+                    style="position:relative;">
+                    <i class="fa-solid fa-camera"></i>
+                    <span>Photo Solver</span>
+                    <span
+                        style="position:absolute; top:6px; right:8px; background:linear-gradient(135deg,#ea580c,#f97316); color:white; font-size:9px; font-weight:800; padding:1px 5px; border-radius:6px; letter-spacing:0.3px;">AI</span>
+                </a>
+                <a href="/progress" class="nav-item" data-nav="progress" title="Progress Tracker">
+                    <i class="fa-solid fa-chart-line"></i>
+                    <span>Progress Tracker</span>
+                </a>
+                <a href="/friends" class="nav-item" data-nav="group" title="Friends">
+                    <i class="fa-solid fa-user-group"></i>
+                    <span>Friends</span>
+                </a>
+                <a href="/live" class="nav-item" data-nav="live" title="Live Study Streams" style="position:relative;">
+                    <i class="fa-solid fa-satellite-dish"></i>
+                    <span>Live Streams</span>
+                    <span
+                        style="position:absolute; top:6px; right:8px; background:#ef4444; color:white; font-size:9px; font-weight:800; padding:1px 5px; border-radius:6px; letter-spacing:0.3px;">LIVE</span>
+                </a>
+                <a href="/battle" class="nav-item" data-nav="battle" title="Byte Battle">
+                    <i class="fa-solid fa-code"></i>
+                    <span>Byte Battle</span>
+                </a>
+                <a href="/chat" class="nav-item" data-nav="chat" title="AI Coach">
+                    <i class="fa-solid fa-robot"></i>
+                    <span>AI Coach</span>
+                </a>
+                <a href="/shop" class="nav-item" data-nav="shop" title="Item Shop">
+                    <i class="fa-solid fa-store"></i>
+                    <span>Item Shop</span>
+                </a>
+                <a href="/leaderboard" class="nav-item" data-nav="leaderboard" title="Leaderboard">
+                    <i class="fa-solid fa-trophy"></i>
+                    <span>Leaderboard</span>
+                </a>
+                <a href="/support" class="nav-item" data-nav="support" title="Support Center">
+                    <i class="fa-solid fa-headset"></i>
+                    <span>Support Center</span>
+                    {% if unread_support_count > 0 %}
+                    <span
+                        style="background: var(--destructive); color: white; border-radius: 50%; padding: 2px 6px; font-size: 0.7rem; font-weight: 700; margin-left: auto;">{{
+                        unread_support_count }}</span>
+                    {% endif %}
+                </a>
+                <a href="#" class="nav-item" onclick="window.toggleZenMode(); return false;" id="zen-mode-nav-btn"
+                    title="Zen Mode">
+                    <i class="fa-solid fa-wind"></i>
+                    <span>Zen Mode</span>
+                </a>
+                <a href="#" class="nav-item" onclick="openReferralModal(); return false;" title="Invite Friends">
+                    <i class="fa-solid fa-gift"></i>
+                    <span>Invite & Earn</span>
+                </a>
+                {% if current_user.is_authenticated %}
+                <a href="#" class="nav-item" onclick="openFeedbackModal(); return false;" title="Send Feedback">
+                    <i class="fa-regular fa-comment-dots"></i>
+                    <span>Feedback</span>
+                </a>
+                {% endif %}
+            </nav>
+            <div style="margin-top: auto;">
+                {% if current_user.is_authenticated %}
+                {% if current_user.is_authenticated %}
+                <div style="margin-bottom: 12px;">
+                    <a href="/settings"
+                        style="display: block; text-decoration: none; color: inherit; padding: 12px; border-radius: 12px;">
+                        <div style="display: flex; align-items: center; gap: 12px; margin-bottom: 8px;">
+                            <div class="avatar-wrapper"
+                                style="position: relative; width: 32px; height: 32px; flex-shrink: 0;">
+                                <img src="{{ current_user.get_avatar(64) }}"
+                                    style="width: 100%; height: 100%; border-radius: 50%; display: block;">
+                                {% if current_user.active_frame_color %}
+                                <div
+                                    style="position: absolute; inset: -3px; border-radius: 50%; border: 2px solid {{ current_user.active_frame_color }}; pointer-events: none;">
+                                </div>
+                                {% endif %}
+                            </div>
+                            <div style="flex: 1; min-width: 0;">
+                                <div
+                                    style="font-size: 0.9rem; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">
+                                    {{ current_user.first_name }}</div>
+                                <div class="rank-text" data-rank="{{ rank_name }}"
+                                    style="font-size: 0.75rem; color: {{ rank_color }}; display: flex; align-items: center; gap: 4px;">
+                                    <i class="fa-solid {{ rank_icon }}"></i> {{ rank_name }}
+                                </div>
+                            </div>
+                        </div>
+                    </a>
+
+                    <!-- XP Bar (Separate to avoid nested links if needed, but here sticking to layout) -->
+                    <!-- Note: onclick on XP bar might conflict if inside A tag, but here I moved the container div to be the wrapper of the A tag, wait. 
+                         The goal is to make the "M" clickable. The previous structure had the XP bar inside the same card. 
+                         I will keep the card look but make the profile section clickable separately or the whole thing. 
+                         Let's keep the XP bar outside the link to avoid confusion, or make the top part a link. -->
+
+                    <div class="xp-progress-container" title="Level {{ current_user.level }}"
+                        style="cursor: pointer; margin-top: -4px; background: rgba(255,255,255,0.03); border-radius: 0 0 12px 12px; padding: 0 12px 12px 12px;"
+                        onclick="showXPModal({{ current_user.level }}, {{ xp_remaining }}, {{ level_progress }})">
+                        <div
+                            style="display: flex; justify-content: space-between; font-size: 0.7rem; color: var(--text-secondary); margin-bottom: 4px;">
+                            <span
+                                style="white-space: nowrap; overflow: hidden; text-overflow: ellipsis; flex: 1; min-width: 0;">Lvl
+                                {{ current_user.level }}</span>
+                            <span style="flex-shrink: 0;">{{ level_progress }}%</span>
+                        </div>
+                        <div class="xp-bar-bg">
+                            <div class="xp-bar-fill" style="width: {{ level_progress }}%;"></div>
+                        </div>
+                    </div>
+                </div>
+                {% endif %}
+                {% endif %}
+
+                <!-- Theme Toggle Button -->
+                <button id="theme-toggle" class="theme-toggle-btn" title="Toggle Theme">
+                    <i class="fa-solid fa-sun theme-icon-light"></i>
+                    <i class="fa-solid fa-moon theme-icon-dark"></i>
+                    <span class="theme-toggle-text">Theme</span>
+                </button>
+
+                <a href="/settings" class="nav-item" data-nav="settings" title="Settings">
+                    <i class="fa-solid fa-user-circle"></i>
+                    <span>Settings</span>
+                </a>
+
+                <a href="/logout" class="nav-item" style="color: var(--destructive);" title="Logout">
+                    <i class="fa-solid fa-right-from-bracket"></i>
+                    <span>Logout</span>
+                </a>
+            </div>
+        </aside>
+
+        <!-- Flash Messages -->
+        {% with messages = get_flashed_messages(with_categories=true) %}
+        {% if messages %}
+        <div id="flash-container"
+            style="position: fixed; top: 20px; right: 20px; z-index: 9999; display: flex; flex-direction: column; gap: 10px;">
+            {% for category, message in messages %}
+            <div class="flash-message"
+                style="background: {{ 'var(--accent-green)' if category == 'success' else 'var(--destructive)' }}; color: {{ 'black' if category == 'success' else 'white' }}; padding: 12px 24px; border-radius: 8px; box-shadow: 0 4px 12px rgba(0,0,0,0.3); display: flex; align-items: center; gap: 12px; animation: slideIn 0.3s ease-out; font-weight: 500;">
+                <i class="fa-solid {{ 'fa-check-circle' if category == 'success' else 'fa-circle-exclamation' }}"></i>
+                <span>{{ message }}</span>
+                <button onclick="this.parentElement.remove()"
+                    style="background: transparent; border: none; color: inherit; cursor: pointer; margin-left: 8px; opacity: 0.7;"><i
+                        class="fa-solid fa-xmark"></i></button>
+            </div>
+            {% endfor %}
+        </div>
+        <script>
+            setTimeout(() => {
+                const flashes = document.querySelectorAll('.flash-message');
+                flashes.forEach(f => {
+                    f.style.opacity = '0';
+                    f.style.transform = 'translateX(20px)';
+                    f.style.transition = 'all 0.3s';
+                    setTimeout(() => f.remove(), 300);
+                });
+            }, 4000);
+        </script>
+        <style>
+            @keyframes slideIn {
+                from {
+                    transform: translateX(100%);
+                    opacity: 0;
+                }
+
+                to {
+                    transform: translateX(0);
+                    opacity: 1;
+                }
+            }
+        </style>
+        {% endif %}
+        {% endwith %}
+
+        <!-- Main Content -->
+        <main class="main-content" id="main-content-area">
+            {% block content %}{% endblock %}
+        </main>
+
+        <!-- Battle Byte Placeholder (Hidden by default) -->
+        <main class="main-content" id="battle-content-area" style="display: none; flex-direction: column;">
+            <div class="page-header"
+                style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 24px;">
+                <h1 class="page-title">Battle Byte Arena</h1>
+                <div style="display: flex; gap: 16px; align-items: center;">
+                    <div
+                        style="background: rgba(239, 68, 68, 0.2); color: var(--destructive); padding: 8px 16px; border-radius: 20px; font-weight: 600; animation: pulse 2s infinite;">
+                        <i class="fa-solid fa-circle"></i> LIVE MATCH
+                    </div>
+                    <button onclick="alert('AI Coach not connected in UI demo mode.')"
+                        style="background: linear-gradient(135deg, #3b82f6, #8b5cf6); color: white; border: none; padding: 10px 20px; border-radius: 8px; cursor: pointer; font-weight: 600; box-shadow: 0 0 15px rgba(59, 130, 246, 0.4);">
+                        <i class="fa-solid fa-robot"></i> Ask AI Coach
+                    </button>
+                </div>
+            </div>
+
+            <!-- Arena Grid -->
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 24px; flex: 1; min-height: 0;">
+
+                <!-- Player 1 (You) -->
+                <div class="card"
+                    style="display: flex; flex-direction: column; padding: 0; border: 1px solid var(--accent-green);">
+                    <div
+                        style="padding: 12px 16px; border-bottom: 1px solid var(--border); display: flex; justify-content: space-between; align-items: center; background: rgba(74, 222, 128, 0.05);">
+                        <div style="display: flex; align-items: center; gap: 8px;">
+                            <img src="{{ current_user.get_avatar(64) }}"
+                                style="width: 24px; height: 24px; border-radius: 50%;">
+                            <span style="font-weight: 600; color: var(--accent-green);">YOU</span>
+                        </div>
+                        <div style="font-family: var(--font-mono); font-size: 0.9rem;">Python 3.10</div>
+                    </div>
+
+                    <!-- Code Editor Mock -->
+                    <div
+                        style="flex: 1; opacity: 0.9; background: #1e1e1e; padding: 16px; font-family: 'Fira Code', monospace; font-size: 0.9rem; line-height: 1.6; color: #d4d4d4; overflow-y: auto;">
+                        <span style="color: #c586c0;">def</span> <span style="color: #dcdcaa;">solve</span>(arr):<br>
+                        &nbsp;&nbsp;&nbsp;&nbsp;<span style="color: #6a9955;"># Your code here</span><br>
+                        &nbsp;&nbsp;&nbsp;&nbsp;n = <span style="color: #dcdcaa;">len</span>(arr)<br>
+                        &nbsp;&nbsp;&nbsp;&nbsp;<span style="color: #c586c0;">for</span> i <span
+                            style="color: #c586c0;">in</span> <span style="color: #dcdcaa;">range</span>(n):<br>
+                        &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span style="color: #c586c0;">if</span> arr[i]
+                        == <span style="color: #b5cea8;">0</span>:<br>
+                        &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span
+                            style="color: #c586c0;">return</span> i<br>
+                        &nbsp;&nbsp;&nbsp;&nbsp;<span style="color: #c586c0;">return</span> -<span
+                            style="color: #b5cea8;">1</span><br>
+                        <br>
+                        <span style="color: #6a9955;"># Write an O(n) solution</span>
+                    </div>
+
+                    <div
+                        style="padding: 12px; border-top: 1px solid var(--border); display: flex; justify-content: space-between;">
+                        <button
+                            style="background: transparent; color: var(--text-secondary); border: 1px solid var(--border); padding: 8px 16px; border-radius: 6px; cursor: pointer;">Run
+                            Code</button>
+                        <button
+                            style="background: var(--accent-green); color: black; border: none; padding: 8px 16px; border-radius: 6px; font-weight: 600; cursor: pointer;">Submit</button>
+                    </div>
+                </div>
+
+                <!-- Player 2 (Opponent) -->
+                <div class="card" style="display: flex; flex-direction: column; padding: 0;">
+                    <div
+                        style="padding: 12px 16px; border-bottom: 1px solid var(--border); display: flex; justify-content: space-between; align-items: center; background: rgba(239, 68, 68, 0.05);">
+                        <div style="display: flex; align-items: center; gap: 8px;">
+                            <img src="https://ui-avatars.com/api/?name=Opponent&background=ef4444&color=fff"
+                                style="width: 24px; height: 24px; border-radius: 50%;">
+                            <span style="font-weight: 600; color: var(--destructive);">OPPONENT</span>
+                        </div>
+                        <div style="font-size: 0.8rem; color: var(--text-secondary);">Typing...</div>
+                    </div>
+
+                    <!-- Code Editor Mock (Blurred/Obscured) -->
+                    <div
+                        style="flex: 1; background: #1e1e1e; padding: 16px; font-family: 'Fira Code', monospace; font-size: 0.9rem; line-height: 1.6; color: #555; overflow-y: hidden; position: relative;">
+                        <div style="filter: blur(4px);">
+                            def solve(arr):<br>
+                            &nbsp;&nbsp;&nbsp;&nbsp;count = 0<br>
+                            &nbsp;&nbsp;&nbsp;&nbsp;x = []<br>
+                            &nbsp;&nbsp;&nbsp;&nbsp;for item in arr:<br>
+                            &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;x.append(item)<br>
+                            &nbsp;&nbsp;&nbsp;&nbsp;return x
+                        </div>
+                        <div
+                            style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); color: var(--text-secondary); font-weight: 500;">
+                            HIDDEN
+                        </div>
+                    </div>
+
+                    <div
+                        style="padding: 12px; border-top: 1px solid var(--border); text-align: center; color: var(--text-secondary); font-size: 0.9rem;">
+                        Waiting for submission...
+                    </div>
+                </div>
+
+            </div>
+
+            <!-- Problem Description (Bottom) -->
+            <div class="card" style="margin-top: 24px; height: 150px; overflow-y: auto;">
+                <h3 style="color: var(--text-primary); font-size: 1rem; margin-bottom: 8px;">Problem: Zero Hunter</h3>
+                <p style="color: var(--text-secondary); font-size: 0.9rem;">
+                    Given an integer array <code>nums</code>, find the index of the first occurrence of the number
+                    <code>0</code>. If it does not exist, return <code>-1</code>.
+                    <br><br>
+                    <strong>Example:</strong> Input: <code>[1, 5, 0, 3]</code> -> Output: <code>2</code>
+                </p>
+            </div>
+        </main>
+    </div>
+
+    <script src="{{ url_for('static', filename='js/main.js') }}"></script>
+    <script>
+        function toggleBattleMode(e) {
+            e.preventDefault();
+            // Hide main content
+            document.getElementById('main-content-area').style.display = 'none';
+            // Show battle content
+            document.getElementById('battle-content-area').style.display = 'flex';
+
+            // Update active state
+            document.querySelectorAll('.nav-item').forEach(el => el.classList.remove('active'));
+            document.getElementById('battle-nav-link').classList.add('active');
+        }
+
+        // Sidebar Toggle Logic
+        document.addEventListener('DOMContentLoaded', () => {
+            const toggleBtn = document.getElementById('sidebar-toggle'); // Mobile
+            const desktopToggleBtn = document.getElementById('desktop-sidebar-toggle'); // Desktop
+            const sidebar = document.getElementById('app-sidebar');
+            const mainContent = document.querySelector('.main-content');
+
+            function updateToggleIcon() {
+                if (!desktopToggleBtn) return;
+                const icon = desktopToggleBtn.querySelector('i');
+                if (document.body.classList.contains('sidebar-collapsed')) {
+                    icon.classList.remove('fa-chevron-left');
+                    icon.classList.add('fa-chevron-right');
+                } else {
+                    icon.classList.remove('fa-chevron-right');
+                    icon.classList.add('fa-chevron-left');
+                }
+            }
+
+            // Load state
+            const isCollapsed = localStorage.getItem('sidebarCollapsed') === 'true';
+            if (isCollapsed && window.innerWidth > 768) {
+                document.body.classList.add('sidebar-collapsed');
+                updateToggleIcon();
+            }
+
+            // Mobile Toggle
+            if (toggleBtn) {
+                toggleBtn.addEventListener('click', () => {
+                    if (window.innerWidth <= 768) {
+                        document.body.classList.toggle('sidebar-open');
+                    }
+                });
+            }
+
+            // Desktop Toggle
+            if (desktopToggleBtn) {
+                desktopToggleBtn.addEventListener('click', () => {
+                    document.body.classList.toggle('sidebar-collapsed');
+                    updateToggleIcon();
+                    // Save state
+                    localStorage.setItem('sidebarCollapsed', document.body.classList.contains('sidebar-collapsed'));
+                });
+            }
+
+            // Mobile close on click outside
+            document.addEventListener('click', (e) => {
+                if (window.innerWidth <= 768 &&
+                    !sidebar.contains(e.target) &&
+                    toggleBtn && !toggleBtn.contains(e.target) &&
+                    document.body.classList.contains('sidebar-open')) {
+                    document.body.classList.remove('sidebar-open');
+                }
+            });
+        });
+
+        // Theme Toggle Functionality with Override Protection
+        (function () {
+            const themeToggleBtn = document.getElementById('theme-toggle');
+            const htmlElement = document.documentElement;
+            const body = document.body;
+
+            // Get saved theme from localStorage or default to 'dark'
+            const savedTheme = localStorage.getItem('theme') || 'dark';
+            htmlElement.setAttribute('data-theme', savedTheme);
+
+            // Function to check if a specialized theme is active (starts with 'theme_')
+            function checkThemeOverride() {
+                if (!themeToggleBtn) return;
+
+                // Check if any class on body starts with 'theme_'
+                const hasSpecialTheme = Array.from(body.classList).some(cls => cls.startsWith('theme_'));
+
+                if (hasSpecialTheme) {
+                    // Disable toggle
+                    themeToggleBtn.style.opacity = '0.5';
+                    themeToggleBtn.style.cursor = 'not-allowed';
+                    themeToggleBtn.setAttribute('disabled', 'true');
+                    themeToggleBtn.title = "Theme controlled by equipped item";
+
+                    // Optional: Visual indicator (e.g., lock icon)
+                    const icon = themeToggleBtn.querySelector('i');
+                    if (icon) icon.className = 'fa-solid fa-lock';
+                } else {
+                    // Enable toggle
+                    themeToggleBtn.style.opacity = '1';
+                    themeToggleBtn.style.cursor = 'pointer';
+                    themeToggleBtn.removeAttribute('disabled');
+                    themeToggleBtn.title = "Toggle Theme";
+
+                    // Restore icon based on current theme
+                    const currentTheme = htmlElement.getAttribute('data-theme');
+                    const icon = themeToggleBtn.querySelector('i');
+                    if (icon) {
+                        icon.className = currentTheme === 'dark' ? 'fa-solid fa-moon' : 'fa-solid fa-sun';
+                    }
+                }
+            }
+
+            // Initial check
+            checkThemeOverride();
+
+            // Observe body class changes to handle dynamic equipping
+            const observer = new MutationObserver(checkThemeOverride);
+            observer.observe(body, { attributes: true, attributeFilter: ['class'] });
+
+            if (themeToggleBtn) {
+                themeToggleBtn.addEventListener('click', function (e) {
+                    // Double check if disabled (though pointer-events might block it, explicit check is safer)
+                    if (this.hasAttribute('disabled')) {
+                        e.preventDefault();
+                        return;
+                    }
+
+                    // Add switching animation class
+                    this.classList.add('switching');
+
+                    // Get current theme
+                    const currentTheme = htmlElement.getAttribute('data-theme');
+                    const newTheme = currentTheme === 'dark' ? 'light' : 'dark';
+
+                    // Add a subtle fade overlay for smooth transition
+                    const overlay = document.createElement('div');
+                    overlay.style.cssText = `
+                        position: fixed;
+                        inset: 0;
+                        background: ${newTheme === 'light' ? '#ffffff' : '#0c0c0c'};
+                        opacity: 0;
+                        pointer-events: none;
+                        z-index: 9999;
+                        transition: opacity 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+                    `;
+                    document.body.appendChild(overlay);
+
+                    // Trigger fade in
+                    requestAnimationFrame(() => {
+                        overlay.style.opacity = '0.3';
+                    });
+
+                    // Set new theme after brief delay
+                    setTimeout(() => {
+                        htmlElement.setAttribute('data-theme', newTheme);
+                        localStorage.setItem('theme', newTheme);
+
+                        // Update icon immediately
+                        const icon = this.querySelector('i');
+                        if (icon) icon.className = newTheme === 'dark' ? 'fa-solid fa-moon' : 'fa-solid fa-sun';
+
+                        // Fade out overlay
+                        overlay.style.opacity = '0';
+
+                        // Remove overlay after transition
+                        setTimeout(() => {
+                            overlay.remove();
+                        }, 300);
+                    }, 150);
+
+                    // Remove animation class after animation completes
+                    setTimeout(() => {
+                        this.classList.remove('switching');
+                    }, 500);
+                });
+            }
+        })();
+    </script>
+    <style>
+        @keyframes pulse {
+            0% {
+                opacity: 1;
+            }
+
+            50% {
+                opacity: 0.6;
+            }
+
+            100% {
+                opacity: 1;
+            }
+        }
+    </style>
+    {% block scripts %}{% endblock %}
+    <div id="xpModal"
+        style="display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.8); z-index: 2000; place-items: center; opacity: 0; transition: opacity 0.2s;">
+        <div style="background: var(--bg-card); padding: 24px; border-radius: 16px; width: 90%; max-width: 350px; border: 1px solid var(--border); box-shadow: 0 10px 40px rgba(0,0,0,0.5); transform: scale(0.95); transition: transform 0.2s;"
+            id="xpModalContent">
+            <div style="text-align: center; margin-bottom: 20px;">
+                <div
+                    style="width: 60px; height: 60px; background: var(--accent-green-dim); border-radius: 50%; display: flex; align-items: center; justify-content: center; margin: 0 auto 16px;">
+                    <i class="fa-solid fa-trophy" style="font-size: 1.5rem; color: var(--accent-green);"></i>
+                </div>
+                <h3 style="color: var(--text-primary); font-size: 1.2rem; margin-bottom: 8px;">Level Progress</h3>
+                <p style="color: var(--text-secondary); font-size: 0.9rem;">Keep pushing! You're doing great.</p>
+            </div>
+
+            <div style="background: var(--bg-hover); padding: 16px; border-radius: 12px; margin-bottom: 24px;">
+                <div style="display: flex; justify-content: space-between; margin-bottom: 8px; font-size: 0.9rem;">
+                    <span style="color: var(--text-secondary);">Current Level</span>
+                    <span style="color: var(--text-primary); font-weight: 600;" id="xp-modal-level"></span>
+                </div>
+                <div style="display: flex; justify-content: space-between; margin-bottom: 12px; font-size: 0.9rem;">
+                    <span style="color: var(--text-secondary);">XP Remaining</span>
+                    <span style="color: var(--accent-green); font-weight: 600;" id="xp-modal-remaining"></span>
+                </div>
+                <!-- Progress Bar -->
+                <div style="height: 6px; background: var(--border); border-radius: 3px; overflow: hidden;">
+                    <div id="xp-modal-bar" style="height: 100%; background: var(--accent-green); width: 0%;"></div>
+                </div>
+                <div style="text-align: right; margin-top: 4px; font-size: 0.8rem; color: var(--text-secondary);"
+                    id="xp-modal-percent"></div>
+            </div>
+
+            <button onclick="closeXPModal()"
+                style="width: 100%; padding: 12px; background: var(--text-primary); color: var(--bg-main); border: none; border-radius: 8px; font-weight: 600; cursor: pointer;">
+                Got it
+            </button>
+        </div>
+    </div>
+
+    <script>
+        function showXPModal(level, remaining, percent) {
+            const modal = document.getElementById('xpModal');
+            const content = document.getElementById('xpModalContent');
+
+            document.getElementById('xp-modal-level').innerText = level;
+            document.getElementById('xp-modal-remaining').innerText = remaining + " XP";
+            document.getElementById('xp-modal-bar').style.width = percent + "%";
+            document.getElementById('xp-modal-percent').innerText = percent + "% Completed";
+
+            modal.style.display = 'grid';
+            // Small delay for transition
+            setTimeout(() => {
+                modal.style.opacity = '1';
+                content.style.transform = 'scale(1)';
+            }, 10);
+        }
+
+        function closeXPModal() {
+            const modal = document.getElementById('xpModal');
+            const content = document.getElementById('xpModalContent');
+
+            modal.style.opacity = '0';
+            content.style.transform = 'scale(0.95)';
+
+            setTimeout(() => {
+                modal.style.display = 'none';
+            }, 200);
+        }
+
+        // Close on outside click
+        document.getElementById('xpModal').addEventListener('click', (e) => {
+            if (e.target === document.getElementById('xpModal')) {
+                closeXPModal();
+            }
+        });
+    </script>
+    <!-- Confetti JS -->
+    <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
+    <script>
+        // Global Confetti Function
+        window.triggerConfetti = function () {
+            var duration = 3 * 1000;
+            var animationEnd = Date.now() + duration;
+            var defaults = { startVelocity: 30, spread: 360, ticks: 60, zIndex: 9999 };
+
+            function randomInOut(min, max) {
+                return Math.random() * (max - min) + min;
+            }
+
+            var interval = setInterval(function () {
+                var timeLeft = animationEnd - Date.now();
+
+                if (timeLeft <= 0) {
+                    return clearInterval(interval);
+                }
+
+                var particleCount = 50 * (timeLeft / duration);
+
+                // since particles fall down, start a bit higher than random
+                confetti(Object.assign({}, defaults, { particleCount, origin: { x: randomInOut(0.1, 0.3), y: Math.random() - 0.2 } }));
+                confetti(Object.assign({}, defaults, { particleCount, origin: { x: randomInOut(0.7, 0.9), y: Math.random() - 0.2 } }));
+            }, 250);
+        }
+
+        // Check for flash messages indicating success/level up
+        document.addEventListener('DOMContentLoaded', () => {
+            const flashMessages = document.querySelectorAll('.flash-message, .alert-success');
+            flashMessages.forEach(msg => {
+                const text = msg.textContent.toLowerCase();
+                if ((text.includes('xp') && !text.includes('not enough') && !text.includes('short on funds') && !text.includes('-') && !text.includes('unchecked') && !text.includes('lost')) || text.includes('level up') || text.includes('completed')) {
+                    window.triggerConfetti();
+                    // Play sound if available
+                    // const audio = new Audio('/static/sounds/success.mp3');
+                    // audio.play().catch(e => {}); 
+                }
+            });
+        });
+    </script>
+    <!-- 🔔 Socket.IO Browser Notifications (Global) -->
+    <script src="https://cdn.socket.io/4.7.2/socket.io.min.js"></script>
+    {% if current_user.is_authenticated %}
+    <script>
+        window.CURRENT_USER_ID = "{{ current_user.id }}";
+        window.CURRENT_USER_NAME = "{{ current_user.first_name }} {{ current_user.last_name }}";
+    </script>
+    <script src="{{ url_for('static', filename='js/calls.js') }}"></script>
+    {% endif %}
+    <script>
+        (function () {
+            // Only connect if user is authenticated (check for a user-specific element)
+            try {
+                const _notifSocket = io({ reconnectionAttempts: 3 });
+                window.svSocket = _notifSocket;
+
+                _notifSocket.on('connect', () => {
+                    _notifSocket.emit('join_user_room', {});
+                    _notifSocket.emit('join', {});
+                });
+
+                if (typeof window.initCallSocketListeners === 'function') {
+                    window.initCallSocketListeners(_notifSocket);
+                }
+
+                // 🔴 Friend went LIVE
+                _notifSocket.on('friend_went_live', (d) => {
+                    if (window.StudyVerse && window.StudyVerse.notify) {
+                        window.StudyVerse.notify(
+                            `🔴 ${d.name} is Live!`,
+                            `📚 Studying: ${d.topic || 'General'} — Click to watch!`,
+                            d.avatar || '/static/img/favicon.png',
+                            'friend-live-' + d.user_id,
+                            `/stream/${d.user_id}`
+                        );
+                    }
+                });
+
+                // ⚔️ Battle invite received
+                _notifSocket.on('battle_invite', (d) => {
+                    if (window.StudyVerse && window.StudyVerse.notify) {
+                        window.StudyVerse.notify(
+                            `⚔️ Battle Challenge!`,
+                            `${d.challenger_name || 'Someone'} challenged you to a Byte Battle!`,
+                            '/static/img/favicon.png',
+                            'battle-invite',
+                            '/battle'
+                        );
+                    }
+                });
+
+                // 👋 Friend request received
+                _notifSocket.on('friend_request_received', (d) => {
+                    if (window.StudyVerse && window.StudyVerse.notify) {
+                        window.StudyVerse.notify(
+                            `👋 New Friend Request!`,
+                            `${d.from_name} wants to be your study buddy!`,
+                            d.avatar || '/static/img/favicon.png',
+                            'friend-request-' + d.from_id,
+                            '/friends'
+                        );
+                    }
+                });
+
+                // 🏆 XP / Level up notification
+                _notifSocket.on('level_up', (d) => {
+                    if (window.StudyVerse && window.StudyVerse.notify) {
+                        window.StudyVerse.notify(
+                            `🎉 Level Up! You're now Level ${d.new_level}!`,
+                            `Keep going — ${d.xp_to_next} XP to reach Level ${d.new_level + 1}.`,
+                            '/static/img/favicon.png',
+                            'level-up',
+                            '/profile'
+                        );
+                    }
+                });
+
+            } catch (e) {
+                // Silently fail if socket not available
+            }
+        })();
+    </script>
+    <!-- Zen Mode Overlay -->
+    <div id="zen-mode-overlay" class="zen-overlay">
+        <!-- Minimal Header -->
+        <div class="zen-header">
+            <div class="zen-clock" id="zen-clock">00:00</div>
+            <button id="exit-zen-btn" class="btn-zen-exit" title="Exit Zen Mode">
+                <i class="fa-solid fa-person-walking-arrow-right"></i> Exit Zen
+            </button>
+        </div>
+
+        <!-- Central Content (Minimal) -->
+        <div class="zen-center">
+            <h2 class="zen-quote" id="zen-quote">"Focus on the process, not the outcome."</h2>
+            <div class="zen-author">- StudyVerse Zen</div>
+        </div>
+
+        <!-- Controls Bottom -->
+        <div class="zen-controls">
+            <!-- Sound Controls -->
+            <div class="zen-control-group">
+                <button id="zen-sound-toggle" class="btn-zen-icon"><i class="fa-solid fa-volume-off"></i></button>
+                <select id="zen-sound-select" class="zen-select">
+                    <option value="rain">Rain</option>
+                    <option value="forest">Forest</option>
+                    <option value="white_noise">White Noise</option>
+                    <option value="binaural">Binaural Beats</option>
+                </select>
+            </div>
+
+            <!-- Distraction Pad Toggle -->
+            <div class="zen-control-group">
+                <button id="distraction-pad-toggle" class="btn-zen-icon"
+                    style="width: auto; gap: 8px; padding: 0 10px; border-radius: 20px;">
+                    <i class="fa-solid fa-note-sticky"></i> Distraction Pad
+                </button>
+            </div>
+        </div>
+
+        <!-- Distraction Pad (Hidden by default) -->
+        <div id="distraction-pad-container" class="distraction-pad-container">
+            <div class="distraction-pad-header">
+                <span>Distraction Dump</span>
+                <i class="fa-solid fa-trash" style="cursor: pointer;"
+                    onclick="document.getElementById('distraction-input').value = ''"></i>
+            </div>
+            <textarea id="distraction-input" class="distraction-input"
+                placeholder="Write down what's distracting you, then let it go..."></textarea>
+            <div style="font-size: 0.8rem; color: rgba(255,255,255,0.5); text-align: center;">Saved automatically</div>
+        </div>
+    </div>
+
+    <!-- Zen Mode Script -->
+    <script src="{{ url_for('static', filename='js/zen_mode.js') }}"></script>
+
+    <!-- ═══════════════════════════════════════════════════════
+         REFERRAL MODAL STYLES
+         ═══════════════════════════════════════════════════════ -->
+    <style>
+        /* ──── REFERRAL MODAL ──── */
+        #referralModalOverlay {
+            display: none;
+            position: fixed;
+            inset: 0;
+            background: rgba(0, 0, 0, 0.8);
+            z-index: 4000;
+            place-items: center;
+            backdrop-filter: blur(6px);
+        }
+
+        #referralModalOverlay.open {
+            display: grid;
+        }
+
+        .ref-modal {
+            background: #0f1423 !important;
+            color: #e2e8f0 !important;
+            color-scheme: dark;
+            border: 1px solid rgba(74, 222, 128, 0.25);
+            border-radius: 24px;
+            padding: 36px;
+            width: 90%;
+            max-width: 460px;
+            box-shadow: 0 30px 80px rgba(0, 0, 0, 0.8);
+            animation: refModalIn 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
+        }
+
+        @keyframes refModalIn {
+            from {
+                transform: scale(0.85);
+                opacity: 0;
+            }
+
+            to {
+                transform: scale(1);
+                opacity: 1;
+            }
+        }
+
+        .ref-modal h3 {
+            font-size: 1.5rem;
+            font-weight: 800;
+            color: #f0f6fc !important;
+            margin-bottom: 6px;
+        }
+
+        .ref-modal p {
+            color: #94a3b8 !important;
+            font-size: 0.9rem;
+            margin-bottom: 24px;
+        }
+
+        .ref-stats-row {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 14px;
+            margin-bottom: 24px;
+        }
+
+        .ref-stat-box {
+            background: rgba(255, 255, 255, 0.04);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            border-radius: 14px;
+            padding: 16px;
+            text-align: center;
+        }
+
+        .ref-stat-val {
+            font-size: 1.8rem;
+            font-weight: 800;
+            color: #4ade80;
+        }
+
+        .ref-stat-lbl {
+            font-size: 0.75rem;
+            color: #8b9eb7 !important;
+            margin-top: 4px;
+            text-transform: uppercase;
+        }
+
+        .ref-link-box {
+            background: rgba(74, 222, 128, 0.06);
+            border: 1px solid rgba(74, 222, 128, 0.2);
+            border-radius: 12px;
+            padding: 14px 16px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin-bottom: 20px;
+        }
+
+        .ref-link-text {
+            flex: 1;
+            font-size: 0.82rem;
+            color: #4ade80;
+            word-break: break-all;
+            font-family: monospace;
+        }
+
+        .ref-copy-btn {
+            background: #4ade80;
+            color: #000;
+            border: none;
+            border-radius: 8px;
+            padding: 8px 14px;
+            font-weight: 700;
+            font-size: 0.8rem;
+            cursor: pointer;
+            white-space: nowrap;
+            transition: all 0.2s;
+            flex-shrink: 0;
+        }
+
+        .ref-copy-btn:hover {
+            background: #22c55e;
+        }
+
+        .ref-how {
+            background: rgba(255, 255, 255, 0.03);
+            border-radius: 12px;
+            padding: 16px;
+            margin-bottom: 20px;
+        }
+
+        .ref-how h5 {
+            color: #888;
+            font-size: 0.75rem;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            margin-bottom: 12px;
+        }
+
+        .ref-step {
+            display: flex;
+            align-items: flex-start;
+            gap: 10px;
+            margin-bottom: 10px;
+            font-size: 0.85rem;
+            color: #ccc;
+        }
+
+        .ref-step-num {
+            width: 22px;
+            height: 22px;
+            background: rgba(74, 222, 128, 0.2);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 0.7rem;
+            font-weight: 800;
+            color: #4ade80;
+            flex-shrink: 0;
+            margin-top: 1px;
+        }
+    </style>
+
+    {% if current_user.is_authenticated %}
+    <!-- ═══════ REFERRAL MODAL ═══════ -->
+    <div id="referralModalOverlay" onclick="if(event.target===this) closeReferralModal()">
+        <div class="ref-modal">
+            <div style="display:flex; justify-content:space-between; align-items:flex-start; margin-bottom:8px;">
+                <h3>🎁 Invite & Earn XP</h3>
+                <button onclick="closeReferralModal()"
+                    style="background:none;border:none;color:#666;font-size:1.4rem;cursor:pointer;"><i
+                        class="fa-solid fa-xmark"></i></button>
+            </div>
+            <p>Invite friends to StudyVerse. When they join, <strong style="color:#4ade80;">you BOTH get +500 XP
+                    each</strong>! 🚀</p>
+
+            <!-- Stats -->
+            <div class="ref-stats-row">
+                <div class="ref-stat-box">
+                    <div class="ref-stat-val" id="refTotalInvites">–</div>
+                    <div class="ref-stat-lbl">Friends Invited</div>
+                </div>
+                <div class="ref-stat-box">
+                    <div class="ref-stat-val" id="refTotalXP">–</div>
+                    <div class="ref-stat-lbl">XP Earned</div>
+                </div>
+            </div>
+
+            <!-- Referral Link -->
+            <div class="ref-link-box">
+                <div class="ref-link-text" id="refLink">Loading…</div>
+                <button class="ref-copy-btn" onclick="copyRefLink()">
+                    <i class="fa-regular fa-copy"></i> Copy
+                </button>
+            </div>
+
+            <!-- How it works -->
+            <div class="ref-how">
+                <h5>How it works</h5>
+                <div class="ref-step">
+                    <div class="ref-step-num">1</div>
+                    <div>Share your unique link with a friend</div>
+                </div>
+                <div class="ref-step">
+                    <div class="ref-step-num">2</div>
+                    <div>They sign up using your link</div>
+                </div>
+                <div class="ref-step">
+                    <div class="ref-step-num">3</div>
+                    <div>You <strong style="color:#4ade80;">both</strong> get <strong style="color:#4ade80;">+500
+                            XP</strong> each! 🎉</div>
+                </div>
+            </div>
+
+            <!-- Share buttons -->
+            <div style="display:flex; gap:10px;">
+                <button onclick="shareWhatsApp()"
+                    style="flex:1; padding:12px; background:rgba(37,211,102,0.15); color:#25d366; border:1px solid rgba(37,211,102,0.3); border-radius:12px; font-weight:700; cursor:pointer; font-size:0.85rem; transition:all 0.2s;"
+                    onmouseover="this.style.background='rgba(37,211,102,0.25)'"
+                    onmouseout="this.style.background='rgba(37,211,102,0.15)'">
+                    <i class="fa-brands fa-whatsapp"></i> WhatsApp
+                </button>
+                <button onclick="closeReferralModal()"
+                    style="flex:1; padding:12px; background:rgba(255,255,255,0.05); color:#888; border:1px solid rgba(255,255,255,0.1); border-radius:12px; font-weight:600; cursor:pointer; font-size:0.85rem;">Close</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // ═══════ REFERRAL SYSTEM ═══════
+        let _refLink = '';
+
+        async function openReferralModal() {
+            document.getElementById('referralModalOverlay').classList.add('open');
+            const res = await fetch('/api/referral/info');
+            const data = await res.json();
+            if (data.status === 'success') {
+                _refLink = data.referral_link;
+                document.getElementById('refLink').textContent = data.referral_link;
+                document.getElementById('refTotalInvites').textContent = data.total_referrals;
+                document.getElementById('refTotalXP').textContent = '+' + data.total_xp_earned + ' XP';
+            }
+        }
+
+        function closeReferralModal() {
+            document.getElementById('referralModalOverlay').classList.remove('open');
+        }
+
+        function copyRefLink() {
+            if (!_refLink) return;
+            navigator.clipboard.writeText(_refLink).then(() => {
+                const btn = document.querySelector('.ref-copy-btn');
+                btn.innerHTML = '<i class="fa-solid fa-check"></i> Copied!';
+                btn.style.background = '#22c55e';
+                setTimeout(() => {
+                    btn.innerHTML = '<i class="fa-regular fa-copy"></i> Copy';
+                    btn.style.background = '#4ade80';
+                }, 2000);
+            });
+        }
+
+        function shareWhatsApp() {
+            if (!_refLink) return;
+            const text = encodeURIComponent(`Hey! I've been using StudyVerse to boost my studies 📚🚀\n\nIt has AI coaching, battle quizzes, streaks and more!\n\nJoin using my invite link — we both get 500 XP 🎁\n${_refLink}`);
+            window.open(`https://wa.me/?text=${text}`, '_blank');
+        }
+    </script>
+
+    <!-- ═══════ FEEDBACK MODAL ═══════ -->
+    <div id="feedbackModalOverlay" onclick="if(event.target===this) closeFeedbackModal()"
+        style="display:none; position:fixed; inset:0; background:rgba(0,0,0,0.75); z-index:5000; place-items:center; backdrop-filter:blur(6px);">
+        <div style="background:#0f1117; color:#e2e8f0; border:1px solid rgba(74,222,128,0.25); border-radius:24px; padding:32px; width:90%; max-width:420px; box-shadow:0 30px 80px rgba(0,0,0,0.8); animation:refModalIn 0.35s cubic-bezier(0.34,1.56,0.64,1);">
+
+            <!-- Header -->
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:6px;">
+                <h3 style="font-size:1.2rem; font-weight:800; color:#f0f6fc; margin:0;">💬 Share Your Thoughts</h3>
+                <button onclick="closeFeedbackModal()" style="background:none;border:none;color:#666;font-size:1.3rem;cursor:pointer;"><i class="fa-solid fa-xmark"></i></button>
+            </div>
+            <p style="color:#64748b; font-size:0.85rem; margin-bottom:20px;">We read every single one! ❤️</p>
+
+            <!-- Thank you state -->
+            <div id="fbModalThankyou" style="display:none; text-align:center; padding:30px 0;">
+                <div style="font-size:3rem; margin-bottom:12px;">🎉</div>
+                <h4 style="color:#4ade80; font-size:1.1rem; margin-bottom:6px;">Thanks so much!</h4>
+                <p style="color:#64748b; font-size:0.85rem;">Your feedback helps us improve StudyVerse.</p>
+            </div>
+
+            <div id="fbModalForm">
+                <!-- Emoji Rating -->
+                <p style="font-size:0.75rem; color:#64748b; margin-bottom:10px; text-transform:uppercase; letter-spacing:0.5px; font-weight:600;">How's your experience?</p>
+                <div style="display:flex; justify-content:space-around; margin-bottom:20px;" id="fbModalEmojiRow">
+                    <span class="fbm-emoji" data-rating="love" title="Love it!" style="font-size:1.8rem;cursor:pointer;padding:8px 10px;border-radius:12px;border:2px solid rgba(255,255,255,0.1);transition:all 0.2s;">😍</span>
+                    <span class="fbm-emoji" data-rating="happy" title="Happy"   style="font-size:1.8rem;cursor:pointer;padding:8px 10px;border-radius:12px;border:2px solid rgba(255,255,255,0.1);transition:all 0.2s;">😊</span>
+                    <span class="fbm-emoji" data-rating="neutral" title="Okay"  style="font-size:1.8rem;cursor:pointer;padding:8px 10px;border-radius:12px;border:2px solid rgba(255,255,255,0.1);transition:all 0.2s;">😐</span>
+                    <span class="fbm-emoji" data-rating="sad" title="Sad"       style="font-size:1.8rem;cursor:pointer;padding:8px 10px;border-radius:12px;border:2px solid rgba(255,255,255,0.1);transition:all 0.2s;">😞</span>
+                    <span class="fbm-emoji" data-rating="awful" title="Awful"   style="font-size:1.8rem;cursor:pointer;padding:8px 10px;border-radius:12px;border:2px solid rgba(255,255,255,0.1);transition:all 0.2s;">😡</span>
+                </div>
+
+                <!-- Category -->
+                <p style="font-size:0.75rem; color:#64748b; margin-bottom:8px; text-transform:uppercase; letter-spacing:0.5px; font-weight:600;">Category</p>
+                <div style="display:flex; gap:8px; flex-wrap:wrap; margin-bottom:16px;" id="fbModalCatRow">
+                    <div class="fbm-cat" data-cat="general" style="padding:6px 14px;border-radius:20px;border:1px solid #4ade80;background:rgba(74,222,128,0.15);color:#4ade80;font-size:0.78rem;font-weight:600;cursor:pointer;">💬 General</div>
+                    <div class="fbm-cat" data-cat="bug"     style="padding:6px 14px;border-radius:20px;border:1px solid rgba(255,255,255,0.12);background:rgba(255,255,255,0.06);color:#94a3b8;font-size:0.78rem;font-weight:600;cursor:pointer;">🐛 Bug</div>
+                    <div class="fbm-cat" data-cat="feature" style="padding:6px 14px;border-radius:20px;border:1px solid rgba(255,255,255,0.12);background:rgba(255,255,255,0.06);color:#94a3b8;font-size:0.78rem;font-weight:600;cursor:pointer;">✨ Feature</div>
+                </div>
+
+                <!-- Message -->
+                <textarea id="fbModalMessage" rows="3" placeholder="Tell us more... (optional)"
+                    style="width:100%;background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.12);border-radius:12px;padding:12px;color:#e2e8f0;font-size:0.85rem;resize:none;outline:none;font-family:inherit;margin-bottom:14px;box-sizing:border-box;"></textarea>
+
+                <button id="fbModalSubmitBtn" onclick="submitFeedbackModal()"
+                    style="width:100%;padding:12px;background:linear-gradient(135deg,#4ade80,#22c55e);color:#000;border:none;border-radius:12px;font-weight:800;font-size:0.9rem;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:8px;">
+                    <i class="fa-solid fa-paper-plane"></i> Send Feedback
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // ═══════ FEEDBACK MODAL (Sidebar) ═══════
+        let _fbmRating = 'neutral';
+        let _fbmCat = 'general';
+
+        function openFeedbackModal() {
+            const overlay = document.getElementById('feedbackModalOverlay');
+            overlay.style.display = 'grid';
+        }
+
+        function closeFeedbackModal() {
+            document.getElementById('feedbackModalOverlay').style.display = 'none';
+            // Reset
+            setTimeout(() => {
+                document.getElementById('fbModalForm').style.display = 'block';
+                document.getElementById('fbModalThankyou').style.display = 'none';
+                document.getElementById('fbModalMessage').value = '';
+                const btn = document.getElementById('fbModalSubmitBtn');
+                if (btn) { btn.disabled = false; btn.innerHTML = '<i class="fa-solid fa-paper-plane"></i> Send Feedback'; }
+                _fbmRating = 'neutral'; _fbmCat = 'general';
+                document.querySelectorAll('.fbm-emoji').forEach(e => e.style.borderColor = 'rgba(255,255,255,0.1)');
+                document.querySelectorAll('.fbm-cat').forEach(e => {
+                    e.style.borderColor = 'rgba(255,255,255,0.12)';
+                    e.style.background = 'rgba(255,255,255,0.06)';
+                    e.style.color = '#94a3b8';
+                });
+                const defCat = document.querySelector('.fbm-cat[data-cat="general"]');
+                if (defCat) { defCat.style.borderColor='#4ade80'; defCat.style.background='rgba(74,222,128,0.15)'; defCat.style.color='#4ade80'; }
+            }, 300);
+        }
+
+        document.addEventListener('DOMContentLoaded', () => {
+            document.querySelectorAll('.fbm-emoji').forEach(el => {
+                el.addEventListener('click', () => {
+                    document.querySelectorAll('.fbm-emoji').forEach(e => e.style.borderColor = 'rgba(255,255,255,0.1)');
+                    el.style.borderColor = '#4ade80';
+                    _fbmRating = el.dataset.rating;
+                });
+            });
+            document.querySelectorAll('.fbm-cat').forEach(el => {
+                el.addEventListener('click', () => {
+                    document.querySelectorAll('.fbm-cat').forEach(e => {
+                        e.style.borderColor = 'rgba(255,255,255,0.12)';
+                        e.style.background = 'rgba(255,255,255,0.06)';
+                        e.style.color = '#94a3b8';
+                    });
+                    el.style.borderColor = '#4ade80';
+                    el.style.background = 'rgba(74,222,128,0.15)';
+                    el.style.color = '#4ade80';
+                    _fbmCat = el.dataset.cat;
+                });
+            });
+        });
+
+        async function submitFeedbackModal() {
+            const btn = document.getElementById('fbModalSubmitBtn');
+            const msg = document.getElementById('fbModalMessage').value.trim();
+            btn.disabled = true;
+            btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Sending...';
+            try {
+                const res = await fetch('/api/feedback', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ rating: _fbmRating, message: msg, category: _fbmCat, page_url: window.location.pathname })
+                });
+                const data = await res.json();
+                if (data.status === 'success') {
+                    document.getElementById('fbModalForm').style.display = 'none';
+                    document.getElementById('fbModalThankyou').style.display = 'block';
+                    setTimeout(() => closeFeedbackModal(), 2500);
+                } else {
+                    btn.disabled = false;
+                    btn.innerHTML = '<i class="fa-solid fa-paper-plane"></i> Send Feedback';
+                }
+            } catch(e) {
+                btn.disabled = false;
+                btn.innerHTML = '<i class="fa-solid fa-paper-plane"></i> Send Feedback';
+            }
+        }
+    </script>
+    {% endif %}
+
+    {% if current_user.is_authenticated %}
+    <!-- ════════════════════════════════════════════════
+         VERSE — AI Voice Assistant
+         Always-floating mic + welcome overlay
+    ═══════════════════════════════════════════════════ -->
+
+    <!-- Welcome Overlay (shown on dashboard) -->
+    <div id="verse-welcome-overlay">
+        <!-- Pulsing rings -->
+        <div class="verse-rings">
+            <div class="verse-ring"></div>
+            <div class="verse-ring"></div>
+            <div class="verse-ring"></div>
+            <div class="verse-ring"></div>
+        </div>
+        <!-- Orb -->
+        <div class="verse-orb">🎙️</div>
+        <!-- Text -->
+        <div class="verse-welcome-title">Hey, {{ current_user.first_name }}! 👋</div>
+        <div class="verse-welcome-subtitle">Loading your personalised welcome...</div>
+        <!-- Waveform -->
+        <div class="verse-waveform-welcome">
+            <div class="verse-wave-bar"></div>
+            <div class="verse-wave-bar"></div>
+            <div class="verse-wave-bar"></div>
+            <div class="verse-wave-bar"></div>
+            <div class="verse-wave-bar"></div>
+            <div class="verse-wave-bar"></div>
+            <div class="verse-wave-bar"></div>
+            <div class="verse-wave-bar"></div>
+            <div class="verse-wave-bar"></div>
+            <div class="verse-wave-bar"></div>
+            <div class="verse-wave-bar"></div>
+        </div>
+        <div class="verse-dismiss-hint">Tap anywhere to dismiss</div>
+    </div>
+
+    <!-- Floating Mic Button -->
+    <button id="verse-mic-btn" title="Talk to Verse (Alt+V)" aria-label="Verse AI Voice Assistant">
+        <i class="fa-solid fa-microphone"></i>
+    </button>
+    <div id="verse-mic-label">Verse AI</div>
+
+    <!-- Transcript / Response Bubble -->
+    <div id="verse-bubble">
+        <div class="verse-bubble-header" id="verse-bubble-header">
+            <span class="verse-bubble-dot" id="verse-bubble-dot"></span>
+            Listening...
+        </div>
+        <div class="verse-bubble-text" id="verse-bubble-text"></div>
+        <div class="verse-bubble-user" id="verse-bubble-user" style="display:none;"></div>
+    </div>
+
+    <!-- Verse JS (loaded last for full DOM access) -->
+    <script src="{{ url_for('static', filename='js/verse_assistant.js') }}?v=1.0.4"></script>
+
+    <!-- Dashboard welcome trigger -->
+    <script>
+        (function () {
+            const IS_DASHBOARD = window.location.pathname === '/dashboard';
+            const SHOWN_KEY = 'verse_welcome_shown_v1';
+
+            if (!IS_DASHBOARD) return;
+            // Show on every dashboard visit (you can gate it per-session via sessionStorage)
+            const alreadyShown = sessionStorage.getItem(SHOWN_KEY);
+            if (alreadyShown) return;
+            sessionStorage.setItem(SHOWN_KEY, '1');
+
+            // Fetch personalised welcome data from server
+            fetch('/api/verse/welcome')
+                .then(r => r.ok ? r.json() : null)
+                .then(data => {
+                    if (!data) return;
+                    if (window.Verse) window.Verse.showWelcome(data.message);
+                })
+                .catch(() => {
+                    // Fallback generic welcome
+                    if (window.Verse) window.Verse.showWelcome("Welcome back to StudyVerse! What would you like to work on today?");
+                });
+        })();
+    </script>
+    {% endif %}
+
+    <!-- ══════════════════════════════════════════════════════ -->
+    <!-- PWA Install Banner                                     -->
+    <!-- ══════════════════════════════════════════════════════ -->
+    <div id="pwa-install-banner" style="
+        display: none;
+        position: fixed;
+        bottom: 24px;
+        left: 50%;
+        transform: translateX(-50%) translateY(120px);
+        width: min(90vw, 420px);
+        background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%);
+        border: 1px solid rgba(14,165,233,0.35);
+        border-radius: 20px;
+        padding: 20px 22px;
+        box-shadow: 0 8px 40px rgba(0,0,0,0.55), 0 0 0 1px rgba(14,165,233,0.1) inset;
+        z-index: 99999;
+        transition: transform 0.45s cubic-bezier(0.34, 1.56, 0.64, 1), opacity 0.35s ease;
+        opacity: 0;
+        backdrop-filter: blur(12px);
+        -webkit-backdrop-filter: blur(12px);
+    ">
+        <!-- Glow ring -->
+        <div style="
+            position: absolute; inset: -1px; border-radius: 21px;
+            background: linear-gradient(135deg, rgba(14,165,233,0.25), rgba(139,92,246,0.15));
+            z-index: -1; pointer-events: none;
+        "></div>
+
+        <!-- Close button -->
+        <button onclick="dismissPWABanner()" id="pwa-close-btn" style="
+            position: absolute; top: 12px; right: 14px;
+            background: rgba(255,255,255,0.08); border: none; color: rgba(255,255,255,0.5);
+            width: 28px; height: 28px; border-radius: 50%; cursor: pointer;
+            font-size: 13px; display: flex; align-items: center; justify-content: center;
+            transition: background 0.2s, color 0.2s;
+        " onmouseover="this.style.background='rgba(255,255,255,0.15)';this.style.color='white'"
+           onmouseout="this.style.background='rgba(255,255,255,0.08)';this.style.color='rgba(255,255,255,0.5)'">
+            <i class="fa-solid fa-xmark"></i>
+        </button>
+
+        <!-- Content -->
+        <div style="display: flex; align-items: center; gap: 16px;">
+            <!-- App icon -->
+            <div style="
+                width: 52px; height: 52px; flex-shrink: 0;
+                background: linear-gradient(135deg, #0ea5e9, #7c3aed);
+                border-radius: 14px;
+                display: flex; align-items: center; justify-content: center;
+                box-shadow: 0 4px 16px rgba(14,165,233,0.4);
+            ">
+                <img src="/static/img/icon-192.png" style="width: 36px; height: 36px; border-radius: 8px;" onerror="this.style.display='none'; this.parentElement.innerHTML='<i class=&quot;fa-solid fa-graduation-cap&quot; style=&quot;font-size:1.4rem;color:white;&quot;></i>'">
+            </div>
+
+            <!-- Text -->
+            <div style="flex: 1; min-width: 0;">
+                <div style="font-weight: 700; font-size: 0.95rem; color: white; margin-bottom: 3px; font-family: 'Inter', sans-serif;">
+                    Install StudyVerse
+                </div>
+                <div id="pwa-subtitle" style="font-size: 0.78rem; color: rgba(255,255,255,0.55); line-height: 1.4; font-family: 'Inter', sans-serif;">
+                    Add to your home screen for instant access
+                </div>
+            </div>
+        </div>
+
+        <!-- Android: Install button -->
+        <div id="pwa-android-actions" style="margin-top: 16px; display: flex; gap: 10px;">
+            <button onclick="triggerPWAInstall()" style="
+                flex: 1; padding: 11px 16px;
+                background: linear-gradient(135deg, #0ea5e9, #7c3aed);
+                color: white; border: none; border-radius: 12px;
+                font-weight: 700; font-size: 0.9rem; cursor: pointer;
+                font-family: 'Inter', sans-serif;
+                box-shadow: 0 4px 20px rgba(14,165,233,0.4);
+                transition: transform 0.15s, box-shadow 0.15s;
+                display: flex; align-items: center; justify-content: center; gap: 8px;
+            " onmouseover="this.style.transform='scale(1.03)';this.style.boxShadow='0 6px 26px rgba(14,165,233,0.55)'" 
+               onmouseout="this.style.transform='scale(1)';this.style.boxShadow='0 4px 20px rgba(14,165,233,0.4)'">
+                <i class="fa-solid fa-download" style="font-size:0.85rem;"></i>
+                Install App
+            </button>
+            <button onclick="dismissPWABanner()" style="
+                padding: 11px 16px;
+                background: rgba(255,255,255,0.07); color: rgba(255,255,255,0.6);
+                border: 1px solid rgba(255,255,255,0.1); border-radius: 12px;
+                font-size: 0.85rem; cursor: pointer; font-family: 'Inter', sans-serif;
+                transition: background 0.2s;
+            " onmouseover="this.style.background='rgba(255,255,255,0.12)'" onmouseout="this.style.background='rgba(255,255,255,0.07)'">
+                Not now
+            </button>
+        </div>
+
+        <!-- iOS: Instruction steps -->
+        <div id="pwa-ios-actions" style="margin-top: 16px; display: none;">
+            <div style="display: flex; flex-direction: column; gap: 10px; margin-bottom: 14px;">
+                <div style="display: flex; align-items: center; gap: 12px; background: rgba(255,255,255,0.05); padding: 10px 14px; border-radius: 10px;">
+                    <span style="color: #0ea5e9; font-size: 1.1rem; flex-shrink:0;"><i class="fa-solid fa-arrow-up-from-bracket"></i></span>
+                    <span style="font-size: 0.8rem; color: rgba(255,255,255,0.7); font-family: 'Inter', sans-serif;">Tap the <strong style="color:white;">Share</strong> button in Safari's toolbar</span>
+                </div>
+                <div style="display: flex; align-items: center; gap: 12px; background: rgba(255,255,255,0.05); padding: 10px 14px; border-radius: 10px;">
+                    <span style="color: #a78bfa; font-size: 1.1rem; flex-shrink:0;"><i class="fa-solid fa-plus-square"></i></span>
+                    <span style="font-size: 0.8rem; color: rgba(255,255,255,0.7); font-family: 'Inter', sans-serif;">Tap <strong style="color:white;">"Add to Home Screen"</strong></span>
+                </div>
+                <div style="display: flex; align-items: center; gap: 12px; background: rgba(255,255,255,0.05); padding: 10px 14px; border-radius: 10px;">
+                    <span style="color: #4ade80; font-size: 1.1rem; flex-shrink:0;"><i class="fa-solid fa-check"></i></span>
+                    <span style="font-size: 0.8rem; color: rgba(255,255,255,0.7); font-family: 'Inter', sans-serif;">Tap <strong style="color:white;">"Add"</strong> — done! 🎉</span>
+                </div>
+            </div>
+            <button onclick="dismissPWABanner()" style="
+                width: 100%; padding: 11px;
+                background: rgba(255,255,255,0.07); color: rgba(255,255,255,0.6);
+                border: 1px solid rgba(255,255,255,0.1); border-radius: 12px;
+                font-size: 0.85rem; cursor: pointer; font-family: 'Inter', sans-serif;
+            ">Got it</button>
+        </div>
+
+        <!-- Pulse indicator dot -->
+        <div style="
+            position: absolute; top: -5px; right: -5px;
+            width: 12px; height: 12px; border-radius: 50%;
+            background: #4ade80;
+            box-shadow: 0 0 0 0 rgba(74,222,128,0.6);
+            animation: pwaPulse 2s infinite;
+        "></div>
+    </div>
+
+    <style>
+        @keyframes pwaPulse {
+            0%   { box-shadow: 0 0 0 0 rgba(74,222,128,0.6); }
+            70%  { box-shadow: 0 0 0 8px rgba(74,222,128,0); }
+            100% { box-shadow: 0 0 0 0 rgba(74,222,128,0); }
+        }
+    </style>
+
+    <script>
+        function showPWABanner(type) {
+            const banner = document.getElementById('pwa-install-banner');
+            if (!banner) return;
+
+            // Show correct action panel
+            const androidActions = document.getElementById('pwa-android-actions');
+            const iosActions = document.getElementById('pwa-ios-actions');
+            const subtitle = document.getElementById('pwa-subtitle');
+
+            if (type === 'ios') {
+                if (androidActions) androidActions.style.display = 'none';
+                if (iosActions) iosActions.style.display = 'block';
+                if (subtitle) subtitle.textContent = 'Follow these steps to add to your Home Screen';
+            } else {
+                if (androidActions) androidActions.style.display = 'flex';
+                if (iosActions) iosActions.style.display = 'none';
+                if (subtitle) subtitle.textContent = 'Works offline & opens like a native app — no app store needed!';
+            }
+
+            banner.style.display = 'block';
+            // Trigger enter animation
+            requestAnimationFrame(() => {
+                requestAnimationFrame(() => {
+                    banner.style.opacity = '1';
+                    banner.style.transform = 'translateX(-50%) translateY(0)';
+                });
+            });
+        }
+
+        function dismissPWABanner() {
+            const banner = document.getElementById('pwa-install-banner');
+            if (!banner) return;
+            banner.style.opacity = '0';
+            banner.style.transform = 'translateX(-50%) translateY(100px)';
+            setTimeout(() => { banner.style.display = 'none'; }, 400);
+
+            // ── Hybrid Smart Dismissal ───────────────────────────────
+            const currentCount = parseInt(localStorage.getItem('pwa_dismissed_count') || '0', 10);
+            const newCount = currentCount + 1;
+            localStorage.setItem('pwa_dismissed_count', newCount);
+
+            if (newCount < 3) {
+                // Snooze for 7 days
+                const snoozeUntil = Date.now() + (7 * 24 * 60 * 60 * 1000);
+                localStorage.setItem('pwa_dismissed_until', snoozeUntil);
+                console.log('[PWA] Banner snoozed for 7 days. Strike', newCount, 'of 3.');
+            } else {
+                // 3rd strike — suppress permanently
+                localStorage.removeItem('pwa_dismissed_until');
+                console.log('[PWA] Banner permanently suppressed after 3 dismissals.');
+            }
+        }
+
+        async function triggerPWAInstall() {
+            if (window._pwaInstallEvent) {
+                // ✅ One-tap native install (Chrome/Edge/Android)
+                window._pwaInstallEvent.prompt();
+                const { outcome } = await window._pwaInstallEvent.userChoice;
+                console.log('[PWA] Install outcome:', outcome);
+                window._pwaInstallEvent = null;
+                if (outcome === 'accepted') {
+                    // Clear all PWA prompt state — they installed! 🎉
+                    localStorage.removeItem('pwa_dismissed_count');
+                    localStorage.removeItem('pwa_dismissed_until');
+                    const banner = document.getElementById('pwa-install-banner');
+                    if (banner) { banner.style.opacity = '0'; banner.style.transform = 'translateX(-50%) translateY(100px)'; setTimeout(() => { banner.style.display = 'none'; }, 400); }
+                    if (window.triggerConfetti) window.triggerConfetti();
+                } else {
+                    // They dismissed the native prompt — count as a strike
+                    dismissPWABanner();
+                }
+            } else {
+                // ⚠️ beforeinstallprompt not available — show manual instructions
+                const isIOS = /iphone|ipad|ipod/i.test(navigator.userAgent);
+                const androidActions = document.getElementById('pwa-android-actions');
+                const iosActions = document.getElementById('pwa-ios-actions');
+                const subtitle = document.getElementById('pwa-subtitle');
+                if (isIOS) {
+                    if (androidActions) androidActions.style.display = 'none';
+                    if (iosActions) iosActions.style.display = 'block';
+                    if (subtitle) subtitle.textContent = 'Follow these steps to add to your Home Screen';
+                } else {
+                    // Chrome Desktop / Android fallback instructions
+                    if (androidActions) androidActions.innerHTML = `
+                        <div style="width:100%;">
+                            <div style="display:flex;align-items:center;gap:10px;background:rgba(255,255,255,0.05);padding:10px 14px;border-radius:10px;margin-bottom:8px;">
+                                <span style="color:#0ea5e9;font-size:1rem;">1.</span>
+                                <span style="font-size:0.8rem;color:rgba(255,255,255,0.75);">Click the <strong style="color:white;">⋮ menu</strong> in your browser (top-right)</span>
+                            </div>
+                            <div style="display:flex;align-items:center;gap:10px;background:rgba(255,255,255,0.05);padding:10px 14px;border-radius:10px;margin-bottom:8px;">
+                                <span style="color:#a78bfa;font-size:1rem;">2.</span>
+                                <span style="font-size:0.8rem;color:rgba(255,255,255,0.75);">Tap <strong style="color:white;">"Install app"</strong> or <strong style="color:white;">"Add to Home Screen"</strong></span>
+                            </div>
+                            <button onclick="dismissPWABanner()" style="width:100%;margin-top:4px;padding:10px;background:rgba(255,255,255,0.07);color:rgba(255,255,255,0.6);border:1px solid rgba(255,255,255,0.1);border-radius:12px;font-size:0.85rem;cursor:pointer;">Got it</button>
+                        </div>`;
+                }
+            }
+        }
+
+        // Hide banner & clear all state when app is installed via any method
+        window.addEventListener('appinstalled', () => {
+            localStorage.removeItem('pwa_dismissed_count');
+            localStorage.removeItem('pwa_dismissed_until');
+            const banner = document.getElementById('pwa-install-banner');
+            if (banner) { banner.style.opacity = '0'; banner.style.transform = 'translateX(-50%) translateY(100px)'; setTimeout(() => { banner.style.display = 'none'; }, 400); }
+            console.log('[PWA] App installed successfully! Prompt state cleared.');
+        });
+    </script>
+
+</body>
+
+</html>

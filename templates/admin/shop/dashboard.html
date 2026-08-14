@@ -1,0 +1,224 @@
+{% extends "admin/base.html" %}
+{% block title %}Shop Management{% endblock %}
+{% block page_title %}Shop Management{% endblock %}
+
+{% block content %}
+<style>
+    .shop-stats {
+        display: grid;
+        grid-template-columns: repeat(3, 1fr);
+        gap: 16px;
+        margin-bottom: 28px;
+    }
+
+    .shop-stat {
+        background: var(--bg-card);
+        border: 1px solid var(--border);
+        border-radius: var(--radius-lg);
+        padding: 22px;
+        position: relative;
+        overflow: hidden;
+        transition: var(--transition);
+    }
+
+    .shop-stat:hover {
+        transform: translateY(-2px);
+        box-shadow: var(--shadow-md);
+    }
+
+    .shop-stat::after {
+        content: '';
+        position: absolute;
+        top: 0;
+        right: 0;
+        width: 80px;
+        height: 80px;
+        border-radius: 50%;
+        transform: translate(30px, -30px);
+        opacity: 0.06;
+    }
+
+    .shop-stat-icon {
+        width: 44px;
+        height: 44px;
+        border-radius: 12px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        margin-bottom: 14px;
+        font-size: 18px;
+    }
+
+    .shop-stat-val {
+        font-size: 30px;
+        font-weight: 800;
+        color: var(--text-primary);
+        letter-spacing: -1px;
+        line-height: 1;
+        margin-bottom: 5px;
+    }
+
+    .shop-stat-label {
+        font-size: 12px;
+        color: var(--text-muted);
+        font-weight: 600;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+    }
+
+    .ssc-purple .shop-stat-icon {
+        background: rgba(139, 92, 246, 0.1);
+        color: #8b5cf6;
+    }
+
+    .ssc-purple::after {
+        background: #8b5cf6;
+    }
+
+    .ssc-purple:hover {
+        border-color: rgba(139, 92, 246, 0.3);
+    }
+
+    .ssc-orange .shop-stat-icon {
+        background: rgba(245, 158, 11, 0.1);
+        color: #f59e0b;
+    }
+
+    .ssc-orange::after {
+        background: #f59e0b;
+    }
+
+    .ssc-orange:hover {
+        border-color: rgba(245, 158, 11, 0.3);
+    }
+
+    .ssc-green .shop-stat-icon {
+        background: rgba(74, 222, 128, 0.1);
+        color: #4ade80;
+    }
+
+    .ssc-green::after {
+        background: #4ade80;
+    }
+
+    .ssc-green:hover {
+        border-color: rgba(74, 222, 128, 0.3);
+    }
+
+    .section-card {
+        background: var(--bg-card);
+        border: 1px solid var(--border);
+        border-radius: var(--radius-lg);
+        overflow: hidden;
+        margin-bottom: 22px;
+    }
+
+    .section-head {
+        padding: 17px 22px;
+        border-bottom: 1px solid var(--border);
+        font-size: 15px;
+        font-weight: 700;
+        color: var(--text-primary);
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        background: rgba(255, 255, 255, 0.015);
+    }
+
+    .section-head i {
+        color: var(--accent);
+        font-size: 14px;
+    }
+
+    .item-row {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: 14px 22px;
+        border-bottom: 1px solid var(--border);
+        transition: var(--transition);
+    }
+
+    .item-row:last-child {
+        border-bottom: none;
+    }
+
+    .item-row:hover {
+        background: rgba(74, 222, 128, 0.025);
+    }
+
+    .item-info-main {
+        font-size: 14px;
+        font-weight: 600;
+        color: var(--text-primary);
+        margin-bottom: 3px;
+    }
+
+    .item-info-sub {
+        font-size: 12px;
+        color: var(--text-muted);
+    }
+</style>
+
+<!-- Stats -->
+<div class="shop-stats">
+    <div class="shop-stat ssc-purple">
+        <div class="shop-stat-icon"><i class="fa-solid fa-cart-shopping"></i></div>
+        <div class="shop-stat-val">{{ stats.total_purchases }}</div>
+        <div class="shop-stat-label">Total Purchases</div>
+    </div>
+    <div class="shop-stat ssc-orange">
+        <div class="shop-stat-icon"><i class="fa-solid fa-box-open"></i></div>
+        <div class="shop-stat-val">{{ stats.unique_items }}</div>
+        <div class="shop-stat-label">Unique Items Sold</div>
+    </div>
+    <div class="shop-stat ssc-green">
+        <div class="shop-stat-icon"><i class="fa-solid fa-tag"></i></div>
+        <div class="shop-stat-val">{{ stats.active_items }}</div>
+        <div class="shop-stat-label">Active Items</div>
+    </div>
+</div>
+
+<!-- Popular Items table -->
+<div class="section-card">
+    <div class="section-head">
+        <i class="fa-solid fa-fire"></i> Popular Items
+    </div>
+    <div>
+        {% for item_id, count in stats.item_stats %}
+        <div class="item-row">
+            <div>
+                <div class="item-info-main">{{ item_id }}</div>
+                <div class="item-info-sub">Item ID</div>
+            </div>
+            <span class="badge badge-green">{{ count }} purchases</span>
+        </div>
+        {% else %}
+        <div style="text-align:center;padding:40px;color:var(--text-muted);">No items data yet</div>
+        {% endfor %}
+    </div>
+</div>
+
+<!-- Recent Purchases -->
+<div class="section-card">
+    <div class="section-head">
+        <i class="fa-solid fa-clock-rotate-left"></i> Recent Purchases
+    </div>
+    <div>
+        {% for purchase in stats.recent_purchases %}
+        <div class="item-row">
+            <div>
+                <div class="item-info-main">{{ purchase.item_id }}</div>
+                <div class="item-info-sub">User #{{ purchase.user_id }} &bull; {{ purchase.purchased_at.strftime('%b %d,
+                    %H:%M') }}</div>
+            </div>
+            <span class="badge {{ 'badge-green' if purchase.is_active else 'badge-white' }}">
+                {{ 'Active' if purchase.is_active else 'Inactive' }}
+            </span>
+        </div>
+        {% else %}
+        <div style="text-align:center;padding:40px;color:var(--text-muted);">No recent purchases</div>
+        {% endfor %}
+    </div>
+</div>
+{% endblock %}

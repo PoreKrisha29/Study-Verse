@@ -1,0 +1,1419 @@
+{% extends "layout.html" %}
+{% block title %}AI Photo Solver - StudyVerse{% endblock %}
+
+{% block content %}
+<style>
+    /* ═══════════════════════════════════════════════════
+   AI PHOTO QUESTION SOLVER — Styles
+═══════════════════════════════════════════════════ */
+    .solver-page {
+        padding: 28px 32px;
+        max-width: 1100px;
+        margin: 0 auto;
+        animation: fadeUp 0.45s ease;
+    }
+
+    @keyframes fadeUp {
+        from {
+            opacity: 0;
+            transform: translateY(18px);
+        }
+
+        to {
+            opacity: 1;
+            transform: translateY(0);
+        }
+    }
+
+    /* ── Header ── */
+    .ps-header {
+        margin-bottom: 28px;
+    }
+
+    .ps-header h1 {
+        font-size: 28px;
+        font-weight: 800;
+        background: linear-gradient(135deg, #f97316, #ec4899, #a78bfa);
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+        background-clip: text;
+        margin-bottom: 6px;
+    }
+
+    .ps-header p {
+        color: var(--text-secondary);
+        font-size: 14px;
+    }
+
+    /* ── Upload Zone ── */
+    .upload-zone {
+        border: 2px dashed rgba(249, 115, 22, 0.35);
+        border-radius: 20px;
+        background: rgba(249, 115, 22, 0.03);
+        padding: 52px 40px;
+        text-align: center;
+        cursor: pointer;
+        transition: all 0.25s;
+        position: relative;
+        margin-bottom: 24px;
+    }
+
+    .upload-zone:hover,
+    .upload-zone.drag-over {
+        border-color: #f97316;
+        background: rgba(249, 115, 22, 0.07);
+        transform: scale(1.005);
+    }
+
+    .upload-zone.has-image {
+        padding: 16px;
+        border-style: solid;
+        border-color: rgba(249, 115, 22, 0.5);
+    }
+
+    .upload-icon {
+        width: 72px;
+        height: 72px;
+        border-radius: 20px;
+        background: linear-gradient(135deg, rgba(249, 115, 22, 0.15), rgba(236, 72, 153, 0.1));
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        margin: 0 auto 18px;
+        font-size: 30px;
+    }
+
+    .upload-zone h3 {
+        font-size: 18px;
+        font-weight: 700;
+        color: var(--text-primary);
+        margin-bottom: 8px;
+    }
+
+    .upload-zone p {
+        color: var(--text-muted);
+        font-size: 13.5px;
+        margin-bottom: 20px;
+    }
+
+    .upload-btns {
+        display: flex;
+        gap: 12px;
+        justify-content: center;
+        flex-wrap: wrap;
+    }
+
+    .btn-upload {
+        padding: 11px 24px;
+        border-radius: 10px;
+        font-size: 13.5px;
+        font-weight: 700;
+        cursor: pointer;
+        border: none;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        transition: all 0.2s;
+    }
+
+    .btn-upload-primary {
+        background: linear-gradient(135deg, #ea580c, #f97316);
+        color: white;
+        box-shadow: 0 4px 14px rgba(249, 115, 22, 0.35);
+    }
+
+    .btn-upload-primary:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 8px 20px rgba(249, 115, 22, 0.4);
+    }
+
+    .btn-upload-secondary {
+        background: rgba(249, 115, 22, 0.1);
+        color: #f97316;
+        border: 1px solid rgba(249, 115, 22, 0.25);
+    }
+
+    .btn-upload-secondary:hover {
+        background: rgba(249, 115, 22, 0.18);
+    }
+
+    /* Image preview inside upload zone */
+    .preview-wrap {
+        position: relative;
+        display: inline-block;
+    }
+
+    .preview-img {
+        max-width: 100%;
+        max-height: 380px;
+        border-radius: 14px;
+        object-fit: contain;
+        box-shadow: 0 8px 32px rgba(0, 0, 0, 0.35);
+    }
+
+    .preview-remove {
+        position: absolute;
+        top: -10px;
+        right: -10px;
+        width: 30px;
+        height: 30px;
+        border-radius: 50%;
+        background: #ef4444;
+        color: white;
+        border: none;
+        font-size: 14px;
+        cursor: pointer;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        box-shadow: 0 2px 8px rgba(239, 68, 68, 0.4);
+        transition: transform 0.2s;
+    }
+
+    .preview-remove:hover {
+        transform: scale(1.15);
+    }
+
+    .preview-filename {
+        font-size: 12px;
+        color: var(--text-muted);
+        margin-top: 10px;
+        font-style: italic;
+    }
+
+    /* Solve button row */
+    .solve-row {
+        display: flex;
+        gap: 14px;
+        align-items: center;
+        flex-wrap: wrap;
+        margin-bottom: 32px;
+    }
+
+    .btn-solve {
+        flex: 1;
+        min-width: 200px;
+        padding: 15px 28px;
+        border-radius: 14px;
+        background: linear-gradient(135deg, #7c3aed, #ea580c);
+        color: white;
+        border: none;
+        font-size: 15px;
+        font-weight: 800;
+        cursor: pointer;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 10px;
+        transition: all 0.25s;
+        box-shadow: 0 6px 20px rgba(124, 58, 237, 0.35);
+    }
+
+    .btn-solve:hover {
+        transform: translateY(-3px);
+        box-shadow: 0 10px 28px rgba(124, 58, 237, 0.45);
+    }
+
+    .btn-solve:disabled {
+        opacity: 0.55;
+        cursor: not-allowed;
+        transform: none;
+    }
+
+    .solve-hint {
+        font-size: 12.5px;
+        color: var(--text-muted);
+        display: flex;
+        align-items: center;
+        gap: 6px;
+    }
+
+    /* ── Loading ── */
+    .ps-loading {
+        display: none;
+        text-align: center;
+        padding: 60px 20px;
+    }
+
+    .ps-loading.active {
+        display: block;
+    }
+
+    .ps-loading-ring {
+        width: 60px;
+        height: 60px;
+        border: 3px solid var(--border);
+        border-top-color: #f97316;
+        border-radius: 50%;
+        animation: spin 0.75s linear infinite;
+        margin: 0 auto 22px;
+    }
+
+    @keyframes spin {
+        to {
+            transform: rotate(360deg);
+        }
+    }
+
+    .ps-loading h3 {
+        color: var(--text-primary);
+        font-size: 17px;
+        font-weight: 700;
+        margin-bottom: 8px;
+    }
+
+    .ps-loading .step-text {
+        color: var(--text-muted);
+        font-size: 13.5px;
+    }
+
+    /* Processing shimmer bar */
+    .progress-bar-wrap {
+        max-width: 300px;
+        margin: 20px auto 0;
+        height: 4px;
+        background: var(--border);
+        border-radius: 2px;
+        overflow: hidden;
+    }
+
+    .progress-bar-fill {
+        height: 100%;
+        width: 0%;
+        background: linear-gradient(90deg, #f97316, #a78bfa);
+        border-radius: 2px;
+        transition: width 0.4s ease;
+    }
+
+    /* ── Results ── */
+    .ps-results {
+        display: none;
+    }
+
+    .ps-results.active {
+        display: block;
+        animation: fadeUp 0.4s ease;
+    }
+
+    /* Result header banner */
+    .result-banner {
+        background: linear-gradient(135deg, rgba(249, 115, 22, 0.12), rgba(236, 72, 153, 0.06));
+        border: 1px solid rgba(249, 115, 22, 0.25);
+        border-radius: 16px;
+        padding: 20px 24px;
+        margin-bottom: 22px;
+        display: flex;
+        align-items: center;
+        gap: 16px;
+        flex-wrap: wrap;
+    }
+
+    .result-banner-icon {
+        width: 52px;
+        height: 52px;
+        border-radius: 14px;
+        background: linear-gradient(135deg, #ea580c, #f97316);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 22px;
+        flex-shrink: 0;
+        color: white;
+    }
+
+    .result-banner-info {
+        flex: 1;
+        min-width: 0;
+    }
+
+    .result-banner-info h2 {
+        font-size: 16px;
+        font-weight: 800;
+        color: var(--text-primary);
+        margin-bottom: 4px;
+    }
+
+    .result-banner-info p {
+        font-size: 12.5px;
+        color: var(--text-muted);
+        margin: 0;
+    }
+
+    .result-meta-pills {
+        display: flex;
+        gap: 8px;
+        flex-wrap: wrap;
+        margin-top: 8px;
+    }
+
+    .meta-pill {
+        padding: 4px 12px;
+        border-radius: 20px;
+        font-size: 12px;
+        font-weight: 600;
+        display: flex;
+        align-items: center;
+        gap: 5px;
+    }
+
+    .pill-subject {
+        background: rgba(249, 115, 22, 0.12);
+        color: #f97316;
+        border: 1px solid rgba(249, 115, 22, 0.2);
+    }
+
+    .pill-topic {
+        background: rgba(167, 139, 250, 0.12);
+        color: #a78bfa;
+        border: 1px solid rgba(167, 139, 250, 0.2);
+    }
+
+    .pill-diff {
+        background: rgba(52, 211, 153, 0.12);
+        color: #34d399;
+        border: 1px solid rgba(52, 211, 153, 0.2);
+    }
+
+    .pill-xp {
+        background: rgba(74, 222, 128, 0.12);
+        color: #4ade80;
+        border: 1px solid rgba(74, 222, 128, 0.2);
+    }
+
+    /* Two-column layout */
+    .result-grid {
+        display: grid;
+        grid-template-columns: 1fr 360px;
+        gap: 20px;
+    }
+
+    /* Panel */
+    .ps-panel {
+        background: var(--bg-card);
+        border: 1px solid var(--border);
+        border-radius: 16px;
+        overflow: hidden;
+    }
+
+    .ps-panel-header {
+        padding: 15px 20px;
+        border-bottom: 1px solid var(--border);
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        background: rgba(255, 255, 255, 0.015);
+    }
+
+    .ps-panel-icon {
+        width: 32px;
+        height: 32px;
+        border-radius: 9px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 14px;
+    }
+
+    .pi-orange {
+        background: rgba(249, 115, 22, 0.12);
+        color: #f97316;
+    }
+
+    .pi-purple {
+        background: rgba(167, 139, 250, 0.12);
+        color: #a78bfa;
+    }
+
+    .pi-green {
+        background: rgba(52, 211, 153, 0.12);
+        color: #34d399;
+    }
+
+    .pi-blue {
+        background: rgba(59, 130, 246, 0.12);
+        color: #60a5fa;
+    }
+
+    .ps-panel-title {
+        font-size: 14px;
+        font-weight: 700;
+        color: var(--text-primary);
+    }
+
+    .ps-panel-body {
+        padding: 20px;
+    }
+
+    /* Step-by-step solution */
+    .solution-step {
+        display: flex;
+        gap: 14px;
+        margin-bottom: 18px;
+        padding-bottom: 18px;
+        border-bottom: 1px solid var(--border);
+    }
+
+    .solution-step:last-child {
+        margin-bottom: 0;
+        padding-bottom: 0;
+        border-bottom: none;
+    }
+
+    .step-num {
+        width: 32px;
+        height: 32px;
+        border-radius: 50%;
+        background: linear-gradient(135deg, #ea580c, #f97316);
+        color: white;
+        font-weight: 800;
+        font-size: 14px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        flex-shrink: 0;
+    }
+
+    .step-content {
+        flex: 1;
+    }
+
+    .step-title {
+        font-size: 13.5px;
+        font-weight: 700;
+        color: var(--text-primary);
+        margin-bottom: 5px;
+    }
+
+    .step-detail {
+        font-size: 13px;
+        color: var(--text-secondary);
+        line-height: 1.75;
+    }
+
+    .step-formula {
+        margin-top: 8px;
+        padding: 8px 14px;
+        background: rgba(249, 115, 22, 0.07);
+        border: 1px solid rgba(249, 115, 22, 0.15);
+        border-radius: 8px;
+        font-size: 13px;
+        color: #f97316;
+        font-family: 'JetBrains Mono', monospace;
+    }
+
+    /* Final answer box */
+    .final-answer {
+        margin-top: 14px;
+        padding: 16px 20px;
+        background: linear-gradient(135deg, rgba(74, 222, 128, 0.08), rgba(52, 211, 153, 0.05));
+        border: 1px solid rgba(74, 222, 128, 0.25);
+        border-radius: 12px;
+    }
+
+    .final-answer-label {
+        font-size: 11px;
+        text-transform: uppercase;
+        letter-spacing: 0.8px;
+        font-weight: 700;
+        color: #4ade80;
+        margin-bottom: 6px;
+        display: flex;
+        align-items: center;
+        gap: 6px;
+    }
+
+    .final-answer-value {
+        font-size: 18px;
+        font-weight: 800;
+        color: var(--text-primary);
+    }
+
+    /* Right sidebar panels */
+    .image-thumb {
+        width: 100%;
+        border-radius: 10px;
+        object-fit: contain;
+        max-height: 200px;
+        display: block;
+    }
+
+    /* Key concepts / tips */
+    .concept-tag {
+        display: inline-flex;
+        align-items: center;
+        gap: 5px;
+        padding: 5px 12px;
+        border-radius: 20px;
+        font-size: 12px;
+        font-weight: 600;
+        background: rgba(167, 139, 250, 0.1);
+        color: #a78bfa;
+        border: 1px solid rgba(167, 139, 250, 0.2);
+        margin: 4px;
+    }
+
+    /* Similar topic suggestion */
+    .similar-box {
+        padding: 12px 16px;
+        background: rgba(59, 130, 246, 0.06);
+        border: 1px solid rgba(59, 130, 246, 0.15);
+        border-radius: 10px;
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        text-decoration: none;
+        transition: all 0.2s;
+    }
+
+    .similar-box:hover {
+        border-color: #60a5fa;
+        background: rgba(59, 130, 246, 0.1);
+    }
+
+    .similar-box-icon {
+        color: #60a5fa;
+        font-size: 18px;
+        flex-shrink: 0;
+    }
+
+    .similar-box-text {
+        flex: 1;
+    }
+
+    .similar-box-text strong {
+        font-size: 13px;
+        color: var(--text-primary);
+        display: block;
+        margin-bottom: 3px;
+    }
+
+    .similar-box-text span {
+        font-size: 12px;
+        color: var(--text-muted);
+    }
+
+    /* Try again button */
+    .btn-try-again {
+        width: 100%;
+        padding: 12px;
+        border-radius: 10px;
+        background: rgba(249, 115, 22, 0.1);
+        color: #f97316;
+        border: 1px solid rgba(249, 115, 22, 0.2);
+        font-size: 13.5px;
+        font-weight: 700;
+        cursor: pointer;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 8px;
+        transition: all 0.2s;
+        margin-top: 16px;
+    }
+
+    .btn-try-again:hover {
+        background: rgba(249, 115, 22, 0.2);
+    }
+
+    /* Error */
+    .ps-error {
+        display: none;
+        text-align: center;
+        padding: 50px 20px;
+    }
+
+    .ps-error.active {
+        display: block;
+    }
+
+    .ps-error i {
+        font-size: 36px;
+        color: #f87171;
+        margin-bottom: 14px;
+    }
+
+    /* Sample questions */
+    .samples-row {
+        display: flex;
+        gap: 10px;
+        flex-wrap: wrap;
+        margin-bottom: 22px;
+    }
+
+    .sample-chip {
+        padding: 8px 16px;
+        border-radius: 10px;
+        font-size: 12.5px;
+        font-weight: 600;
+        background: rgba(255, 255, 255, 0.04);
+        border: 1px solid var(--border);
+        color: var(--text-secondary);
+        cursor: pointer;
+        transition: all 0.2s;
+        display: flex;
+        align-items: center;
+        gap: 7px;
+    }
+
+    .sample-chip:hover {
+        border-color: #f97316;
+        color: #f97316;
+        background: rgba(249, 115, 22, 0.06);
+    }
+
+    .sample-chip i {
+        font-size: 13px;
+    }
+
+    /* ── Inline Quiz ── */
+    .quiz-question {
+        display: flex;
+        gap: 14px;
+        padding: 16px 0;
+        border-bottom: 1px solid var(--border);
+    }
+
+    .quiz-question:last-child {
+        border-bottom: none;
+    }
+
+    .quiz-q-num {
+        width: 32px;
+        height: 32px;
+        border-radius: 50%;
+        background: linear-gradient(135deg, #7c3aed, #a78bfa);
+        color: white;
+        font-weight: 800;
+        font-size: 13px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        flex-shrink: 0;
+    }
+
+    .quiz-q-body {
+        flex: 1;
+    }
+
+    .quiz-q-text {
+        font-size: 13.5px;
+        font-weight: 600;
+        color: var(--text-primary);
+        margin-bottom: 12px;
+        line-height: 1.6;
+    }
+
+    .quiz-options {
+        display: flex;
+        flex-direction: column;
+        gap: 8px;
+    }
+
+    .quiz-option {
+        display: flex;
+        align-items: center;
+        padding: 9px 14px;
+        border-radius: 9px;
+        border: 1px solid var(--border);
+        background: rgba(255, 255, 255, 0.03);
+        font-size: 13px;
+        color: var(--text-secondary);
+        cursor: pointer;
+        transition: all 0.18s;
+    }
+
+    .quiz-option:hover {
+        border-color: #a78bfa;
+        background: rgba(167, 139, 250, 0.07);
+        color: var(--text-primary);
+    }
+
+    .quiz-explanation {
+        margin-top: 10px;
+        padding: 9px 14px;
+        background: rgba(249, 115, 22, 0.06);
+        border: 1px solid rgba(249, 115, 22, 0.15);
+        border-radius: 9px;
+        font-size: 12.5px;
+        color: var(--text-secondary);
+        line-height: 1.65;
+        gap: 8px;
+        align-items: flex-start;
+    }
+
+    /* Progressive step-card animation */
+    .stream-step-card {
+        opacity: 0;
+        transform: translateY(14px);
+        transition: opacity 0.4s ease, transform 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
+    }
+    .stream-step-card.visible {
+        opacity: 1;
+        transform: translateY(0);
+    }
+
+    @media (max-width: 768px) {
+        .result-grid {
+            grid-template-columns: 1fr;
+        }
+
+        .solver-page {
+            padding: 16px;
+        }
+    }
+</style>
+
+
+<div class="solver-page">
+    <!-- Header -->
+    <div class="ps-header">
+        <h1><i class="fa-solid fa-camera" style="font-size:22px; -webkit-text-fill-color:#f97316;"></i> AI Photo
+            Question Solver</h1>
+        <p>Upload any photo of a question — handwritten, printed, screenshot — and AI solves it step by step.</p>
+    </div>
+
+    <!-- What kind of images work? -->
+    <div class="samples-row">
+        <div class="sample-chip"><i class="fa-solid fa-superscript"></i> Math equations</div>
+        <div class="sample-chip"><i class="fa-solid fa-atom"></i> Physics problems</div>
+        <div class="sample-chip"><i class="fa-solid fa-flask"></i> Chemistry reactions</div>
+        <div class="sample-chip"><i class="fa-solid fa-pen-nib"></i> Handwritten notes</div>
+        <div class="sample-chip"><i class="fa-solid fa-book-open"></i> Textbook screenshots</div>
+        <div class="sample-chip"><i class="fa-solid fa-code"></i> Code snippets</div>
+    </div>
+
+    <!-- Upload Zone -->
+    <div class="upload-zone" id="uploadZone" ondragover="handleDragOver(event)" ondragleave="handleDragLeave(event)"
+        ondrop="handleDrop(event)" onclick="triggerUpload()">
+        <div id="uploadPlaceholder">
+            <div class="upload-icon">📸</div>
+            <h3>Drop your question image here</h3>
+            <p>Supports: JPG, PNG, WEBP, GIF, HEIC — up to 10MB</p>
+            <div class="upload-btns">
+                <button class="btn-upload btn-upload-primary" type="button"
+                    onclick="event.stopPropagation(); triggerUpload()">
+                    <i class="fa-solid fa-upload"></i> Upload Image
+                </button>
+                <button class="btn-upload btn-upload-secondary" type="button"
+                    onclick="event.stopPropagation(); triggerCamera()">
+                    <i class="fa-solid fa-camera"></i> Use Camera
+                </button>
+            </div>
+            <p style="margin-top:14px; font-size:12px; color:var(--text-muted);">
+                <i class="fa-solid fa-shield-halved" style="color:#4ade80;"></i>
+                Your image is sent securely and never stored permanently
+            </p>
+        </div>
+        <div id="imagePreview" style="display:none;">
+            <div class="preview-wrap">
+                <img id="previewImg" src="" alt="Preview" class="preview-img">
+                <button class="preview-remove" onclick="event.stopPropagation(); removeImage()" title="Remove">
+                    <i class="fa-solid fa-xmark"></i>
+                </button>
+            </div>
+            <div class="preview-filename" id="previewFilename"></div>
+        </div>
+    </div>
+
+    <!-- Hidden file inputs -->
+    <input type="file" id="fileInput" accept="image/*" style="display:none;" onchange="handleFileSelect(this)">
+    <input type="file" id="cameraInput" accept="image/*" capture="environment" style="display:none;"
+        onchange="handleFileSelect(this)">
+
+    <!-- Solve button -->
+    <div class="solve-row">
+        <button class="btn-solve" id="solveBtn" onclick="solveQuestion()" disabled>
+            <i class="fa-solid fa-wand-magic-sparkles"></i> Solve with AI
+        </button>
+        <div class="solve-hint">
+            <i class="fa-solid fa-bolt" style="color:#f97316;"></i>
+            Powered by Gemini Vision • Usually solves in 5–10 seconds
+        </div>
+    </div>
+
+    <!-- Loading state -->
+    <div class="ps-loading" id="psLoading">
+        <div class="ps-loading-ring"></div>
+        <h3>Gemini is reading your question<span id="loadDots">...</span></h3>
+        <div class="step-text" id="loadStep">Reading image content</div>
+        <div class="progress-bar-wrap">
+            <div class="progress-bar-fill" id="progressBar"></div>
+        </div>
+    </div>
+
+    <!-- Error state -->
+    <div class="ps-error" id="psError">
+        <i class="fa-solid fa-circle-exclamation"></i>
+        <h3 style="color:var(--text-primary); margin-bottom:8px; font-size:16px;">Couldn't solve this one</h3>
+        <p id="psErrorMsg" style="color:var(--text-muted); font-size:13.5px; max-width:400px; margin:0 auto 20px;">
+            Please try again with a clearer image.</p>
+        <button class="btn-try-again" style="max-width:220px; margin: 0 auto;" onclick="resetToUpload()">
+            <i class="fa-solid fa-rotate"></i> Try Another Image
+        </button>
+    </div>
+
+    <!-- Results area -->
+    <div class="ps-results" id="psResults">
+
+        <!-- Result Banner -->
+        <div class="result-banner">
+            <div class="result-banner-icon"><i class="fa-solid fa-check"></i></div>
+            <div class="result-banner-info">
+                <h2 id="resultQuestionPreview">Question solved!</h2>
+                <div class="result-meta-pills">
+                    <span class="meta-pill pill-subject" id="resultSubject"><i class="fa-solid fa-book"></i>
+                        Subject</span>
+                    <span class="meta-pill pill-topic" id="resultTopic"><i class="fa-solid fa-tag"></i> Topic</span>
+                    <span class="meta-pill pill-diff" id="resultDiff"><i class="fa-solid fa-signal"></i>
+                        Difficulty</span>
+                    <span class="meta-pill pill-xp" id="resultXP"><i class="fa-solid fa-star"></i> +20 XP</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- Two-column grid -->
+        <div class="result-grid">
+
+            <!-- LEFT : Step-by-step solution -->
+            <div>
+                <div class="ps-panel">
+                    <div class="ps-panel-header">
+                        <div class="ps-panel-icon pi-orange"><i class="fa-solid fa-list-ol"></i></div>
+                        <span class="ps-panel-title">Step-by-Step Solution</span>
+                    </div>
+                    <div class="ps-panel-body">
+                        <div id="stepsContainer"></div>
+                        <div class="final-answer" id="finalAnswerBox" style="display:none;">
+                            <div class="final-answer-label"><i class="fa-solid fa-circle-check"></i> Final Answer</div>
+                            <div class="final-answer-value" id="finalAnswerValue"></div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Key Concepts -->
+                <div class="ps-panel" style="margin-top:18px;">
+                    <div class="ps-panel-header">
+                        <div class="ps-panel-icon pi-purple"><i class="fa-solid fa-brain"></i></div>
+                        <span class="ps-panel-title">Key Concepts Used</span>
+                    </div>
+                    <div class="ps-panel-body">
+                        <div id="conceptsContainer" style="margin-bottom:12px;"></div>
+                        <div id="tipBox"
+                            style="padding:12px 14px; background:rgba(167,139,250,0.06); border:1px solid rgba(167,139,250,0.15); border-radius:10px; font-size:13px; color:var(--text-secondary); line-height:1.75; display:none;">
+                            <strong style="color:#a78bfa; display:block; margin-bottom:4px;"><i
+                                    class="fa-solid fa-lightbulb"></i> Pro Tip</strong>
+                            <span id="tipText"></span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- RIGHT sidebar -->
+            <div style="display:flex; flex-direction:column; gap:18px;">
+
+                <!-- Your uploaded image -->
+                <div class="ps-panel">
+                    <div class="ps-panel-header">
+                        <div class="ps-panel-icon pi-orange"><i class="fa-solid fa-image"></i></div>
+                        <span class="ps-panel-title">Your Question</span>
+                    </div>
+                    <div class="ps-panel-body">
+                        <img id="resultImageThumb" src="" alt="Question" class="image-thumb">
+                    </div>
+                </div>
+
+                <!-- Similar topic link -->
+                <div class="ps-panel">
+                    <div class="ps-panel-header">
+                        <div class="ps-panel-icon pi-blue"><i class="fa-solid fa-compass"></i></div>
+                        <span class="ps-panel-title">Explore More</span>
+                    </div>
+                    <div class="ps-panel-body" style="display:flex; flex-direction:column; gap:10px;">
+                        <a class="similar-box" id="resolverLink" href="/topic-resolver">
+                            <i class="fa-solid fa-wand-magic-sparkles similar-box-icon"></i>
+                            <div class="similar-box-text">
+                                <strong id="resolverLinkTitle">Deep dive this topic</strong>
+                                <span>AI-powered topic explanation</span>
+                            </div>
+                            <i class="fa-solid fa-arrow-right" style="color:var(--text-muted); font-size:13px;"></i>
+                        </a>
+                        <button class="similar-box" id="generateQuizBtn" onclick="generateQuiz()" style="border:none; cursor:pointer; width:100%; text-align:left;">
+                            <i class="fa-solid fa-brain similar-box-icon"></i>
+                            <div class="similar-box-text">
+                                <strong>Practice Quiz</strong>
+                                <span id="quizBtnSubtitle">Generate 5 questions on this topic</span>
+                            </div>
+                            <i class="fa-solid fa-wand-magic-sparkles" style="color:var(--text-muted); font-size:13px;"></i>
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Solve another -->
+                <button class="btn-try-again" onclick="resetToUpload()">
+                    <i class="fa-solid fa-camera"></i> Solve Another Question
+                </button>
+
+            </div>
+        </div>
+    </div>
+
+    <!-- Inline Quiz Section -->
+    <div id="quizSection" style="display:none; margin-top:24px;">
+        <div class="ps-panel">
+            <div class="ps-panel-header">
+                <div class="ps-panel-icon pi-green"><i class="fa-solid fa-brain"></i></div>
+                <span class="ps-panel-title" id="quizSectionTitle">Practice Quiz</span>
+                <span id="quizScore" style="margin-left:auto; font-size:13px; font-weight:700; color:#4ade80; display:none;"></span>
+            </div>
+            <div class="ps-panel-body">
+                <!-- Loading state -->
+                <div id="quizLoading" style="display:none; text-align:center; padding:30px 0;">
+                    <div class="ps-loading-ring" style="width:36px;height:36px;border-width:3px;"></div>
+                    <p style="margin-top:12px; color:var(--text-muted); font-size:13px;">Generating quiz questions…</p>
+                </div>
+                <!-- Quiz questions container -->
+                <div id="quizContainer"></div>
+                <!-- Submit / Retry buttons -->
+                <div id="quizActions" style="display:none; margin-top:20px; display:none; gap:10px; flex-wrap:wrap;">
+                    <button id="submitQuizBtn" onclick="submitQuiz()" class="btn-try-again" style="margin-top:0; flex:1; min-width:140px; background:rgba(74,222,128,0.1); color:#4ade80; border-color:rgba(74,222,128,0.3);">
+                        <i class="fa-solid fa-check"></i> Submit Answers
+                    </button>
+                    <button id="retryQuizBtn" onclick="generateQuiz()" class="btn-try-again" style="margin-top:0; flex:1; min-width:140px; display:none;">
+                        <i class="fa-solid fa-rotate"></i> New Quiz
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    let selectedFile = null;
+    let loadInterval = null;
+    let progressTimer = null;
+
+    // ── File handling ──────────────────────────────────────────
+
+    function triggerUpload() { document.getElementById('fileInput').click(); }
+    function triggerCamera() { document.getElementById('cameraInput').click(); }
+
+    function handleFileSelect(input) {
+        if (input.files && input.files[0]) {
+            setFile(input.files[0]);
+        }
+    }
+
+    function handleDragOver(e) {
+        e.preventDefault();
+        document.getElementById('uploadZone').classList.add('drag-over');
+    }
+    function handleDragLeave(e) {
+        document.getElementById('uploadZone').classList.remove('drag-over');
+    }
+    function handleDrop(e) {
+        e.preventDefault();
+        document.getElementById('uploadZone').classList.remove('drag-over');
+        const file = e.dataTransfer.files[0];
+        if (file && file.type.startsWith('image/')) setFile(file);
+    }
+
+    function setFile(file) {
+        if (file.size > 10 * 1024 * 1024) {
+            alert('Image too large. Max 10MB.');
+            return;
+        }
+        selectedFile = file;
+        const reader = new FileReader();
+        reader.onload = (e) => {
+            document.getElementById('previewImg').src = e.target.result;
+            document.getElementById('previewFilename').textContent = file.name + '  (' + (file.size / 1024).toFixed(0) + ' KB)';
+            document.getElementById('uploadPlaceholder').style.display = 'none';
+            document.getElementById('imagePreview').style.display = 'block';
+            document.getElementById('uploadZone').classList.add('has-image');
+            document.getElementById('solveBtn').disabled = false;
+            // hide old results
+            showSection('none');
+        };
+        reader.readAsDataURL(file);
+    }
+
+    function removeImage() {
+        selectedFile = null;
+        document.getElementById('previewImg').src = '';
+        document.getElementById('uploadPlaceholder').style.display = 'block';
+        document.getElementById('imagePreview').style.display = 'none';
+        document.getElementById('uploadZone').classList.remove('has-image');
+        document.getElementById('solveBtn').disabled = true;
+        document.getElementById('fileInput').value = '';
+        document.getElementById('cameraInput').value = '';
+        showSection('none');
+    }
+
+    function resetToUpload() {
+        removeImage();
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+
+    // ── Sections ────────────────────────────────────────────────
+
+    function showSection(s) {
+        document.getElementById('psLoading').className = 'ps-loading' + (s === 'loading' ? ' active' : '');
+        document.getElementById('psResults').className = 'ps-results' + (s === 'results' ? ' active' : '');
+        document.getElementById('psError').className = 'ps-error' + (s === 'error' ? ' active' : '');
+    }
+
+    // ── Loading animation ───────────────────────────────────────
+
+    const STEPS = [
+        'Reading image content…',
+        'Identifying question type…',
+        'Detecting subject & topic…',
+        'Generating step-by-step solution…',
+        'Checking the answer…',
+        'Almost done…'
+    ];
+
+    function startLoadingAnim() {
+        showSection('loading');
+        let step = 0, progress = 0;
+        const stepEl = document.getElementById('loadStep');
+        const bar = document.getElementById('progressBar');
+        const dots = document.getElementById('loadDots');
+        let dotCount = 0;
+
+        loadInterval = setInterval(() => {
+            dotCount = (dotCount + 1) % 4;
+            dots.textContent = '.'.repeat(dotCount + 1);
+            if (step < STEPS.length - 1) step++;
+            stepEl.textContent = STEPS[step];
+            progress = Math.min(progress + 15, 90);
+            bar.style.width = progress + '%';
+        }, 1200);
+    }
+
+    function stopLoadingAnim() {
+        clearInterval(loadInterval);
+        document.getElementById('progressBar').style.width = '100%';
+    }
+
+    // ── Solve ───────────────────────────────────────────────────
+
+    async function solveQuestion() {
+        if (!selectedFile) return;
+
+        document.getElementById('solveBtn').disabled = true;
+
+        // Clear previous results
+        document.getElementById('stepsContainer').innerHTML = '';
+        document.getElementById('finalAnswerBox').style.display = 'none';
+        document.getElementById('conceptsContainer').innerHTML = '';
+        document.getElementById('tipBox').style.display = 'none';
+        document.getElementById('quizSection').style.display = 'none';
+
+        // Show loading state
+        showSection('loading');
+        startLoadingAnim();
+        window.scrollTo({ top: document.getElementById('psLoading').offsetTop - 80, behavior: 'smooth' });
+
+        const formData = new FormData();
+        formData.append('image', selectedFile);
+
+        // 60-second timeout — gemini-2.5-flash needs time for complex images
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), 60000);
+
+        let data;
+        try {
+            const response = await fetch('/api/photo-solver/solve', {
+                method: 'POST',
+                body: formData,
+                credentials: 'same-origin',
+                signal: controller.signal,
+            });
+            clearTimeout(timeoutId);
+
+            if (!response.ok) {
+                throw new Error('Server error (' + response.status + '). Please try again.');
+            }
+            data = await response.json();
+        } catch (err) {
+            clearTimeout(timeoutId);
+            stopLoadingAnim();
+            showSection('error');
+            if (err.name === 'AbortError') {
+                document.getElementById('psErrorMsg').textContent =
+                    'AI took too long (>60s). Please try again — complex questions can take a moment.';
+            } else {
+                document.getElementById('psErrorMsg').textContent = err.message || 'Network error. Please try again.';
+            }
+            document.getElementById('solveBtn').disabled = false;
+            return;
+        }
+
+        stopLoadingAnim();
+
+        // If Gemini returned an error inside JSON
+        if (data.error) {
+            showSection('error');
+            document.getElementById('psErrorMsg').textContent = data.error;
+            document.getElementById('solveBtn').disabled = false;
+            return;
+        }
+
+        // Render results
+        renderResults(data);
+        showSection('results');
+
+        // Store for quiz
+        window._quizTopic   = data.topic   || '';
+        window._quizSubject = data.subject || '';
+        updateQuizBtn();
+
+        // Award XP
+        fetch('/api/photo-solver/award-xp', { method: 'POST' })
+            .then(r => r.json())
+            .then(d => {
+                if (d.earned > 0) {
+                    document.getElementById('resultXP').innerHTML =
+                        '<i class="fa-solid fa-star"></i> +' + d.earned + ' XP';
+                }
+            }).catch(() => {});
+
+        document.getElementById('solveBtn').disabled = false;
+    }
+
+    // Helper: simple fade-in nudge
+    function animateFadeIn(el) {
+        if (!el) return;
+        el.style.opacity = '0';
+        el.style.transition = 'opacity 0.4s ease';
+        requestAnimationFrame(() => { el.style.opacity = '1'; });
+    }
+
+
+    // ── Render results ──────────────────────────────────────────
+
+    function renderResults(data) {
+        // Banner
+        document.getElementById('resultQuestionPreview').textContent =
+            (data.question_preview || 'Question solved!').slice(0, 80) + ((data.question_preview || '').length > 80 ? '…' : '');
+        document.getElementById('resultSubject').innerHTML = '<i class="fa-solid fa-book"></i> ' + esc(data.subject || 'General');
+        document.getElementById('resultTopic').innerHTML = '<i class="fa-solid fa-tag"></i> ' + esc(data.topic || 'Mixed');
+        document.getElementById('resultDiff').innerHTML = '<i class="fa-solid fa-signal"></i> ' + esc(data.difficulty || 'Medium');
+
+        // Show uploaded image thumbnail
+        document.getElementById('resultImageThumb').src = document.getElementById('previewImg').src;
+
+        // Steps
+        const stepsEl = document.getElementById('stepsContainer');
+        stepsEl.innerHTML = '';
+        const steps = data.steps || [];
+        steps.forEach((step, i) => {
+            const formulaHtml = step.formula
+                ? `<div class="step-formula">${esc(step.formula)}</div>` : '';
+            stepsEl.innerHTML += `
+      <div class="solution-step">
+        <div class="step-num">${i + 1}</div>
+        <div class="step-content">
+          <div class="step-title">${esc(step.title || 'Step ' + (i + 1))}</div>
+          <div class="step-detail">${esc(step.detail || '')}</div>
+          ${formulaHtml}
+        </div>
+      </div>`;
+        });
+
+        // Final answer
+        if (data.final_answer) {
+            document.getElementById('finalAnswerBox').style.display = '';
+            document.getElementById('finalAnswerValue').textContent = data.final_answer;
+        } else {
+            document.getElementById('finalAnswerBox').style.display = 'none';
+        }
+
+        // Concepts
+        const conceptsEl = document.getElementById('conceptsContainer');
+        conceptsEl.innerHTML = '';
+        (data.concepts || []).forEach(c => {
+            conceptsEl.innerHTML += `<span class="concept-tag"><i class="fa-solid fa-circle-dot"></i>${esc(c)}</span>`;
+        });
+
+        // Pro tip
+        if (data.pro_tip) {
+            document.getElementById('tipBox').style.display = '';
+            document.getElementById('tipText').textContent = data.pro_tip;
+        }
+
+        // Resolver deeplink
+        const topic = data.topic || data.subject || '';
+        if (topic) {
+            document.getElementById('resolverLink').href = '/topic-resolver?topic=' + encodeURIComponent(topic);
+            document.getElementById('resolverLinkTitle').textContent = 'Deep dive: ' + topic;
+        }
+
+        // Store for quiz generation
+        window._quizTopic = data.topic || '';
+        window._quizSubject = data.subject || '';
+
+        // Update quiz button subtitle
+        if (topic) {
+            document.getElementById('quizBtnSubtitle').textContent =
+                'Generate 5 questions on: ' + topic;
+        }
+
+        // Reset quiz section for new solve
+        document.getElementById('quizSection').style.display = 'none';
+        document.getElementById('quizContainer').innerHTML = '';
+        document.getElementById('quizScore').style.display = 'none';
+        window._quizData = null;
+    }
+
+    // ── Auto-fill topic from URL param (from topic-resolver link) ─
+    window.addEventListener('DOMContentLoaded', () => {
+        const nav = document.querySelector('[data-nav="photo-solver"]');
+        if (nav) nav.classList.add('active');
+    });
+
+    function esc(s) {
+        if (!s) return '';
+        const d = document.createElement('div');
+        d.appendChild(document.createTextNode(String(s)));
+        return d.innerHTML;
+    }
+
+    // ── Quiz generation ─────────────────────────────────────────
+
+    async function generateQuiz() {
+        const topic = window._quizTopic || '';
+        const subject = window._quizSubject || '';
+        if (!topic && !subject) {
+            alert('Please solve a question first to generate a quiz.');
+            return;
+        }
+
+        // Show quiz section & loading
+        const section = document.getElementById('quizSection');
+        section.style.display = 'block';
+        document.getElementById('quizLoading').style.display = 'block';
+        document.getElementById('quizContainer').innerHTML = '';
+        document.getElementById('quizActions').style.display = 'none';
+        document.getElementById('quizScore').style.display = 'none';
+        document.getElementById('retryQuizBtn').style.display = 'none';
+        document.getElementById('submitQuizBtn').style.display = '';
+        document.getElementById('quizSectionTitle').textContent =
+            'Practice Quiz: ' + (topic || subject);
+
+        // Scroll to quiz
+        setTimeout(() => section.scrollIntoView({ behavior: 'smooth', block: 'start' }), 100);
+
+        try {
+            const resp = await fetch('/api/photo-solver/generate-quiz', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ topic, subject })
+            });
+            const data = await resp.json();
+            document.getElementById('quizLoading').style.display = 'none';
+
+            if (!resp.ok || data.error || !data.questions) {
+                document.getElementById('quizContainer').innerHTML =
+                    `<p style="color:#f87171; text-align:center;">${esc(data.error || 'Failed to generate quiz. Please try again.')}</p>`;
+                return;
+            }
+
+            window._quizData = data.questions;
+            renderQuizQuestions(data.questions);
+
+        } catch (err) {
+            document.getElementById('quizLoading').style.display = 'none';
+            document.getElementById('quizContainer').innerHTML =
+                `<p style="color:#f87171; text-align:center;">Network error. Please try again.</p>`;
+        }
+    }
+
+    function renderQuizQuestions(questions) {
+        const container = document.getElementById('quizContainer');
+        container.innerHTML = '';
+
+        questions.forEach((q, qi) => {
+            const optionsHtml = q.options.map((opt, oi) =>
+                `<label class="quiz-option" id="opt-${qi}-${oi}">
+                    <input type="radio" name="q${qi}" value="${oi}" style="margin-right:8px;">
+                    <span>${esc(opt)}</span>
+                </label>`
+            ).join('');
+
+            container.innerHTML += `
+            <div class="quiz-question" id="qq-${qi}">
+                <div class="quiz-q-num">Q${qi + 1}</div>
+                <div class="quiz-q-body">
+                    <div class="quiz-q-text">${esc(q.question)}</div>
+                    <div class="quiz-options" id="opts-${qi}">${optionsHtml}</div>
+                    <div class="quiz-explanation" id="exp-${qi}" style="display:none;">
+                        <i class="fa-solid fa-lightbulb" style="color:#f97316;"></i>
+                        <span>${esc(q.explanation)}</span>
+                    </div>
+                </div>
+            </div>`;
+        });
+
+        // Show action buttons
+        const actions = document.getElementById('quizActions');
+        actions.style.display = 'flex';
+    }
+
+    function submitQuiz() {
+        const questions = window._quizData;
+        if (!questions) return;
+
+        let score = 0;
+        let allAnswered = true;
+
+        questions.forEach((q, qi) => {
+            const selected = document.querySelector(`input[name="q${qi}"]:checked`);
+            if (!selected) { allAnswered = false; return; }
+
+            const chosen = parseInt(selected.value);
+            const correct = q.answer;
+
+            // Disable all options
+            document.querySelectorAll(`input[name="q${qi}"]`).forEach(r => r.disabled = true);
+
+            // Highlight options
+            q.options.forEach((_, oi) => {
+                const lbl = document.getElementById(`opt-${qi}-${oi}`);
+                if (oi === correct) {
+                    lbl.style.background = 'rgba(74,222,128,0.12)';
+                    lbl.style.borderColor = '#4ade80';
+                    lbl.style.color = '#4ade80';
+                } else if (oi === chosen) {
+                    lbl.style.background = 'rgba(248,113,113,0.12)';
+                    lbl.style.borderColor = '#f87171';
+                    lbl.style.color = '#f87171';
+                }
+            });
+
+            // Show explanation
+            document.getElementById(`exp-${qi}`).style.display = 'flex';
+
+            if (chosen === correct) score++;
+        });
+
+        if (!allAnswered) {
+            alert('Please answer all questions before submitting!');
+            return;
+        }
+
+        // Show score
+        const pct = Math.round((score / questions.length) * 100);
+        const scoreEl = document.getElementById('quizScore');
+        scoreEl.textContent = `Score: ${score}/${questions.length} (${pct}%)`;
+        scoreEl.style.display = '';
+        scoreEl.style.color = pct >= 60 ? '#4ade80' : '#f87171';
+
+        // Swap buttons
+        document.getElementById('submitQuizBtn').style.display = 'none';
+        document.getElementById('retryQuizBtn').style.display = '';
+    }
+
+</script>
+{% endblock %}

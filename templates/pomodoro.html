@@ -1,0 +1,533 @@
+{% extends "layout.html" %}
+
+{% block title %}Focus Mode - StudyVerse{% endblock %}
+
+{% block content %}
+<div class="page-header" style="display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:12px;">
+    <h1 class="page-title">Focus Station</h1>
+    <!-- 🔥 Session Streak Badge -->
+    <div id="focus-streak-badge" style="
+        display:flex; align-items:center; gap:10px;
+        background:linear-gradient(135deg,rgba(249,115,22,0.12),rgba(239,68,68,0.08));
+        border:1px solid rgba(249,115,22,0.25); border-radius:14px;
+        padding:10px 18px; backdrop-filter:blur(8px);
+    ">
+        <span style="font-size:1.4rem;">&#x1F525;</span>
+        <div>
+            <div style="font-size:0.7rem;color:rgba(255,255,255,0.5);text-transform:uppercase;font-weight:700;letter-spacing:0.5px;">Today's Focus</div>
+            <div style="font-size:1.1rem;font-weight:800;color:#f97316;" id="streak-count-display">0 Sessions</div>
+        </div>
+        <div style="width:1px;height:30px;background:rgba(255,255,255,0.1);margin:0 4px;"></div>
+        <div>
+            <div style="font-size:0.7rem;color:rgba(255,255,255,0.5);text-transform:uppercase;font-weight:700;letter-spacing:0.5px;">Time Focused</div>
+            <div style="font-size:1.1rem;font-weight:800;color:#fbbf24;" id="total-focus-display">0 min</div>
+        </div>
+    </div>
+</div>
+
+<!-- 💭 Motivational Quote Banner -->
+<div id="motive-quote" style="
+    background:linear-gradient(135deg,rgba(139,92,246,0.08),rgba(14,165,233,0.05));
+    border:1px solid rgba(139,92,246,0.15); border-radius:12px;
+    padding:12px 20px; margin-bottom:20px;
+    display:flex; align-items:center; gap:14px;
+    animation:fadeInQuote 0.6s ease both;
+">
+    <i class="fa-solid fa-quote-left" style="color:#7c3aed;font-size:1.2rem;flex-shrink:0;"></i>
+    <span id="quote-text" style="font-size:0.88rem;color:rgba(255,255,255,0.75);font-style:italic;line-height:1.5;">Loading...</span>
+</div>
+
+<style>
+    .focus-grid {
+        display: grid;
+        grid-template-columns: 2fr 1fr;
+        gap: 24px;
+        min-height: calc(100vh - 120px);
+    }
+
+    @media (max-width: 1024px) {
+        .focus-grid {
+            grid-template-columns: 1fr;
+            height: auto;
+            min-height: unset;
+            gap: 20px;
+        }
+
+        .timer-card {
+            min-height: 350px !important;
+        }
+
+        .timer-digits {
+            font-size: 5rem !important;
+        }
+
+        .brain-dump-card {
+            min-height: unset !important;
+        }
+    }
+
+    @media (max-width: 768px) {
+        .page-title {
+            font-size: 1.8rem !important;
+        }
+
+        .focus-grid {
+            gap: 16px;
+        }
+
+        /* Mode switcher — prevent overflow on small phones */
+        .mode-switcher {
+            gap: 6px !important;
+            flex-wrap: wrap;
+        }
+
+        .mode-btn {
+            font-size: 0.78rem !important;
+            padding: 6px 10px !important;
+        }
+
+        /* Brain dump textarea — don't be too tall on mobile */
+        #brain-dump-area {
+            height: 120px !important;
+        }
+
+        /* Custom duration row — stack on mobile */
+        .custom-duration-row {
+            flex-wrap: wrap;
+            gap: 8px !important;
+        }
+
+        /* Go Live panel inputs full width */
+        #liveTopicInput,
+        #liveSubjectInput {
+            font-size: 14px !important;
+        }
+    }
+
+    @media (max-width: 480px) {
+        .timer-digits {
+            font-size: 3.5rem !important;
+        }
+
+        .btn-timer-primary {
+            padding: 12px 24px !important;
+            font-size: 1rem !important;
+            width: 100%;
+            justify-content: center;
+        }
+
+        .timer-controls {
+            flex-wrap: wrap;
+            gap: 10px !important;
+        }
+
+        .mode-btn {
+            font-size: 0.72rem !important;
+            padding: 5px 8px !important;
+        }
+
+        /* Session goals input — full width */
+        .session-goals-input {
+            flex-wrap: wrap !important;
+        }
+
+        .session-goals-input input {
+            width: 100% !important;
+        }
+    }
+
+    @media (max-width: 360px) {
+        .timer-digits {
+            font-size: 3rem !important;
+        }
+
+        .mode-switcher {
+            justify-content: center;
+        }
+
+        .mode-btn {
+            font-size: 0.68rem !important;
+            padding: 5px 7px !important;
+        }
+    }
+
+    .music-card {
+        background: rgba(0, 0, 0, 0.3);
+        border: 1px solid rgba(255, 255, 255, 0.05);
+        backdrop-filter: blur(10px);
+    }
+</style>
+
+<!-- Focus Grid -->
+<div class="focus-grid">
+
+    <!-- Left Column: Timer & Controls -->
+    <div style="display: flex; flex-direction: column; gap: 24px;">
+        <!-- Timer Card -->
+        <div class="card timer-card">
+            <!-- Background Image Overlay -->
+            <div class="timer-bg-overlay"></div>
+
+            <div class="timer-content">
+                <div class="mode-switcher">
+                    <button class="mode-btn active" id="focusMode" data-mode="focus">Pomodoro</button>
+                    <button class="mode-btn" id="shortBreakMode" data-mode="shortBreak">Short Break</button>
+                    <button class="mode-btn" id="stopwatchMode" data-mode="stopwatch">Stopwatch</button>
+                </div>
+
+                <div id="timer-display" class="timer-digits">25:00</div>
+                <div id="timerLabel" style="display: none;">Focus</div> <!-- Hidden label for JS compatibility -->
+
+                <div class="timer-controls">
+                    <button id="start-btn" class="btn-timer-primary">Start</button>
+                    <button id="reset-btn" class="btn-timer-secondary"><i class="fa-solid fa-rotate-right"></i></button>
+                </div>
+
+                <!-- Custom Duration Row -->
+                <div id="custom-duration-row" class="custom-duration-row">
+                    <i class="fa-solid fa-sliders" style="font-size:0.85rem; opacity:0.7;"></i>
+                    <input
+                        type="number"
+                        id="custom-minutes-input"
+                        min="1"
+                        max="180"
+                        placeholder="25"
+                        title="Set custom focus duration (1ΓÇô180 min)"
+                    >
+                    <span style="font-size:0.8rem; opacity:0.7;">min</span>
+                    <button id="set-custom-duration-btn" title="Apply custom duration">Set</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Music Player -->
+        <div class="card music-card" style="padding: 0; overflow: hidden; border-radius: 16px;">
+            <iframe style="border-radius:12px; display: block;"
+                src="https://open.spotify.com/embed/playlist/0vvXsWCC9xrXsKd4FyS8kM?utm_source=generator" width="100%"
+                height="80" frameBorder="0" allowfullscreen=""
+                allow="autoplay; clipboard-write; encrypted-media; fullscreen; picture-in-picture"
+                loading="lazy"></iframe>
+        </div>
+
+        <!-- ≡ƒôí GO LIVE Panel -->
+        <div class="card" id="goLivePanel"
+            style="padding:0; border-radius:16px; border:1px solid var(--border); position:relative; z-index:10; overflow:visible; transform:none !important;">
+            <div
+                style="padding:16px 20px; border-bottom:1px solid var(--border); display:flex; align-items:center; gap:10px; background:rgba(239,68,68,0.04);">
+                <span style="width:8px;height:8px;border-radius:50%;background:#ef4444;flex-shrink:0;"
+                    id="liveDotNav"></span>
+                <span style="font-size:13.5px;font-weight:700;color:var(--text-primary);">Live Study Stream</span>
+                <a href="/live"
+                    style="margin-left:auto;font-size:12px;color:var(--text-muted);text-decoration:none;">View All &rarr;</a>
+            </div>
+            <div style="padding:16px 20px;" id="goLiveContent">
+                <!-- PRE-LIVE state -->
+                <div id="preLiveState">
+                    <p style="font-size:13px;color:var(--text-muted);margin-bottom:14px;">Go live and let friends watch
+                        & cheer your session in real-time!</p>
+                    <div style="display:flex;flex-direction:column;gap:10px;margin-bottom:14px;">
+                        <input type="text" id="liveTopicInput"
+                            placeholder="What are you studying? (e.g. Thermodynamics Ch.5)"
+                            style="width:100%;padding:10px 14px;background:rgba(255,255,255,0.08);border:1px solid var(--border);border-radius:10px;color:var(--text-primary);caret-color:var(--text-primary);font-size:13px;outline:none;position:relative;z-index:11;pointer-events:auto;">
+                        <input type="text" id="liveSubjectInput" placeholder="Subject (e.g. Physics)"
+                            style="width:100%;padding:10px 14px;background:rgba(255,255,255,0.08);border:1px solid var(--border);border-radius:10px;color:var(--text-primary);caret-color:var(--text-primary);font-size:13px;outline:none;position:relative;z-index:11;pointer-events:auto;">
+                    </div>
+                    <button id="goLiveBtn" onclick="goLive()"
+                        style="width:100%;padding:12px;border-radius:10px;background:linear-gradient(135deg,#ef4444,#f97316);color:white;border:none;font-size:14px;font-weight:800;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:8px;transition:all 0.2s;box-shadow:0 4px 14px rgba(239,68,68,0.3);position:relative;z-index:11;">
+                        <i class="fa-solid fa-circle" style="font-size:10px;"></i> Go Live
+                    </button>
+                </div>
+                <!-- LIVE state -->
+                <div id="liveActiveState" style="display:none;">
+                    <div style="display:flex;align-items:center;gap:10px;margin-bottom:12px;">
+                        <span
+                            style="width:8px;height:8px;border-radius:50%;background:#ef4444;animation:livePulse 1.2s ease infinite;"></span>
+                        <span style="font-size:13px;font-weight:700;color:#f87171;">YOU ARE LIVE</span>
+                        <span id="liveWatcherCount" style="margin-left:auto;font-size:12px;color:var(--text-muted);">0
+                            watching</span>
+                    </div>
+                    <div id="liveTopicDisplay" style="font-size:13px;color:var(--text-secondary);margin-bottom:14px;">
+                    </div>
+                    <a id="viewMyStreamBtn" href="#"
+                        style="display:flex;align-items:center;justify-content:center;gap:8px;padding:10px;border-radius:10px;background:rgba(239,68,68,0.1);color:#f87171;border:1px solid rgba(239,68,68,0.2);text-decoration:none;font-size:13px;font-weight:700;margin-bottom:10px;">
+                        <i class="fa-solid fa-eye"></i> View My Stream
+                    </a>
+                    <button onclick="endLiveStream()"
+                        style="width:100%;padding:10px;border-radius:10px;background:transparent;color:var(--text-muted);border:1px solid var(--border);font-size:13px;cursor:pointer;">End
+                        Stream</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Right Column: Brain Dump & Notes -->
+    <div class="card brain-dump-card" style="display: flex; flex-direction: column; overflow: hidden;">
+        <div class="card-header"
+            style="background: rgba(255,255,255,0.03); border-bottom: 1px solid rgba(255,255,255,0.05); padding: 16px 20px;">
+            <div class="card-title" style="color: var(--accent-green); font-size: 1.1rem; letter-spacing: 0.5px;">Brain
+                Dump</div>
+            <div style="display: flex; gap: 15px; align-items: center;">
+                <span id="save-status"
+                    style="font-size: 0.75rem; color: var(--accent-green); opacity: 0; transition: opacity 0.3s; font-weight: 600;">SAVED</span>
+                <i class="fa-solid fa-eraser" id="clear-notes"
+                    style="cursor: pointer; color: var(--text-secondary); transition: color 0.2s;"
+                    onmouseover="this.style.color='#fff'" onmouseout="this.style.color='var(--text-secondary)'"></i>
+            </div>
+        </div>
+        <div style="padding: 20px; flex: 1; display: flex; flex-direction: column; gap: 20px;">
+            <textarea id="brain-dump-area" placeholder="Type distractive thoughts here to clear your mind..."
+                style="width: 100%; height: 200px; background: rgba(0,0,0,0.4); border: 1px solid rgba(255,255,255,0.1); border-radius: 12px; color: var(--text-primary); caret-color: var(--text-primary); padding: 16px; resize: none; font-family: var(--font-body); line-height: 1.6; transition: border-color 0.3s;"></textarea>
+
+            <div style="display: flex; flex-direction: column; flex: 1; overflow: hidden;">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px;">
+                    <div
+                        style="font-size: 0.95rem; font-weight: 700; color: #fff; letter-spacing: 0.5px; text-transform: uppercase;">
+                        Session Goals</div>
+                    <span style="font-size: 0.75rem; color: var(--text-secondary);" id="goals-count">0 Active</span>
+                </div>
+
+                <div class="session-goals-input" style="display: flex; gap: 10px; margin-bottom: 20px;">
+                    <input type="text" id="new-goal-input" placeholder="What's the goal for this session?"
+                        style="flex: 1; padding: 12px 16px; border-radius: 10px; border: 1px solid rgba(255,255,255,0.1); background: rgba(255,255,255,0.05); color: var(--text-primary); caret-color: var(--text-primary); font-size: 0.9rem;">
+                    <button id="add-goal-btn" class="btn-timer-secondary"
+                        style="width: 44px; height: 44px; padding: 0; border-radius: 10px; background: var(--accent-green); color: #000; border: none;">
+                        <i class="fa-solid fa-plus"></i>
+                    </button>
+                </div>
+
+                <div id="session-goals-list"
+                    style="display: flex; flex-direction: column; gap: 10px; overflow-y: auto; max-height: 250px; padding-right: 5px;">
+                    <!-- Goals will be injected here via JS -->
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Feedback Modal -->
+    <div id="feedback-modal"
+        style="display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.8); z-index: 9999; align-items: center; justify-content: center; backdrop-filter: blur(5px);">
+        <div class="card" style="width: 400px; max-width: 90vw; border: 1px solid var(--border);">
+            <div style="text-align: center; margin-bottom: 20px;">
+                <div style="font-size: 3rem; margin-bottom: 10px;">🎉</div>
+                <h3 style="font-size: 1.5rem; font-weight: 700; margin-bottom: 8px;">Session Complete!</h3>
+                <p class="text-secondary" style="font-size: 0.9rem;">Great work! Let's track your progress.</p>
+            </div>
+
+            <div style="margin-bottom: 16px;">
+                <label style="display: block; margin-bottom: 8px; font-size: 0.9rem; font-weight: 600;">What topic did
+                    you study?</label>
+                <input type="text" id="feedback-topic"
+                    style="width: 100%; padding: 12px; background: rgba(255,255,255,0.05); border: 1px solid var(--border); border-radius: 8px; color: white;"
+                    placeholder="e.g. Chapter 1, Math, etc.">
+                <p style="font-size: 0.75rem; color: var(--text-muted); margin-top: 6px;">Exact match with syllabus
+                    chapters updates the heatmap.</p>
+            </div>
+
+            <div style="margin-bottom: 24px;">
+                <div style="display: flex; justify-content: space-between; margin-bottom: 8px;">
+                    <label style="font-size: 0.9rem; font-weight: 600;">Confidence Level</label>
+                    <span id="feedback-score-val" style="color: var(--accent-green); font-weight: bold;">80%</span>
+                </div>
+                <input type="range" id="feedback-score" min="1" max="10" value="8"
+                    style="width: 100%; cursor: pointer; accent-color: var(--accent-green);">
+                <div
+                    style="display: flex; justify-content: space-between; font-size: 0.75rem; color: var(--text-muted); margin-top: 4px;">
+                    <span>Confused</span>
+                    <span>Mastered</span>
+                </div>
+            </div>
+
+            <button id="feedback-submit" class="btn-timer-primary" style="width: 100%; justify-content: center;">Save to
+                Heatmap</button>
+            <button id="feedback-skip" class="btn-timer-secondary"
+                style="width: 100%; margin-top: 12px; justify-content: center; background: transparent; border: none;">Skip</button>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    window.currentUserId = "{{ current_user.id }}";
+</script>
+<script src="{{ url_for('static', filename='js/pomodoro.js') }}"></script>
+<script src="https://cdn.socket.io/4.7.2/socket.io.min.js"></script>
+<script>
+    document.querySelector('[data-nav="pomodoro"]').classList.add('active');
+
+    // ΓöÇΓöÇ Live Stream SocketIO Integration ΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇ
+    const _liveSocket = io();
+    let _isLive = false;
+    let _liveStreamId = null;
+    let _tickInterval = null;
+
+    _liveSocket.on('connect', () => {
+        _liveSocket.emit('join_user_room', {});
+    });
+
+    // Friendly went live notification
+    _liveSocket.on('friend_went_live', (d) => {
+        showLiveNotification(d);
+    });
+
+    // Watcher joined
+    _liveSocket.on('watcher_joined', (d) => {
+        const el = document.getElementById('liveWatcherCount');
+        if (el) el.textContent = d.watcher_count + ' watching';
+    });
+
+    function goLive() {
+        const topic = (document.getElementById('liveTopicInput').value || 'Studying').trim();
+        const subject = (document.getElementById('liveSubjectInput').value || 'General').trim();
+        const timerDisplay = document.getElementById('timer-display');
+        const timerText = timerDisplay ? timerDisplay.textContent : '25:00';
+        const parts = timerText.split(':');
+        const timerMin = parts[0] ? parseInt(parts[0]) : 25;
+
+        _liveSocket.emit('go_live', { topic, subject, timer_min: timerMin });
+        _isLive = true;
+        _liveStreamId = '{{ current_user.id }}';
+
+        document.getElementById('preLiveState').style.display = 'none';
+        document.getElementById('liveActiveState').style.display = 'block';
+        document.getElementById('liveTopicDisplay').textContent = '📚 ' + topic + ' · ' + subject;
+        document.getElementById('viewMyStreamBtn').href = '/stream/{{ current_user.id }}';
+
+        // Broadcast timer every 5 seconds
+        _tickInterval = setInterval(() => {
+            if (!_isLive) return;
+            const timerEl = document.getElementById('timer-display');
+            const labelEl = document.getElementById('timerLabel');
+            const remaining = timerEl ? timerEl.textContent.trim() : '25:00';
+            const mode = labelEl ? (labelEl.textContent || 'focus').toLowerCase() : 'focus';
+            // Calculate elapsed
+            const p = remaining.split(':');
+            const remSec = (parseInt(p[0]) || 0) * 60 + (parseInt(p[1]) || 0);
+            const totalSec = (timerMin || 25) * 60;
+            const elapsed = Math.max(totalSec - remSec, 0);
+            _liveSocket.emit('timer_tick', { remaining, elapsed, mode });
+        }, 5000);
+    }
+
+    function endLiveStream() {
+        if (!_isLive) return;
+        _isLive = false;
+        clearInterval(_tickInterval);
+        const timerMin = 25;
+        _liveSocket.emit('end_stream', { stream_id: _liveStreamId, duration_min: timerMin });
+        document.getElementById('preLiveState').style.display = 'block';
+        document.getElementById('liveActiveState').style.display = 'none';
+    }
+
+    function showLiveNotification(d) {
+        // Floating notification
+        const el = document.createElement('div');
+        el.style.cssText = `position:fixed;top:20px;right:20px;z-index:9998;background:linear-gradient(135deg,rgba(239,68,68,0.15),rgba(249,115,22,0.1));border:1px solid rgba(239,68,68,0.3);border-radius:14px;padding:14px 18px;display:flex;align-items:center;gap:12px;animation:slideIn 0.3s ease;max-width:320px;backdrop-filter:blur(8px);`;
+        el.innerHTML = `
+            <img src="${d.avatar}" style="width:36px;height:36px;border-radius:50%;border:2px solid #ef4444;">
+            <div>
+              <div style="font-size:12px;font-weight:800;color:#f87171;">🔴 LIVE</div>
+              <div style="font-size:13px;color:white;font-weight:600;">${d.name} just went live!</div>
+              <div style="font-size:12px;color:rgba(255,255,255,0.6);">📚 ${d.topic}</div>
+            </div>
+            <a href="/stream/${d.user_id}" style="margin-left:auto;padding:6px 14px;background:#ef4444;color:white;border-radius:8px;text-decoration:none;font-size:12px;font-weight:700;">Watch</a>`;
+        document.body.appendChild(el);
+        setTimeout(() => { el.style.opacity = '0'; el.style.transform = 'translateX(20px)'; el.style.transition = 'all 0.3s'; setTimeout(() => el.remove(), 300); }, 6000);
+    }
+</script>
+<style>
+    @keyframes livePulse {
+        0% {
+            box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.5);
+        }
+
+        70% {
+            box-shadow: 0 0 0 6px rgba(239, 68, 68, 0);
+        }
+
+        100% {
+            box-shadow: 0 0 0 0 rgba(239, 68, 68, 0);
+        }
+    }
+
+    /* Fix invisible placeholder text in Go Live inputs */
+    #liveTopicInput::placeholder,
+    #liveSubjectInput::placeholder {
+        color: rgba(255, 255, 255, 0.45);
+    }
+
+    #liveTopicInput:focus,
+    #liveSubjectInput:focus {
+        border-color: rgba(239, 68, 68, 0.5);
+        background: rgba(255, 255, 255, 0.1);
+    }
+    @keyframes fadeInQuote {
+        from { opacity: 0; transform: translateY(-6px); }
+        to   { opacity: 1; transform: translateY(0); }
+    }
+    #focus-streak-badge {
+        transition: box-shadow 0.3s;
+    }
+    #focus-streak-badge:hover {
+        box-shadow: 0 0 20px rgba(249,115,22,0.2);
+    }
+</style>
+<script>
+    // ── Motivational Quotes ──────────────────────────────────────
+    const FOCUS_QUOTES = [
+        "The secret of getting ahead is getting started. – Mark Twain",
+        "It's not about having time, it's about making time.",
+        "Focus is the art of saying no to a thousand things.",
+        "Small steps, every day. That's how mountains are climbed.",
+        "You don't have to be great to start, but you have to start to be great.",
+        "Deep work is the superpower of the 21st century.",
+        "One focused hour beats ten distracted hours.",
+        "Your future self is watching you right now through memories.",
+        "Study hard, for the well is deep and our brains are shallow.",
+        "The pain of studying is temporary. The pain of ignorance is forever.",
+    ];
+    const randomQuote = FOCUS_QUOTES[Math.floor(Math.random() * FOCUS_QUOTES.length)];
+    document.getElementById('quote-text').textContent = `"${randomQuote}"`;
+
+    // ── Today's Session Streak Counter ──────────────────────────
+    function getPomodoroStats() {
+        const todayKey = 'pomo_' + new Date().toISOString().slice(0, 10);
+        const sessions = parseInt(localStorage.getItem(todayKey + '_sessions') || '0', 10);
+        const mins     = parseInt(localStorage.getItem(todayKey + '_mins')     || '0', 10);
+        return { sessions, mins, todayKey };
+    }
+
+    function updateStreakBadge() {
+        const { sessions, mins } = getPomodoroStats();
+        const sc = document.getElementById('streak-count-display');
+        const tf = document.getElementById('total-focus-display');
+        if (sc) sc.textContent = sessions + (sessions === 1 ? ' Session' : ' Sessions');
+        if (tf) tf.textContent = mins + ' min';
+        // Glow when on fire (3+ sessions)
+        const badge = document.getElementById('focus-streak-badge');
+        if (badge && sessions >= 3) {
+            badge.style.boxShadow = '0 0 20px rgba(249,115,22,0.35)';
+            badge.style.borderColor = 'rgba(249,115,22,0.5)';
+        }
+    }
+    updateStreakBadge();
+
+    // Hook into the existing pomodoro.js session completion
+    // pomodoro.js fires a custom 'pomodoroSessionComplete' event OR calls saveFeedback.
+    // We listen for the feedback-submit to record sessions.
+    document.addEventListener('DOMContentLoaded', () => {
+        const submitBtn = document.getElementById('feedback-submit');
+        const skipBtn   = document.getElementById('feedback-skip');
+
+        function recordSession(durationMins) {
+            const { todayKey, sessions, mins } = getPomodoroStats();
+            localStorage.setItem(todayKey + '_sessions', sessions + 1);
+            localStorage.setItem(todayKey + '_mins',     mins + (durationMins || 25));
+            updateStreakBadge();
+        }
+
+        if (submitBtn) submitBtn.addEventListener('click', () => recordSession(25), { capture: true });
+        if (skipBtn)   skipBtn.addEventListener('click',   () => recordSession(25), { capture: true });
+    });
+</script>
+{% endblock %}

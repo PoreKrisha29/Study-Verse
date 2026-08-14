@@ -1,0 +1,803 @@
+{% extends "layout.html" %}
+
+{% block title %}{{ group.name }} - StudyVerse{% endblock %}
+
+{% block content %}
+
+<!-- ── Page Header ────────────────────────────────────────────── -->
+<header class="friends-header">
+    <div class="friends-header-info">
+        <div style="display:flex;align-items:center;gap:12px;">
+            <a href="{{ url_for('group_chat') }}" class="back-btn-squad" title="All Groups">
+                <i class="fa-solid fa-arrow-left"></i>
+            </a>
+            <div>
+                <h1 class="page-title-friends" style="font-size:1.5rem;">
+                    {{ group.avatar_emoji or '📚' }} {{ group.name }}
+                </h1>
+                {% if group.description %}
+                <p class="friends-subtitle" style="margin:0;">{{ group.description }}</p>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+    <div class="friends-actions">
+        <div class="mode-switcher-friends">
+            <a href="/friends" class="mode-btn-friends">Friends</a>
+            <a href="/group" class="mode-btn-friends">Groups</a>
+        </div>
+    </div>
+</header>
+
+{% with messages = get_flashed_messages(with_categories=true) %}
+{% if messages %}
+{% for cat, msg in messages %}
+<div style="margin-bottom:14px;padding:11px 16px;border-radius:10px;font-weight:600;
+        background:{% if cat=='success' %}rgba(74,222,128,0.12){% else %}rgba(239,68,68,0.12){% endif %};
+        color:{% if cat=='success' %}#4ade80{% else %}#f87171{% endif %};
+        border:1px solid {% if cat=='success' %}rgba(74,222,128,0.25){% else %}rgba(239,68,68,0.25){% endif %};">
+    <i class="fa-solid {% if cat=='success' %}fa-circle-check{% else %}fa-circle-exclamation{% endif %}"></i>
+    {{ msg }}
+</div>
+{% endfor %}
+{% endif %}
+{% endwith %}
+
+<!-- ── Pinned Messages Banner ─────────────────────────────────── -->
+{% if pinned_messages %}
+<div class="pinned-banner">
+    <i class="fa-solid fa-thumbtack" style="color:#fbbf24;"></i>
+    <strong style="color:#fbbf24;">Pinned:</strong>
+    <span style="color:var(--text-secondary);">{{ pinned_messages[0].content[:120] }}{% if
+        pinned_messages[0].content|length > 120 %}…{% endif %}</span>
+</div>
+{% endif %}
+
+<!-- ── Chat Layout ─────────────────────────────────────────────── -->
+<div class="chat-layout-main">
+
+    <!-- ── Left: Members + Admin Panel ────────────────────────── -->
+    <div class="card" style="display:flex;flex-direction:column;padding:0;overflow:visible;">
+
+
+        <!-- Members Header -->
+        <div class="card-header" style="padding:18px;border-bottom:1px solid var(--border);margin-bottom:0;">
+            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;">
+                <div class="card-title" style="font-size:1rem;font-weight:700;color:var(--text-primary);margin:0;">
+                    <i class="fa-solid fa-users" style="color:#6366f1;margin-right:6px;"></i>Members
+                </div>
+            </div>
+
+            <!-- Invite Code -->
+            <div
+                style="display:flex;align-items:center;justify-content:space-between;background:rgba(0,0,0,0.2);padding:10px;border-radius:8px;border:1px dashed var(--border);">
+                <span style="font-size:0.8rem;color:var(--text-secondary);">Invite Code:</span>
+                <div style="display:flex;align-items:center;gap:8px;">
+                    <span id="groupInviteCode"
+                        style="font-family:var(--font-mono);color:var(--accent-green);font-weight:700;font-size:0.95rem;letter-spacing:2px;">{{
+                        group.invite_code }}</span>
+                    <button onclick="copyInviteCode('{{ group.invite_code }}')" title="Copy"
+                        style="width:26px;height:26px;font-size:0.8rem;background:rgba(74,222,128,0.1);color:var(--accent-green);border:none;border-radius:6px;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:all 0.2s;">
+                        <i class="fa-solid fa-copy"></i>
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Member Search -->
+        <div style="padding:12px 16px;">
+            <input type="text" id="memberSearch" placeholder="Search members…"
+                style="width:100%;padding:9px 12px;background:rgba(255,255,255,0.05);border:1px solid var(--border);border-radius:8px;color:white;font-size:0.85rem;box-sizing:border-box;">
+        </div>
+
+        <!-- Member List -->
+        <div id="friendsList" style="flex:1;overflow-y:auto;display:flex;flex-direction:column;padding:0 12px 12px;">
+            {% for u in group_members %}
+            <div class="member-item"
+                style="display:flex;align-items:center;gap:10px;padding:9px;border-radius:8px;transition:0.2s;position:relative;">
+                <img src="{{ u.get_avatar(64) }}" style="width:36px;height:36px;border-radius:50%;object-fit:cover;">
+                <div style="flex:1;min-width:0;">
+                    <div
+                        style="font-weight:600;color:var(--text-primary);font-size:0.9rem;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">
+                        {{ u.first_name }} {{ u.last_name }}
+                        {% if u.id == group.admin_id %}
+                        <span title="Admin" style="color:#fbbf24;font-size:0.7rem;margin-left:4px;"><i
+                                class="fa-solid fa-crown"></i></span>
+                        {% endif %}
+                    </div>
+                    <div style="font-size:0.75rem;color:var(--text-secondary);">{{ u.member_role | capitalize }}</div>
+                </div>
+                <!-- Online dot -->
+                <div
+                    style="width:8px;height:8px;background:{% if u.is_online_status %}#22c55e{% else %}#6b7280{% endif %};border-radius:50%;flex-shrink:0;{% if u.is_online_status %}box-shadow:0 0 5px #22c55e;{% endif %}">
+                </div>
+
+                <!-- Admin kick button (hidden for self and for non-admins) -->
+                {% if is_admin and u.id != current_user.id %}
+                <form method="POST" action="{{ url_for('group_kick', group_id=group.id, target_user_id=u.id) }}"
+                    style="display:inline;">
+                    <button type="submit" title="Remove {{ u.first_name }}"
+                        onclick="return confirm('Remove {{ u.first_name }} from the group?')" class="kick-btn">
+                        <i class="fa-solid fa-xmark"></i>
+                    </button>
+                </form>
+                {% endif %}
+            </div>
+            {% endfor %}
+        </div>
+
+        <!-- Admin Panel -->
+        {% if is_admin %}
+        <div class="admin-panel">
+            <div class="admin-panel-title"><i class="fa-solid fa-crown" style="color:#fbbf24;"></i> Admin Controls</div>
+
+            <!-- Rename Group -->
+            <form method="POST" action="{{ url_for('group_rename', group_id=group.id) }}" class="admin-form">
+                <input class="admin-input" type="text" name="name" placeholder="Rename group…" required maxlength="50">
+                <button class="admin-btn" type="submit" title="Rename">
+                    <i class="fa-solid fa-pen"></i>
+                </button>
+            </form>
+
+            <!-- Regen Invite Code -->
+            <form method="POST" action="{{ url_for('group_regen_code', group_id=group.id) }}" style="display:inline;">
+                <button class="admin-action-btn regen-btn" type="submit"
+                    onclick="return confirm('Generate a new invite code? The old one will stop working.')">
+                    <i class="fa-solid fa-arrows-rotate"></i> Regen Code
+                </button>
+            </form>
+
+            <!-- Delete Group -->
+            <form method="POST" action="{{ url_for('group_delete', group_id=group.id) }}" style="display:inline;">
+                <button class="admin-action-btn delete-btn" type="submit"
+                    onclick="return confirm('PERMANENTLY delete this group and all its messages? This cannot be undone!')">
+                    <i class="fa-solid fa-trash"></i> Delete Group
+                </button>
+            </form>
+        </div>
+        {% endif %}
+
+        <!-- Leave Button -->
+        <div style="padding:14px 16px;padding-bottom:max(80px, calc(14px + env(safe-area-inset-bottom)));border-top:2px solid rgba(239,68,68,0.3);background:rgba(239,68,68,0.05);">
+            <form method="POST" action="{{ url_for('group_leave', group_id=group.id) }}" style="margin:0;">
+                <button type="submit" onclick="return confirm('Leave this group?')"
+                    style="width:100%;background:#ef4444;color:white;border:none;padding:14px;border-radius:10px;font-weight:700;cursor:pointer;transition:all 0.2s;font-size:1rem;display:flex;align-items:center;justify-content:center;gap:8px;box-shadow:0 4px 12px rgba(239,68,68,0.4);letter-spacing:0.3px;">
+                    <i class="fa-solid fa-right-from-bracket"></i> Leave Group
+                </button>
+            </form>
+        </div>
+    </div>
+
+
+    <!-- ── Right: Chat Area ────────────────────────────────────── -->
+    <div class="card" style="display:flex;flex-direction:column;padding:0;overflow:hidden;">
+        <!-- Chat Header -->
+        <div
+            style="padding:14px 20px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;background:rgba(255,255,255,0.02);">
+            <div style="display:flex;align-items:center;gap:12px;">
+                <div
+                    style="width:40px;height:40px;background:linear-gradient(135deg,var(--mint),var(--purple));border-radius:12px;display:grid;place-items:center;font-size:1.3rem;">
+                    {{ group.avatar_emoji or group.name[0]|upper }}
+                </div>
+                <div>
+                    <div style="font-weight:700;font-size:1.05rem;color:#fff;">{{ group.name }}</div>
+                    <div style="font-size:0.78rem;color:var(--accent-green);">
+                        <i class="fa-solid fa-circle" style="font-size:6px;vertical-align:middle;"></i>
+                        {{ online_count }} online &middot; {{ group_members|length }} members
+                    </div>
+                </div>
+            </div>
+
+            <!-- View Tabs -->
+            <div style="display:flex;background:rgba(0,0,0,0.3);padding:4px;border-radius:8px;gap:2px;">
+                <button onclick="switchTab('chat')" id="tab-chat" class="btn-tab"
+                    style="padding:5px 14px;border-radius:6px;border:none;cursor:pointer;background:var(--accent-blue);color:white;display:flex;align-items:center;gap:5px;font-size:0.85rem;">
+                    <i class="fa-solid fa-message"></i> Chat
+                </button>
+                <button onclick="switchTab('whiteboard')" id="tab-whiteboard" class="btn-tab"
+                    style="padding:5px 14px;border-radius:6px;border:none;cursor:pointer;background:transparent;color:var(--text-secondary);display:flex;align-items:center;gap:5px;font-size:0.85rem;">
+                    <i class="fa-solid fa-pen-to-square"></i> Board
+                </button>
+                <button onclick="switchTab('call')" id="tab-call" class="btn-tab"
+                    style="padding:5px 14px;border-radius:6px;border:none;cursor:pointer;background:transparent;color:var(--text-secondary);display:flex;align-items:center;gap:5px;font-size:0.85rem;">
+                    <i class="fa-solid fa-phone"></i> Call
+                </button>
+            </div>
+        </div>
+
+        <!-- Messages Area -->
+        <div id="groupMessagesContainer" class="messages-scroll-area">
+            {% if group_messages and group_messages|length > 0 %}
+            {% for m in group_messages %}
+            <div data-message-id="{{ m.id }}"
+                data-created-at="{{ m.created_at.isoformat() + 'Z' if m.created_at else '' }}"
+                style="display:flex;gap:10px;align-self:{% if m.user_id == current_user.id %}flex-end{% else %}flex-start{% endif %};max-width:70%;{% if m.user_id == current_user.id %}flex-direction:row-reverse;{% endif %}">
+
+                {% if m.role == 'assistant' %}
+                <div
+                    style="width:32px;height:32px;background:linear-gradient(135deg,#3b82f6,#8b5cf6);border-radius:50%;display:grid;place-items:center;color:white;font-size:0.8rem;flex-shrink:0;">
+                    <i class="fa-solid fa-robot"></i>
+                </div>
+                {% else %}
+                <img src="{{ m.user.get_avatar(64) if m.user else 'https://ui-avatars.com/api/?name=User&background=random' }}"
+                    style="width:32px;height:32px;border-radius:50%;object-fit:cover;flex-shrink:0;">
+                {% endif %}
+
+                <div
+                    style="display:flex;flex-direction:column;gap:4px;align-items:{% if m.user_id == current_user.id %}flex-end{% else %}flex-start{% endif %};">
+                    <div data-meta-row="1"
+                        style="font-size:0.74rem;color:var(--text-secondary);margin:0 4px;display:flex;align-items:center;gap:6px;">
+                        {% if m.role == 'assistant' %}AI Coach
+                        {% elif m.user_id == current_user.id %}You
+                        {% else %}{{ m.user.first_name if m.user else 'User' }}{% endif %}
+                        &bull; {{ to_ist_time(m.created_at) if m.created_at else '' }}
+                        {% if m.is_pinned %}<i class="fa-solid fa-thumbtack" style="color:#fbbf24;font-size:0.65rem;"
+                            title="Pinned"></i>{% endif %}
+                        {% if is_admin %}
+                        <form method="POST"
+                            action="{{ url_for('group_pin_message', group_id=group.id, message_id=m.id) }}"
+                            style="display:inline;margin:0;">
+                            <button type="submit" title="{% if m.is_pinned %}Unpin{% else %}Pin{% endif %}"
+                                class="pin-msg-btn">
+                                <i class="fa-solid fa-thumbtack"
+                                    style="{% if not m.is_pinned %}opacity:0.4;{% endif %}"></i>
+                            </button>
+                        </form>
+                        {% endif %}
+                    </div>
+                    <div style="background:{% if m.user_id == current_user.id %}var(--accent-green){% elif m.role == 'assistant' %}rgba(59,130,246,0.2){% else %}rgba(255,255,255,0.1){% endif %};
+                                color:{% if m.user_id == current_user.id %}black{% else %}white{% endif %};
+                                padding:11px 14px;
+                                border-radius:{% if m.user_id == current_user.id %}12px 0 12px 12px{% else %}0 12px 12px 12px{% endif %};
+                                font-weight:500;font-size:0.92rem;
+                                border:1px solid {% if m.role == 'assistant' %}rgba(59,130,246,0.3){% elif m.is_pinned %}rgba(251,191,36,0.3){% else %}transparent{% endif %};
+                                word-break:break-word;max-width:450px;">
+                        <span class="msg-text">{{ m.content }}</span>
+                        {% if m.file_path %}
+                        <div style="margin-top:8px;padding-top:8px;border-top:1px solid rgba(0,0,0,0.1);">
+                            {% set fname = m.file_path.split('/')[-1].lower() %}
+                            {% set ext = fname.split('.')[-1] %}
+                            {% if ext in ['html', 'css', 'js', 'java', 'ejs', 'py', 'ipynb', 'jsx', 'tsx', 'ts', 'cjs', 'mjs', 'json'] %}
+                            <a href="{{ m.file_path }}" download
+                                style="text-decoration:none;display:flex;align-items:center;gap:6px;font-size:0.85rem;color:inherit;font-weight:600;background:rgba(59,130,246,0.1);padding:6px 10px;border-radius:7px;border:1px solid rgba(59,130,246,0.2);">
+                                <i class="fa-solid fa-file-code" style="color:#3b82f6;"></i>
+                                {{ fname.split('_',1)[-1] if '_' in fname else fname }}
+                                <span style="margin-left:auto;font-size:0.75rem;opacity:0.7;">Download</span>
+                            </a>
+                            {% elif fname.endswith('.zip') or fname.endswith('.rar') or fname.endswith('.7z') or fname.endswith('.tar') or fname.endswith('.gz') %}
+                            <a href="{{ m.file_path }}" download
+                                style="text-decoration:none;display:flex;align-items:center;gap:6px;font-size:0.85rem;color:inherit;font-weight:600;background:rgba(251,191,36,0.12);padding:6px 10px;border-radius:7px;border:1px solid rgba(251,191,36,0.25);">
+                                <i class="fa-solid fa-file-zipper" style="color:#fbbf24;"></i>
+                                {{ fname.split('_',1)[-1] if '_' in fname else fname }}
+                                <span style="margin-left:auto;font-size:0.75rem;opacity:0.7;">Download ZIP</span>
+                            </a>
+                            {% elif fname.endswith('.pdf') %}
+                            <a href="{{ m.file_path }}" target="_blank"
+                                style="text-decoration:none;display:flex;align-items:center;gap:6px;font-size:0.85rem;color:inherit;font-weight:600;background:rgba(239,68,68,0.1);padding:6px 10px;border-radius:7px;border:1px solid rgba(239,68,68,0.2);">
+                                <i class="fa-solid fa-file-pdf" style="color:#f87171;"></i>
+                                {{ fname.split('_',1)[-1] if '_' in fname else fname }}
+                            </a>
+                            {% elif fname.endswith('.pptx') %}
+                            <a href="{{ m.file_path }}" target="_blank"
+                                style="text-decoration:none;display:flex;align-items:center;gap:6px;font-size:0.85rem;color:inherit;font-weight:600;background:rgba(249,115,22,0.1);padding:6px 10px;border-radius:7px;border:1px solid rgba(249,115,22,0.2);">
+                                <i class="fa-solid fa-file-powerpoint" style="color:#f97316;"></i>
+                                {{ fname.split('_',1)[-1] if '_' in fname else fname }}
+                            </a>
+                            {% elif fname.endswith('.txt') %}
+                            <a href="{{ m.file_path }}" target="_blank"
+                                style="text-decoration:none;display:flex;align-items:center;gap:6px;font-size:0.85rem;color:inherit;font-weight:600;background:rgba(156,163,175,0.1);padding:6px 10px;border-radius:7px;border:1px solid rgba(156,163,175,0.2);">
+                                <i class="fa-solid fa-file-lines" style="color:#9ca3af;"></i>
+                                {{ fname.split('_',1)[-1] if '_' in fname else fname }}
+                            </a>
+                            {% elif fname.endswith('.png') or fname.endswith('.jpg') or fname.endswith('.jpeg') or fname.endswith('.gif') or fname.endswith('.webp') %}
+                            <div style="margin-top:4px;">
+                                <img src="{{ m.file_path }}" alt="Image attachment"
+                                    style="max-width:220px;max-height:180px;border-radius:8px;object-fit:cover;cursor:pointer;"
+                                    onclick="window.open('{{ m.file_path }}','_blank')">
+                            </div>
+                            {% else %}
+                            <a href="{{ m.file_path }}" target="_blank"
+                                style="text-decoration:none;display:flex;align-items:center;gap:6px;font-size:0.85rem;color:inherit;font-weight:600;">
+                                <i class="fa-solid fa-paperclip"></i> Attachment
+                            </a>
+                            {% endif %}
+                        </div>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+            {% endfor %}
+            {% else %}
+            <div style="text-align:center;color:var(--text-secondary);margin:auto;">
+                <div style="font-size:2.5rem;margin-bottom:12px;">💬</div>
+                <p>No messages yet. Say hello!</p>
+            </div>
+            {% endif %}
+        </div>
+
+        <!-- Call Panel (hidden by default) -->
+        <div id="callPanel" style="display:none;flex:1;flex-direction:column;position:relative;background:#0f0f1a;">
+            <!-- Call toolbar -->
+            <div style="padding:14px 20px;background:rgba(99,102,241,0.06);border-bottom:1px solid rgba(99,102,241,0.2);display:flex;align-items:center;justify-content:space-between;">
+                <div style="display:flex;align-items:center;gap:10px;">
+                    <i class="fa-solid fa-phone" style="color:#6366f1;"></i>
+                    <span style="font-weight:700;color:#fff;font-size:0.95rem;">Group Video Call</span>
+                    <span style="font-size:0.75rem;color:var(--text-secondary);">Powered by Jitsi Meet • Free & Encrypted</span>
+                </div>
+                <div style="display:flex;gap:8px;">
+                    <button id="groupCallStartBtn"
+                        onclick="window.startGroupCall(GROUP_ID, GROUP_INVITE_CODE, CURRENT_USER_NAME)"
+                        style="display:flex;align-items:center;gap:6px;padding:8px 18px;border-radius:8px;border:none;background:linear-gradient(135deg,#6366f1,#8b5cf6);color:white;font-weight:700;font-size:0.85rem;cursor:pointer;box-shadow:0 4px 14px rgba(99,102,241,0.4);transition:all 0.2s;">
+                        <i class="fa-solid fa-video"></i> Start Call
+                    </button>
+                    <button id="groupCallEndBtn"
+                        onclick="window.endGroupCall(GROUP_ID)"
+                        style="display:none;align-items:center;gap:6px;padding:8px 18px;border-radius:8px;border:none;background:rgba(239,68,68,0.9);color:white;font-weight:700;font-size:0.85rem;cursor:pointer;box-shadow:0 4px 14px rgba(239,68,68,0.4);transition:all 0.2s;">
+                        <i class="fa-solid fa-phone-slash"></i> End Call
+                    </button>
+                </div>
+            </div>
+            <!-- Jitsi embed -->
+            <div id="jitsiCallContainer" style="flex:1;min-height:400px;"></div>
+            <!-- Waiting state -->
+            <div id="callWaitingState" style="position:absolute;inset:60px 0 0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:16px;pointer-events:none;">
+                <div style="width:80px;height:80px;background:rgba(99,102,241,0.12);border-radius:50%;display:grid;place-items:center;border:2px solid rgba(99,102,241,0.25);">
+                    <i class="fa-solid fa-video" style="font-size:2rem;color:#6366f1;"></i>
+                </div>
+                <div style="text-align:center;">
+                    <div style="font-weight:700;color:#fff;font-size:1rem;margin-bottom:6px;">Start a group video call</div>
+                    <div style="font-size:0.82rem;color:var(--text-secondary);max-width:260px;line-height:1.5;">Click <strong style="color:#818cf8;">Start Call</strong> — all online members will see a notification and can join instantly.</div>
+                </div>
+            </div>
+        </div>
+        <div id="whiteboardContainer"
+            style="display:none;flex:1;flex-direction:column;position:relative;background:#fff;">
+            <div
+                style="padding:10px;background:#f0f0f0;border-bottom:1px solid #ddd;display:flex;gap:16px;align-items:center;">
+                <div style="display:flex;align-items:center;gap:8px;">
+                    <label style="color:#333;font-size:0.8rem;font-weight:600;">Color</label>
+                    <input type="color" id="wb-color" value="#000000"
+                        style="border:none;width:30px;height:30px;cursor:pointer;">
+                </div>
+                <div style="display:flex;align-items:center;gap:8px;">
+                    <label style="color:#333;font-size:0.8rem;font-weight:600;">Size</label>
+                    <input type="range" id="wb-size" min="1" max="20" value="2" class="slider" style="width:100px;">
+                </div>
+                <div style="margin-left:auto;display:flex;gap:8px;">
+                    <button id="wb-undo" class="btn-secondary"
+                        style="color:#333;border:1px solid #ccc;padding:4px 12px;font-size:0.8rem;"><i
+                            class="fa-solid fa-rotate-left"></i> Undo</button>
+                    <button id="wb-clear" class="btn-secondary"
+                        style="color:#333;border:1px solid #ccc;padding:4px 12px;font-size:0.8rem;"><i
+                            class="fa-solid fa-eraser"></i> Clear</button>
+                    <button id="wb-save" class="btn-primary" style="padding:4px 12px;font-size:0.8rem;"><i
+                            class="fa-solid fa-download"></i> Save</button>
+                </div>
+            </div>
+            <div style="flex:1;position:relative;overflow:hidden;background:white;cursor:crosshair;">
+                <canvas id="whiteboard" style="width:100%;height:100%;display:block;"></canvas>
+            </div>
+        </div>
+
+        <!-- Message Input -->
+        <div id="input-area-wrapper"
+            style="padding:14px 16px;border-top:1px solid var(--border);background:rgba(255,255,255,0.02);">
+            <!-- File Preview -->
+            <div id="filePreviewContainer"
+                style="display:none;margin-bottom:10px;padding:9px 12px;background:rgba(255,255,255,0.05);border-radius:8px;align-items:center;justify-content:space-between;">
+                <div style="display:flex;align-items:center;gap:10px;overflow:hidden;">
+                    <div
+                        style="width:30px;height:30px;background:rgba(74,222,128,0.2);color:var(--accent-green);border-radius:6px;display:grid;place-items:center;">
+                        <i class="fa-solid fa-file"></i>
+                    </div>
+                    <span id="previewFileName"
+                        style="font-size:0.85rem;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:200px;">filename</span>
+                </div>
+                <button type="button" id="removeFileBtn"
+                    style="color:var(--text-secondary);background:transparent;border:none;cursor:pointer;">
+                    <i class="fa-solid fa-times"></i>
+                </button>
+            </div>
+
+            <form id="groupChatForm" style="display:flex;gap:10px;align-items:center;">
+                <!-- Hidden File Input (multiple allows multi-file select) -->
+                <input type="file" id="fileInput" name="file" style="display:none;"
+                    accept="image/*,.pdf,.txt,.pptx,.zip,.rar,.7z,.tar,.gz,.html,.css,.js,.java,.ejs,.py,.ipynb,.jsx,.tsx,.ts,.cjs,.mjs,.json"
+                    title="Attach a file (max 50 MB for archives)">
+                <button type="button" id="uploadBtn" class="btn btn-icon btn-secondary" style="width:38px;height:38px;"
+                    title="Attach file">
+                    <i class="fa-solid fa-paperclip"></i>
+                </button>
+                <input type="text" id="groupChatInput" name="message" placeholder="Type a message…"
+                    style="flex:1;padding:10px 14px;background:rgba(255,255,255,0.05);border:1px solid var(--border);border-radius:8px;color:white;outline:none;font-size:0.9rem;">
+                <button id="groupSendButton" type="submit" class="btn btn-primary" style="width:44px;height:38px;">
+                    <i class="fa-solid fa-paper-plane"></i>
+                </button>
+            </form>
+        </div>
+    </div>
+
+</div>
+
+
+{% endblock %}
+
+{% block scripts %}
+<script src="{{ url_for('static', filename='js/timestamp_utils.js') }}"></script>
+<script src="https://cdn.socket.io/4.7.2/socket.io.min.js"></script>
+<script>
+    // ── Global Variables ──────────────────────────────────────────
+    const GROUP_ID          = "{{ group.id }}";
+    const GROUP_INVITE_CODE = "{{ group.invite_code }}";
+    const CURRENT_USER_ID   = "{{ current_user.id }}";
+    const CURRENT_USER_NAME = "{{ current_user.first_name }} {{ current_user.last_name }}";
+    const CURRENT_USER_AVATAR = "{{ current_user.get_avatar(64) }}";
+    const IS_ADMIN = {{ 'true' if is_admin else 'false' }};
+
+    // Highlight nav
+    const navEl = document.querySelector('[data-nav="group"]');
+    if (navEl) navEl.classList.add('active');
+
+    // ── Invite Code Copy ─────────────────────────────────────────
+    function copyInviteCode(code) {
+        if (!code) return;
+        navigator.clipboard.writeText(code).then(() => {
+            const btn = document.querySelector('button[onclick^="copyInviteCode"]');
+            const orig = btn.innerHTML;
+            btn.innerHTML = '<i class="fa-solid fa-check"></i>';
+            setTimeout(() => { btn.innerHTML = orig; }, 2000);
+        });
+    }
+
+    // ── Member Search ─────────────────────────────────────────────
+    const searchInput = document.getElementById('memberSearch');
+    if (searchInput) {
+        searchInput.addEventListener('keyup', (e) => {
+            const term = e.target.value.toLowerCase();
+            document.querySelectorAll('.member-item').forEach(item => {
+                item.style.display = item.innerText.toLowerCase().includes(term) ? 'flex' : 'none';
+            });
+        });
+    }
+
+    // ── Tab Switcher ─────────────────────────────────────────────
+    window.switchTab = function(tab) {
+        const chatContainer   = document.getElementById('groupMessagesContainer');
+        const inputWrapper    = document.getElementById('input-area-wrapper');
+        const wbContainer     = document.getElementById('whiteboardContainer');
+        const callPanel       = document.getElementById('callPanel');
+        const btnChat         = document.getElementById('tab-chat');
+        const btnWb           = document.getElementById('tab-whiteboard');
+        const btnCall         = document.getElementById('tab-call');
+
+        // Reset all
+        chatContainer.style.display  = 'none';
+        inputWrapper.style.display   = 'none';
+        wbContainer.style.display    = 'none';
+        callPanel.style.display      = 'none';
+        btnChat.style.background     = 'transparent'; btnChat.style.color = 'var(--text-secondary)';
+        btnWb.style.background       = 'transparent'; btnWb.style.color   = 'var(--text-secondary)';
+        btnCall.style.background     = 'transparent'; btnCall.style.color = 'var(--text-secondary)';
+
+        if (tab === 'chat') {
+            chatContainer.style.display = 'flex';
+            inputWrapper.style.display  = 'block';
+            btnChat.style.background    = 'var(--accent-blue)';
+            btnChat.style.color         = 'white';
+        } else if (tab === 'whiteboard') {
+            wbContainer.style.display = 'flex';
+            btnWb.style.background    = 'var(--accent-blue)';
+            btnWb.style.color         = 'white';
+            if (window.triggerWhiteboardResize) window.triggerWhiteboardResize();
+        } else if (tab === 'call') {
+            callPanel.style.display   = 'flex';
+            btnCall.style.background  = 'linear-gradient(135deg,#6366f1,#8b5cf6)';
+            btnCall.style.color       = 'white';
+        }
+    };
+
+    // Init: show chat tab on load
+    window.switchTab('chat');
+</script>
+
+<script src="{{ url_for('static', filename='js/calls.js') }}"></script>
+<script src="https://meet.jit.si/external_api.js" async></script>
+<script src="{{ url_for('static', filename='js/group_chat.js') }}"></script>
+<script src="{{ url_for('static', filename='js/whiteboard.js') }}"></script>
+
+<style>
+    /* ── Layout ─────────────────────────────────────── */
+    .back-btn-squad {
+        width: 38px;
+        height: 38px;
+        background: rgba(255, 255, 255, 0.05);
+        border: 1px solid var(--border);
+        border-radius: 10px;
+        color: #fff;
+        cursor: pointer;
+        display: grid;
+        place-items: center;
+        transition: all 0.2s;
+        text-decoration: none;
+        flex-shrink: 0;
+    }
+
+    .back-btn-squad:hover {
+        background: rgba(255, 255, 255, 0.1);
+        transform: translateX(-3px);
+    }
+
+    .chat-layout-main {
+        display: grid;
+        grid-template-columns: 280px 1fr;
+        gap: 20px;
+        height: calc(100vh - 180px);
+        min-height: 500px;
+    }
+
+    .messages-scroll-area {
+        flex: 1;
+        overflow-y: auto;
+        display: flex;
+        flex-direction: column;
+        gap: 14px;
+        padding: 20px;
+    }
+
+    /* Scrollbars */
+    .messages-scroll-area::-webkit-scrollbar,
+    #friendsList::-webkit-scrollbar {
+        width: 5px;
+    }
+
+    .messages-scroll-area::-webkit-scrollbar-thumb,
+    #friendsList::-webkit-scrollbar-thumb {
+        background: rgba(255, 255, 255, 0.05);
+        border-radius: 10px;
+    }
+
+    /* Pinned Banner */
+    .pinned-banner {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        padding: 10px 16px;
+        background: rgba(251, 191, 36, 0.06);
+        border: 1px solid rgba(251, 191, 36, 0.18);
+        border-radius: 10px;
+        font-size: 0.85rem;
+        margin-bottom: 14px;
+    }
+
+    /* Member Item */
+    .member-item {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+    }
+
+    .member-item:hover {
+        background: rgba(255, 255, 255, 0.04);
+    }
+
+    /* Kick Button */
+    .kick-btn {
+        width: 24px;
+        height: 24px;
+        background: rgba(239, 68, 68, 0.1);
+        color: #ef4444;
+        border: none;
+        border-radius: 6px;
+        cursor: pointer;
+        font-size: 0.7rem;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        opacity: 0;
+        transition: opacity 0.15s;
+        flex-shrink: 0;
+    }
+
+    .member-item:hover .kick-btn {
+        opacity: 1;
+    }
+
+    /* Pin Button */
+    .pin-msg-btn {
+        background: transparent;
+        border: none;
+        cursor: pointer;
+        color: #fbbf24;
+        font-size: 0.65rem;
+        padding: 0;
+        opacity: 0.5;
+        transition: opacity 0.15s;
+    }
+
+    .pin-msg-btn:hover {
+        opacity: 1;
+    }
+
+    /* Admin Panel */
+    .admin-panel {
+        padding: 14px 16px;
+        border-top: 1px solid rgba(251, 191, 36, 0.2);
+        background: rgba(251, 191, 36, 0.03);
+    }
+
+    .admin-panel-title {
+        font-size: 0.78rem;
+        font-weight: 700;
+        color: var(--text-secondary);
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+        margin-bottom: 10px;
+        display: flex;
+        align-items: center;
+        gap: 6px;
+    }
+
+    .admin-form {
+        display: flex;
+        gap: 6px;
+        margin-bottom: 10px;
+    }
+
+    .admin-input {
+        flex: 1;
+        padding: 7px 10px;
+        background: rgba(255, 255, 255, 0.05);
+        border: 1px solid rgba(255, 255, 255, 0.1);
+        border-radius: 7px;
+        color: white;
+        font-size: 0.83rem;
+        outline: none;
+    }
+
+    .admin-btn {
+        width: 32px;
+        height: 32px;
+        background: rgba(99, 102, 241, 0.15);
+        color: #818cf8;
+        border: 1px solid rgba(99, 102, 241, 0.25);
+        border-radius: 7px;
+        cursor: pointer;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 0.82rem;
+        transition: all 0.2s;
+        flex-shrink: 0;
+    }
+
+    .admin-btn:hover {
+        background: rgba(99, 102, 241, 0.25);
+    }
+
+    .admin-action-btn {
+        font-size: 0.78rem;
+        font-weight: 600;
+        padding: 6px 12px;
+        border-radius: 7px;
+        cursor: pointer;
+        border: 1px solid;
+        transition: all 0.2s;
+        margin-right: 6px;
+    }
+
+    .regen-btn {
+        background: rgba(14, 165, 233, 0.1);
+        color: #38bdf8;
+        border-color: rgba(14, 165, 233, 0.25);
+    }
+
+    .regen-btn:hover {
+        background: rgba(14, 165, 233, 0.2);
+    }
+
+    .delete-btn {
+        background: rgba(239, 68, 68, 0.1);
+        color: #f87171;
+        border-color: rgba(239, 68, 68, 0.25);
+    }
+
+    .delete-btn:hover {
+        background: rgba(239, 68, 68, 0.2);
+    }
+
+    /* Responsive */
+    @media (max-width: 1024px) {
+        .chat-layout-main {
+            grid-template-columns: 240px 1fr;
+        }
+    }
+
+    @media (max-width: 768px) {
+        .chat-layout-main {
+            grid-template-columns: 1fr;
+            height: auto;
+            min-height: unset;
+            gap: 14px;
+        }
+
+        /* Chat panel comes FIRST on mobile */
+        .chat-layout-main > :last-child {
+            order: 1;
+            height: 60dvh;
+            min-height: 300px;
+        }
+
+        /* Members panel goes BELOW chat */
+        .chat-layout-main > :first-child {
+            order: 2;
+            /* FIX: Remove max-height + override overflow:hidden so Leave button is visible */
+            max-height: none !important;
+            overflow: visible !important;
+        }
+
+        /* Limit ONLY the members list height — so Leave button is always visible */
+        #friendsList {
+            max-height: 180px !important;
+            flex: none !important;
+            overflow-y: auto;
+        }
+
+        /* Pinned banner smaller on mobile */
+        .pinned-banner {
+            font-size: 0.78rem;
+            padding: 8px 12px;
+        }
+    }
+
+    @media (max-width: 480px) {
+        /* Tighter header */
+        .friends-header {
+            margin-bottom: 10px;
+        }
+
+        /* Message bubbles — don't exceed screen width */
+        .messages-scroll-area > div {
+            max-width: 90% !important;
+        }
+
+        /* Chat input row */
+        #groupChatForm {
+            gap: 6px;
+        }
+
+        #groupChatInput {
+            font-size: 0.85rem;
+            padding: 8px 10px;
+        }
+
+        #groupSendButton,
+        #uploadBtn {
+            width: 36px !important;
+            height: 36px !important;
+        }
+
+        /* Admin action buttons — stack on mobile */
+        .admin-action-btn {
+            display: block;
+            width: 100%;
+            margin-right: 0;
+            margin-bottom: 6px;
+        }
+    }
+
+    @media (max-width: 360px) {
+        #friendsList {
+            max-height: 140px !important;
+        }
+
+        .messages-scroll-area {
+            padding: 10px;
+            gap: 10px;
+        }
+
+        .chat-layout-main > :last-child {
+            height: 55dvh;
+        }
+    }
+</style>
+{% endblock %}

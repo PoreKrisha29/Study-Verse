@@ -1,0 +1,136 @@
+{% extends "admin/base.html" %}
+
+{% block title %}Audit Logs{% endblock %}
+{% block page_title %}Admin Audit Logs{% endblock %}
+
+{% block content %}
+<div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 24px;">
+    <div>
+        <form method="GET" style="display: flex; gap: 12px;">
+            <select name="action"
+                style="padding: 10px 16px; background: var(--bg-card); border: 1px solid var(--border); border-radius: 8px; color: var(--text-primary); min-width: 200px;">
+                <option value="all" {% if action_filter=='all' %}selected{% endif %}>All Actions</option>
+                <option value="ban_user" {% if action_filter=='ban_user' %}selected{% endif %}>Ban User</option>
+                <option value="unban_user" {% if action_filter=='unban_user' %}selected{% endif %}>Unban User</option>
+                <option value="adjust_xp" {% if action_filter=='adjust_xp' %}selected{% endif %}>Adjust XP</option>
+                <option value="view_pdf" {% if action_filter=='view_pdf' %}selected{% endif %}>View PDF</option>
+                <option value="download_pdf" {% if action_filter=='download_pdf' %}selected{% endif %}>Download PDF
+                </option>
+                <option value="delete_pdf" {% if action_filter=='delete_pdf' %}selected{% endif %}>Delete PDF</option>
+            </select>
+            <button type="submit" class="admin-btn admin-btn-primary">
+                <i class="fa-solid fa-filter"></i> Filter
+            </button>
+        </form>
+    </div>
+</div>
+
+<div class="admin-table">
+    <table>
+        <thead>
+            <tr>
+                <th>Action</th>
+                <th>Admin</th>
+                <th>Target</th>
+                <th>Details</th>
+                <th>IP Address</th>
+                <th>Timestamp</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for log in logs.items %}
+            <tr>
+                <td>
+                    <span class="badge" style="
+                        {% if 'ban' in log.action %}background: #ef4444; color: white;
+                        {% elif 'unban' in log.action %}background: #10b981; color: white;
+                        {% elif 'delete' in log.action %}background: #f59e0b; color: white;
+                        {% else %}background: #3b82f6; color: white;{% endif %}
+                    ">
+                        {{ log.action.replace('_', ' ').title() }}
+                    </span>
+                </td>
+                <td>
+                    <div style="display: flex; align-items: center; gap: 8px;">
+                        <img src="{{ log.admin.get_avatar(32) }}"
+                            style="width: 32px; height: 32px; border-radius: 50%;">
+                        <div>
+                            <div style="font-weight: 500; color: var(--text-primary);">{{ log.admin.first_name }} {{
+                                log.admin.last_name }}</div>
+                            <div style="font-size: 12px; color: var(--text-secondary);">{{ log.admin.email }}</div>
+                        </div>
+                    </div>
+                </td>
+                <td>
+                    {% if log.target_type and log.target_id %}
+                    <span style="font-family: 'Courier New', monospace; font-size: 13px; color: var(--text-secondary);">
+                        {{ log.target_type }} #{{ log.target_id }}
+                    </span>
+                    {% else %}
+                    <span style="color: var(--text-muted);">N/A</span>
+                    {% endif %}
+                </td>
+                <td>
+                    {% if log.details %}
+                    <div
+                        style="font-size: 13px; color: var(--text-secondary); max-width: 300px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">
+                        {% if log.details.reason %}
+                        Reason: {{ log.details.reason }}
+                        {% elif log.details.amount %}
+                        Amount: {{ log.details.amount }}
+                        {% elif log.details.filename %}
+                        File: {{ log.details.filename }}
+                        {% else %}
+                        {{ log.details|tojson }}
+                        {% endif %}
+                    </div>
+                    {% else %}
+                    <span style="color: var(--text-muted);">-</span>
+                    {% endif %}
+                </td>
+                <td>
+                    <span style="font-family: 'Courier New', monospace; font-size: 12px; color: var(--text-secondary);">
+                        {{ log.ip_address or 'N/A' }}
+                    </span>
+                </td>
+                <td>
+                    <div style="font-size: 13px;">
+                        <div style="color: var(--text-primary);">{{ (log.timestamp | to_ist).strftime('%b %d, %Y') }}
+                        </div>
+                        <div style="color: var(--text-secondary);">{{ (log.timestamp | to_ist).strftime('%I:%M %p') }}
+                        </div>
+                    </div>
+                </td>
+            </tr>
+            {% else %}
+            <tr>
+                <td colspan="6" style="text-align: center; padding: 40px; color: var(--text-secondary);">
+                    No audit logs found
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+
+<!-- Pagination -->
+{% if logs.pages > 1 %}
+<div style="display: flex; justify-content: center; align-items: center; gap: 8px; margin-top: 24px;">
+    {% if logs.has_prev %}
+    <a href="{{ url_for('admin_logs', page=logs.prev_num, action=action_filter) }}"
+        class="admin-btn admin-btn-secondary">
+        <i class="fa-solid fa-chevron-left"></i> Previous
+    </a>
+    {% endif %}
+
+    <span style="color: var(--text-secondary);">Page {{ logs.page }} of {{ logs.pages }}</span>
+
+    {% if logs.has_next %}
+    <a href="{{ url_for('admin_logs', page=logs.next_num, action=action_filter) }}"
+        class="admin-btn admin-btn-secondary">
+        Next <i class="fa-solid fa-chevron-right"></i>
+    </a>
+    {% endif %}
+</div>
+{% endif %}
+{% endblock %}

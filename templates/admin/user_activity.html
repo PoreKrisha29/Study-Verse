@@ -1,0 +1,349 @@
+{% extends "admin/base.html" %}
+{% block title %}User Activity{% endblock %}
+{% block page_title %}User Activity & Presence{% endblock %}
+
+{% block content %}
+<style>
+    /* Toolbar styling matching users list */
+    .toolbar {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 22px;
+        gap: 16px;
+        flex-wrap: wrap;
+    }
+
+    /* Cards for online users */
+    .online-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+        gap: 16px;
+        margin-bottom: 40px;
+    }
+
+    .online-card {
+        background: var(--bg-card);
+        border: 1px solid var(--border-glow);
+        border-radius: var(--radius-lg);
+        padding: 16px;
+        display: flex;
+        align-items: center;
+        gap: 16px;
+        position: relative;
+        overflow: hidden;
+        box-shadow: 0 4px 20px rgba(74, 222, 128, 0.05);
+    }
+
+    .online-card::before {
+        content: '';
+        position: absolute;
+        top: 0;
+        left: 0;
+        width: 4px;
+        height: 100%;
+        background: var(--accent);
+    }
+
+    .o-avatar-wrap {
+        position: relative;
+    }
+
+    .o-avatar {
+        width: 48px;
+        height: 48px;
+        border-radius: 50%;
+        object-fit: cover;
+        border: 2px solid var(--bg-panel);
+    }
+
+    .o-status-dot {
+        position: absolute;
+        bottom: 2px;
+        right: 2px;
+        width: 12px;
+        height: 12px;
+        background: var(--accent);
+        border: 2px solid var(--bg-card);
+        border-radius: 50%;
+        box-shadow: 0 0 10px var(--accent);
+    }
+
+    .o-info {
+        flex: 1;
+        min-width: 0;
+    }
+
+    .o-name {
+        font-size: 15px;
+        font-weight: 600;
+        color: var(--text-primary);
+        margin-bottom: 4px;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+    }
+
+    .o-email {
+        font-size: 12px;
+        color: var(--text-muted);
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+    }
+
+    .section-title {
+        font-size: 18px;
+        font-weight: 600;
+        color: var(--text-primary);
+        margin-bottom: 20px;
+        display: flex;
+        align-items: center;
+        gap: 10px;
+    }
+
+    .pulse-dot {
+        width: 10px;
+        height: 10px;
+        background-color: var(--accent);
+        border-radius: 50%;
+        animation: pulse 2s infinite;
+    }
+
+    @keyframes pulse {
+        0% {
+            transform: scale(0.95);
+            box-shadow: 0 0 0 0 rgba(74, 222, 128, 0.7);
+        }
+
+        70% {
+            transform: scale(1);
+            box-shadow: 0 0 0 6px rgba(74, 222, 128, 0);
+        }
+
+        100% {
+            transform: scale(0.95);
+            box-shadow: 0 0 0 0 rgba(74, 222, 128, 0);
+        }
+    }
+
+    /* Table styling */
+    .user-table-wrap {
+        background: var(--bg-card);
+        border: 1px solid var(--border);
+        border-radius: var(--radius-lg);
+        overflow: hidden;
+    }
+
+    .user-table-wrap table {
+        width: 100%;
+        border-collapse: collapse;
+    }
+
+    .user-table-wrap thead {
+        background: rgba(255, 255, 255, 0.025);
+    }
+
+    .user-table-wrap th {
+        padding: 14px 20px;
+        text-align: left;
+        font-size: 11px;
+        font-weight: 700;
+        color: var(--text-muted);
+        text-transform: uppercase;
+        letter-spacing: 0.8px;
+        white-space: nowrap;
+    }
+
+    .user-table-wrap td {
+        padding: 14px 20px;
+        border-top: 1px solid var(--border);
+        color: var(--text-primary);
+        font-size: 13.5px;
+        vertical-align: middle;
+    }
+
+    .user-table-wrap tr:hover td {
+        background: rgba(255, 255, 255, 0.015);
+    }
+
+    .ts-cell {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+    }
+
+    .ts-icon {
+        color: var(--text-muted);
+        font-size: 12px;
+    }
+
+    .status-online {
+        color: var(--accent);
+        font-weight: 600;
+    }
+
+    .status-offline {
+        color: var(--text-muted);
+    }
+
+    /* Pagination */
+    .pagination {
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        gap: 8px;
+        margin-top: 24px;
+    }
+
+    .page-info {
+        font-size: 13px;
+        color: var(--text-muted);
+        padding: 0 16px;
+        font-weight: 500;
+    }
+</style>
+
+<!-- ======================= -->
+<!-- ONLINE NOW SECTION      -->
+<!-- ======================= -->
+<div class="section-title">
+    <div class="pulse-dot"></div>
+    Online Right Now ({{ active_users|length }})
+</div>
+
+{% if active_users %}
+<div class="online-grid">
+    {% for u in active_users %}
+    <div class="online-card">
+        <div class="o-avatar-wrap">
+            <img src="{{ u.get_avatar(64) }}" class="o-avatar" alt="{{ u.first_name }}">
+            <div class="o-status-dot"></div>
+        </div>
+        <div class="o-info">
+            <div class="o-name">{{ u.first_name }} {{ u.last_name }}</div>
+            <div class="o-email">{{ u.email }}</div>
+            <div style="font-size: 11px; margin-top: 4px; color: var(--accent);">Lv {{ u.level }} • {{ u.rank_info.name
+                if u.rank_info else 'Bronze' }}</div>
+        </div>
+        <a href="{{ url_for('admin_user_detail', user_id=u.id) }}" class="admin-btn admin-btn-secondary"
+            style="padding: 6px; position: absolute; right: 16px;">
+            <i class="fa-solid fa-arrow-right"></i>
+        </a>
+    </div>
+    {% endfor %}
+</div>
+{% else %}
+<div
+    style="background: var(--bg-card); border: 1px dashed var(--border); border-radius: var(--radius-lg); padding: 40px; text-align: center; margin-bottom: 40px;">
+    <i class="fa-solid fa-moon"
+        style="font-size: 32px; color: var(--text-muted); margin-bottom: 12px; display: block; opacity: 0.5;"></i>
+    <div style="color: var(--text-secondary); font-size: 15px;">No users are currently online.</div>
+</div>
+{% endif %}
+
+
+<!-- ======================= -->
+<!-- ALL USERS LAST SEEN LOG -->
+<!-- ======================= -->
+<div class="section-title" style="margin-top: 40px;">
+    <i class="fa-solid fa-clock-rotate-left" style="color: var(--text-secondary);"></i>
+    All Users Activity Log
+</div>
+
+<div class="user-table-wrap">
+    <table>
+        <thead>
+            <tr>
+                <th>User</th>
+                <th>Last Seen Timestamp</th>
+                <th>Status</th>
+                <th>Level / Action</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for u in all_users.items %}
+            <tr>
+                <td>
+                    <div style="display: flex; align-items: center; gap: 12px;">
+                        <img src="{{ u.get_avatar(32) }}" style="width: 32px; height: 32px; border-radius: 50%;"
+                            alt="{{ u.first_name }}">
+                        <div>
+                            <div style="font-weight: 600; font-size: 13.5px;">{{ u.first_name }} {{ u.last_name }}</div>
+                            <div style="font-size: 12px; color: var(--text-muted);">{{ u.email }}</div>
+                        </div>
+                    </div>
+                </td>
+                <td>
+                    {% set is_online = active_users and u in active_users %}
+                    {% if is_online %}
+                    <div class="ts-cell status-online">
+                        <i class="fa-solid fa-bolt ts-icon" style="color: var(--accent);"></i>
+                        Online Now
+                    </div>
+                    {% else %}
+                    <div class="ts-cell">
+                        <i class="fa-regular fa-clock ts-icon"></i>
+                        {{ format_ist(u.last_seen) }}
+                    </div>
+                    {% endif %}
+                </td>
+                <td>
+                    {% if u.is_banned %}
+                    <span class="badge badge-red"><i class="fa-solid fa-ban fa-xs"></i> Banned</span>
+                    {% elif is_online %}
+                    <span class="badge badge-green">Active Now</span>
+                    {% else %}
+                    <span class="badge badge-secondary">Offline</span>
+                    {% endif %}
+                </td>
+                <td>
+                    <div style="display: flex; align-items: center; gap: 16px;">
+                        <span style="color: var(--text-secondary); font-size: 12px;">Lv {{ u.level }}</span>
+                        <a href="{{ url_for('admin_user_detail', user_id=u.id) }}" class="admin-btn admin-btn-secondary"
+                            style="font-size: 12px; padding: 5px 10px;">
+                            View
+                        </a>
+                    </div>
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+
+<!-- Pagination -->
+{% if all_users.pages > 1 %}
+<div class="pagination">
+    {% if all_users.has_prev %}
+    <a href="{{ url_for('admin_user_activity', page=all_users.prev_num) }}" class="admin-btn admin-btn-secondary">
+        <i class="fa-solid fa-chevron-left"></i> Prev
+    </a>
+    {% else %}
+    <button class="admin-btn admin-btn-ghost" disabled style="opacity:.4; cursor:not-allowed;">
+        <i class="fa-solid fa-chevron-left"></i> Prev
+    </button>
+    {% endif %}
+
+    <span class="page-info">Page <strong style="color: var(--text-primary);">{{ all_users.page }}</strong> of {{
+        all_users.pages }}</span>
+
+    {% if all_users.has_next %}
+    <a href="{{ url_for('admin_user_activity', page=all_users.next_num) }}" class="admin-btn admin-btn-secondary">
+        Next <i class="fa-solid fa-chevron-right"></i>
+    </a>
+    {% else %}
+    <button class="admin-btn admin-btn-ghost" disabled style="opacity:.4; cursor:not-allowed;">
+        Next <i class="fa-solid fa-chevron-right"></i>
+    </button>
+    {% endif %}
+</div>
+{% endif %}
+
+<script>
+    // Optionally refresh the page every 30 seconds to keep online list updated
+    setTimeout(() => {
+        window.location.reload();
+    }, 30000);
+</script>
+{% endblock %}

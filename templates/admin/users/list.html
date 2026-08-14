@@ -1,0 +1,309 @@
+{% extends "admin/base.html" %}
+{% block title %}Users{% endblock %}
+{% block page_title %}User Management{% endblock %}
+
+{% block content %}
+<style>
+    /* Search & filter toolbar */
+    .toolbar {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 22px;
+        gap: 16px;
+        flex-wrap: wrap;
+    }
+
+    .search-form {
+        display: flex;
+        gap: 10px;
+        flex-wrap: wrap;
+        align-items: center;
+    }
+
+    .search-input-wrap {
+        position: relative;
+    }
+
+    .search-input-wrap i {
+        position: absolute;
+        left: 12px;
+        top: 50%;
+        transform: translateY(-50%);
+        color: var(--text-muted);
+        font-size: 13px;
+        pointer-events: none;
+    }
+
+    .search-input-wrap input {
+        padding-left: 36px;
+        width: 260px;
+        background: var(--bg-card);
+        border: 1px solid var(--border);
+        color: var(--text-primary);
+        border-radius: var(--radius-sm);
+        font-size: 13.5px;
+        transition: var(--transition);
+    }
+
+    .search-input-wrap input:focus {
+        border-color: var(--border-glow);
+        box-shadow: 0 0 0 3px rgba(74, 222, 128, 0.08);
+    }
+
+    select {
+        padding: 10px 14px;
+        background: #141414;
+        border: 1px solid var(--border);
+        border-radius: var(--radius-sm);
+        color: var(--text-primary);
+        font-size: 13.5px;
+        cursor: pointer;
+        transition: var(--transition);
+        appearance: none;
+        -webkit-appearance: none;
+        background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%2371717a' d='M6 8L1 3h10z'/%3E%3C/svg%3E");
+        background-repeat: no-repeat;
+        background-position: right 12px center;
+        padding-right: 36px;
+        color-scheme: dark;
+    }
+
+    select:focus {
+        border-color: var(--border-glow);
+        outline: none;
+        box-shadow: 0 0 0 3px rgba(74, 222, 128, 0.08);
+    }
+
+    select option {
+        background: #1a1a1a;
+        color: #f4f4f5;
+        padding: 8px 12px;
+    }
+
+    select option:hover,
+    select option:checked {
+        background: #252525;
+        color: #4ade80;
+    }
+
+    /* Table container */
+    .user-table-wrap {
+        background: var(--bg-card);
+        border: 1px solid var(--border);
+        border-radius: var(--radius-lg);
+        overflow: hidden;
+    }
+
+    .user-table-wrap table {
+        width: 100%;
+        border-collapse: collapse;
+    }
+
+    .user-table-wrap thead {
+        background: rgba(255, 255, 255, 0.025);
+    }
+
+    .user-table-wrap th {
+        padding: 14px 20px;
+        text-align: left;
+        font-size: 11px;
+        font-weight: 700;
+        color: var(--text-muted);
+        text-transform: uppercase;
+        letter-spacing: 0.8px;
+        white-space: nowrap;
+    }
+
+    .user-table-wrap td {
+        padding: 14px 20px;
+        border-top: 1px solid var(--border);
+        color: var(--text-primary);
+        font-size: 13.5px;
+        vertical-align: middle;
+    }
+
+    .user-table-wrap tr:hover td {
+        background: rgba(74, 222, 128, 0.025);
+    }
+
+    .u-avatar-cell {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+    }
+
+    .u-avatar {
+        width: 38px;
+        height: 38px;
+        border-radius: 50%;
+        object-fit: cover;
+        border: 2px solid var(--border);
+        flex-shrink: 0;
+    }
+
+    .u-name {
+        font-size: 14px;
+        font-weight: 600;
+        color: var(--text-primary);
+        margin-bottom: 2px;
+    }
+
+    .u-email {
+        font-size: 12px;
+        color: var(--text-muted);
+    }
+
+    /* Pagination */
+    .pagination {
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        gap: 8px;
+        margin-top: 24px;
+    }
+
+    .page-info {
+        font-size: 13px;
+        color: var(--text-muted);
+        padding: 0 16px;
+        font-weight: 500;
+    }
+
+    /* Total count chip */
+    .count-chip {
+        background: var(--bg-card);
+        border: 1px solid var(--border);
+        border-radius: 20px;
+        padding: 6px 14px;
+        font-size: 13px;
+        color: var(--text-secondary);
+        font-weight: 600;
+        display: flex;
+        align-items: center;
+        gap: 6px;
+    }
+
+    .count-chip strong {
+        color: var(--accent);
+    }
+</style>
+
+<!-- Header row -->
+<div class="toolbar">
+    <form method="GET" class="search-form">
+        <div class="search-input-wrap">
+            <i class="fa-solid fa-search"></i>
+            <input type="text" name="search" value="{{ search }}" placeholder="Search by name or email…">
+        </div>
+        <select name="filter">
+            <option value="all" {% if filter_type=='all' %}selected{% endif %}>All Users</option>
+            <option value="active" {% if filter_type=='active' %}selected{% endif %}>Active (7d)</option>
+            <option value="banned" {% if filter_type=='banned' %}selected{% endif %}>Banned</option>
+        </select>
+        <button type="submit" class="admin-btn admin-btn-primary">
+            <i class="fa-solid fa-filter"></i> Filter
+        </button>
+    </form>
+
+    <div class="count-chip">
+        <i class="fa-solid fa-users" style="opacity:.5;"></i>
+        <strong>{{ users.total }}</strong> users total
+    </div>
+</div>
+
+<!-- Table -->
+<div class="user-table-wrap">
+    <table>
+        <thead>
+            <tr>
+                <th>User</th>
+                <th>Level</th>
+                <th>XP</th>
+                <th>Joined</th>
+                <th>Status</th>
+                <th>Actions</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for user in users.items %}
+            <tr>
+                <td>
+                    <div class="u-avatar-cell">
+                        <img src="{{ user.get_avatar(40) }}" class="u-avatar" alt="{{ user.first_name }}">
+                        <div>
+                            <div class="u-name">{{ user.first_name }} {{ user.last_name }}</div>
+                            <div class="u-email">{{ user.email }}</div>
+                        </div>
+                    </div>
+                </td>
+                <td>
+                    <span class="badge badge-green">Lv {{ user.level }}</span>
+                </td>
+                <td>
+                    <span style="font-weight: 600; color: var(--accent); font-family: 'JetBrains Mono', monospace;">
+                        {{ '{:,}'.format(user.total_xp) }}
+                    </span>
+                    <span style="font-size: 11px; color: var(--text-muted); margin-left: 2px;">xp</span>
+                </td>
+                <td style="color: var(--text-muted);">{{ user.created_at.strftime('%b %d, %Y') }}</td>
+                <td>
+                    {% if user.is_banned %}
+                    <span class="badge badge-red"><i class="fa-solid fa-ban fa-xs"></i> Banned</span>
+                    {% else %}
+                    <span class="badge badge-green"><i class="fa-solid fa-circle fa-xs" style="font-size:6px;"></i>
+                        Active</span>
+                    {% endif %}
+                </td>
+                <td>
+                    <a href="{{ url_for('admin_user_detail', user_id=user.id) }}" class="admin-btn admin-btn-secondary"
+                        style="font-size: 12.5px; padding: 7px 14px;">
+                        <i class="fa-solid fa-eye"></i> View
+                    </a>
+                </td>
+            </tr>
+            {% else %}
+            <tr>
+                <td colspan="6">
+                    <div style="text-align: center; padding: 60px 0; color: var(--text-muted);">
+                        <i class="fa-solid fa-users"
+                            style="font-size:36px; opacity:.3; display:block; margin-bottom:12px;"></i>
+                        No users found matching your criteria
+                    </div>
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+
+<!-- Pagination -->
+{% if users.pages > 1 %}
+<div class="pagination">
+    {% if users.has_prev %}
+    <a href="{{ url_for('admin_users', page=users.prev_num, search=search, filter=filter_type) }}"
+        class="admin-btn admin-btn-secondary">
+        <i class="fa-solid fa-chevron-left"></i> Prev
+    </a>
+    {% else %}
+    <button class="admin-btn admin-btn-ghost" disabled style="opacity:.4; cursor:not-allowed;">
+        <i class="fa-solid fa-chevron-left"></i> Prev
+    </button>
+    {% endif %}
+
+    <span class="page-info">Page <strong style="color: var(--text-primary);">{{ users.page }}</strong> of {{ users.pages
+        }}</span>
+
+    {% if users.has_next %}
+    <a href="{{ url_for('admin_users', page=users.next_num, search=search, filter=filter_type) }}"
+        class="admin-btn admin-btn-secondary">
+        Next <i class="fa-solid fa-chevron-right"></i>
+    </a>
+    {% else %}
+    <button class="admin-btn admin-btn-ghost" disabled style="opacity:.4; cursor:not-allowed;">
+        Next <i class="fa-solid fa-chevron-right"></i>
+    </button>
+    {% endif %}
+</div>
+{% endif %}
+{% endblock %}
